@@ -57,6 +57,21 @@ const DB = {
     'XAF-EUR': 0.00152, 'XOF-EUR': 0.00152
   },
 
+  // ── Fase 3: Comercio y fidelización ────────────────────
+  reviews: [],
+  wishlists: {},
+  coupons: [
+    { id: 'coup_001', code: 'BIENVENIDO20', discount_type: 'percentage',  discount_value: 20,   min_order_eur: 30,  max_uses: 100, uses: 0, active: true, expires_at: '2026-12-31T23:59:59Z', description: '20% de descuento en tu primer pedido' },
+    { id: 'coup_002', code: 'VERANO10',     discount_type: 'fixed_eur',   discount_value: 10,   min_order_eur: 50,  max_uses: 50,  uses: 0, active: true, expires_at: '2026-08-31T23:59:59Z', description: '10€ de descuento en pedidos desde 50€' },
+    { id: 'coup_003', code: 'AFRICA5000',   discount_type: 'fixed_xaf',   discount_value: 5000, min_order_xaf: 20000, max_uses: 200, uses: 0, active: true, expires_at: '2026-12-31T23:59:59Z', description: '5000 XAF de descuento' }
+  ],
+  loyalty: {
+    'usr_001': { points: 150, total_earned: 150, total_redeemed: 0 },
+    'usr_002': { points: 320, total_earned: 320, total_redeemed: 0 }
+  },
+  loyalty_history: [],
+  referrals: [],
+
   // ── Fase 2: Extensiones financieras ────────────────────
   bill_providers: [
     { id: 'bp_001', name: 'SOMELEC',           category: 'electricity', country: 'GQ', field: 'account_number', currency: 'XAF', min_amount: 1000,  max_amount: 500000 },

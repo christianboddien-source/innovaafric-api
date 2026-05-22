@@ -7,6 +7,7 @@ const router  = express.Router();
 const DB = require('../config/db');
 const { success, error, paginate, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireKYC } = require('../middleware/auth');
+const { earnPoints } = require('../helpers/loyalty');
 
 // GET /v1/shop/products
 router.get('/products', (req, res) => {
@@ -95,6 +96,10 @@ router.post('/orders', requireAuth, requireKYC, (req, res) => {
   DB.orders.push(order);
   DB.carts[req.user.sub] = [];
   triggerWebhook('order.created', { id: order.id, total_eur, items_count: order.items.length });
+
+  // Acumular puntos de fidelidad
+  const points_earned = earnPoints(req.user.sub, total_eur, 0, 'shop_order', order.id);
+  order.loyalty_points_earned = points_earned;
 
   return success(res, order, 201);
 });

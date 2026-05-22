@@ -13,9 +13,14 @@ const bigshopRoutes  = require('./src/routes/bigshop');
 const deliveryRoutes = require('./src/routes/delivery');
 const utilsRoutes    = require('./src/routes/utils');
 const adminRoutes    = require('./src/routes/admin');
-const billsRoutes    = require('./src/routes/bills');
-const tontinesRoutes = require('./src/routes/tontines');
-const cardsRoutes    = require('./src/routes/cards');
+const billsRoutes     = require('./src/routes/bills');
+const tontinesRoutes  = require('./src/routes/tontines');
+const cardsRoutes     = require('./src/routes/cards');
+const reviewsRoutes   = require('./src/routes/reviews');
+const wishlistRoutes  = require('./src/routes/wishlist');
+const couponsRoutes   = require('./src/routes/coupons');
+const loyaltyRoutes   = require('./src/routes/loyalty');
+const referralsRoutes = require('./src/routes/referrals');
 const { error }      = require('./src/helpers/response');
 
 const app = express();
@@ -48,9 +53,14 @@ app.use('/v1/bigshop',  bigshopRoutes);
 app.use('/v1/delivery', deliveryRoutes);
 app.use('/v1/utils',    utilsRoutes);
 app.use('/v1/admin',    adminRoutes);
-app.use('/v1/bills',    billsRoutes);
-app.use('/v1/tontines', tontinesRoutes);
-app.use('/v1/cards',    cardsRoutes);
+app.use('/v1/bills',     billsRoutes);
+app.use('/v1/tontines',  tontinesRoutes);
+app.use('/v1/cards',     cardsRoutes);
+app.use('/v1/reviews',   reviewsRoutes);
+app.use('/v1/wishlist',  wishlistRoutes);
+app.use('/v1/coupons',   couponsRoutes);
+app.use('/v1/loyalty',   loyaltyRoutes);
+app.use('/v1/referrals', referralsRoutes);
 
 // ── 404 ─────────────────────────────────────────────────
 app.use((_req, res) => {
