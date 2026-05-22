@@ -234,4 +234,46 @@ router.post('/qr/generate', requireAuth, requireRole('circular_autorizada', 'adm
   return success(res, qrPayload, 201);
 });
 
+// POST /v1/money/topup — Recarga de saldo
+router.post('/topup', requireAuth, requireKYC, (req, res) => {
+  const { amount, currency = 'XAF', method, reference } = req.body;
+  if (!amount || !method) return error(res, 'Campos requeridos: amount, method', 400);
+  if (amount <= 0) return error(res, 'El importe debe ser mayor que 0', 400);
+
+  const validMethods = ['mtn_money', 'orange_money', 'bank_card', 'bank_transfer'];
+  if (!validMethods.includes(method)) {
+    return error(res, `Método no válido. Opciones: ${validMethods.join(', ')}`, 400);
+  }
+
+  const validCurrencies = ['EUR', 'USD', 'XAF', 'XOF'];
+  if (!validCurrencies.includes(currency)) {
+    return error(res, `Divisa no soportada. Opciones: ${validCurrencies.join(', ')}`, 400);
+  }
+
+  const wallet = DB.wallets[req.user.sub];
+  if (!wallet) return error(res, 'Wallet no encontrado', 404);
+
+  const balanceKey = `balance_${currency.toLowerCase()}`;
+  wallet[balanceKey] = (wallet[balanceKey] || 0) + amount;
+
+  const txn = {
+    id: `top_${uuidv4().slice(0, 8)}`,
+    type: 'topup',
+    user_id: req.user.sub,
+    amount, currency, method,
+    reference: reference || null,
+    status: 'completed',
+    created_at: new Date().toISOString()
+  };
+  DB.transactions.push(txn);
+  triggerWebhook('topup.completed', { id: txn.id, amount, currency, method });
+
+  return success(res, {
+    id: txn.id, status: txn.status,
+    amount, currency, method,
+    new_balance: wallet[balanceKey],
+    created_at: txn.created_at
+  });
+});
+
 module.exports = router;

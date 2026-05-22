@@ -13,6 +13,9 @@ const bigshopRoutes  = require('./src/routes/bigshop');
 const deliveryRoutes = require('./src/routes/delivery');
 const utilsRoutes    = require('./src/routes/utils');
 const adminRoutes    = require('./src/routes/admin');
+const billsRoutes    = require('./src/routes/bills');
+const tontinesRoutes = require('./src/routes/tontines');
+const cardsRoutes    = require('./src/routes/cards');
 const { error }      = require('./src/helpers/response');
 
 const app = express();
@@ -45,6 +48,9 @@ app.use('/v1/bigshop',  bigshopRoutes);
 app.use('/v1/delivery', deliveryRoutes);
 app.use('/v1/utils',    utilsRoutes);
 app.use('/v1/admin',    adminRoutes);
+app.use('/v1/bills',    billsRoutes);
+app.use('/v1/tontines', tontinesRoutes);
+app.use('/v1/cards',    cardsRoutes);
 
 // ── 404 ─────────────────────────────────────────────────
 app.use((_req, res) => {

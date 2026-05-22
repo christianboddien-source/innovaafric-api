@@ -55,7 +55,26 @@ const DB = {
     'EUR-XAF': 655.957, 'EUR-XOF': 655.957, 'EUR-USD': 1.08,
     'USD-XAF': 607.36,  'USD-XOF': 607.36,  'USD-EUR': 0.926,
     'XAF-EUR': 0.00152, 'XOF-EUR': 0.00152
-  }
+  },
+
+  // ── Fase 2: Extensiones financieras ────────────────────
+  bill_providers: [
+    { id: 'bp_001', name: 'SOMELEC',           category: 'electricity', country: 'GQ', field: 'account_number', currency: 'XAF', min_amount: 1000,  max_amount: 500000 },
+    { id: 'bp_002', name: 'AES-SONEL',         category: 'electricity', country: 'CM', field: 'account_number', currency: 'XAF', min_amount: 1000,  max_amount: 500000 },
+    { id: 'bp_003', name: 'SNEC',              category: 'water',       country: 'CM', field: 'account_number', currency: 'XAF', min_amount: 500,   max_amount: 200000 },
+    { id: 'bp_004', name: 'CAMWATER',          category: 'water',       country: 'CM', field: 'account_number', currency: 'XAF', min_amount: 500,   max_amount: 200000 },
+    { id: 'bp_005', name: 'MTN Cameroun',      category: 'airtime',     country: 'CM', field: 'phone',          currency: 'XAF', min_amount: 100,   max_amount: 50000  },
+    { id: 'bp_006', name: 'Orange Cameroun',   category: 'airtime',     country: 'CM', field: 'phone',          currency: 'XAF', min_amount: 100,   max_amount: 50000  },
+    { id: 'bp_007', name: 'MTN Guinea Ec.',    category: 'airtime',     country: 'GQ', field: 'phone',          currency: 'XAF', min_amount: 100,   max_amount: 50000  },
+    { id: 'bp_008', name: 'Orange Guinea Ec.', category: 'airtime',     country: 'GQ', field: 'phone',          currency: 'XAF', min_amount: 100,   max_amount: 50000  },
+    { id: 'bp_009', name: 'Camtel',            category: 'internet',    country: 'CM', field: 'account_number', currency: 'XAF', min_amount: 5000,  max_amount: 100000 },
+    { id: 'bp_010', name: 'GETESA',            category: 'internet',    country: 'GQ', field: 'account_number', currency: 'XAF', min_amount: 5000,  max_amount: 100000 },
+    { id: 'bp_011', name: 'Canal+ Afrique',    category: 'tv',          country: 'CM', field: 'account_number', currency: 'XAF', min_amount: 5000,  max_amount: 30000  },
+    { id: 'bp_012', name: 'DStv',              category: 'tv',          country: 'GQ', field: 'account_number', currency: 'XAF', min_amount: 5000,  max_amount: 30000  }
+  ],
+  bill_payments: [],
+  tontines: [],
+  virtual_cards: []
 };
 
 module.exports = DB;
