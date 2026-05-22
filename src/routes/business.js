@@ -4,44 +4,38 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const router  = express.Router();
 
-const DB = require('../config/db');
+const prisma  = require('../config/prisma');
 const { success, error, paginate, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireKYC } = require('../middleware/auth');
 const { notify } = require('../helpers/notify');
 
-// ── Cuentas empresariales ─────────────────────────────
+const CURRENCY_FIELD = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
 
 // POST /v1/business/accounts — Crear cuenta empresarial
-router.post('/accounts', requireAuth, requireKYC, (req, res) => {
+router.post('/accounts', requireAuth, requireKYC, async (req, res) => {
   const { company_name, tax_id, industry, country, address, website } = req.body;
   if (!company_name || !tax_id || !industry || !country) {
     return error(res, 'Campos requeridos: company_name, tax_id, industry, country', 400);
   }
 
-  const existing = DB.business_accounts.find(b => b.owner_id === req.user.sub);
+  const existing = await prisma.businessAccount.findFirst({ where: { ownerId: req.user.sub } });
   if (existing) return error(res, 'Ya tienes una cuenta empresarial activa', 409);
 
-  const account = {
-    id: `biz_${uuidv4().slice(0, 8)}`,
-    owner_id: req.user.sub,
-    company_name, tax_id, industry, country,
-    address: address || null,
-    website: website || null,
-    status: 'active',
-    plan: 'basic',
-    monthly_limit_eur: 10000,
-    created_at: new Date().toISOString()
-  };
-  DB.business_accounts.push(account);
+  const account = await prisma.businessAccount.create({
+    data: {
+      id: `biz_${uuidv4().slice(0, 8)}`,
+      ownerId: req.user.sub,
+      companyName: company_name, taxId: tax_id, industry, country,
+      address: address || null, website: website || null,
+      status: 'active', plan: 'basic', monthlyLimitEur: 10000
+    }
+  });
 
-  // Actualizar rol del usuario
-  const user = DB.users.find(u => u.id === req.user.sub);
-  if (user) user.role = 'circular_autorizada';
-
-  triggerWebhook('business.account_created', { id: account.id, company_name });
+  await prisma.user.update({ where: { id: req.user.sub }, data: { role: 'circular_autorizada' } });
+  await triggerWebhook('business.account_created', { id: account.id, company_name });
   notify(req.user.sub, {
     title: 'Cuenta empresarial activada',
-    body: `Tu cuenta empresarial "${company_name}" está lista. Plan básico: hasta ${account.monthly_limit_eur}€/mes.`,
+    body: `Tu cuenta empresarial "${company_name}" está lista. Plan básico: hasta ${account.monthlyLimitEur}€/mes.`,
     type: 'success'
   });
 
@@ -49,279 +43,280 @@ router.post('/accounts', requireAuth, requireKYC, (req, res) => {
 });
 
 // GET /v1/business/accounts/me — Mi cuenta empresarial
-router.get('/accounts/me', requireAuth, (req, res) => {
-  const account = DB.business_accounts.find(b => b.owner_id === req.user.sub);
+router.get('/accounts/me', requireAuth, async (req, res) => {
+  const account = await prisma.businessAccount.findFirst({ where: { ownerId: req.user.sub } });
   if (!account) return error(res, 'No tienes cuenta empresarial. Crea una con POST /v1/business/accounts', 404);
 
-  const myInvoices    = DB.invoices.filter(i => i.issuer_id === req.user.sub);
-  const myBulk        = DB.bulk_payments.filter(b => b.owner_id === req.user.sub);
-  const totalInvoiced = myInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.total_eur, 0);
+  const [invoices, bulkPayments] = await Promise.all([
+    prisma.invoice.findMany({ where: { issuerId: req.user.sub } }),
+    prisma.bulkPayment.findMany({ where: { ownerId: req.user.sub } })
+  ]);
+
+  const paidInvoices = invoices.filter(i => i.status === 'paid');
+  const totalInvoiced = paidInvoices.reduce((s, i) => s + i.totalEur, 0);
 
   return success(res, {
     ...account,
     stats: {
-      invoices_total: myInvoices.length,
-      invoices_paid: myInvoices.filter(i => i.status === 'paid').length,
+      invoices_total: invoices.length,
+      invoices_paid: paidInvoices.length,
       total_invoiced_eur: Math.round(totalInvoiced * 100) / 100,
-      bulk_payments: myBulk.length
+      bulk_payments: bulkPayments.length
     }
   });
 });
 
 // PATCH /v1/business/accounts/me — Actualizar datos empresa
-router.patch('/accounts/me', requireAuth, (req, res) => {
-  const account = DB.business_accounts.find(b => b.owner_id === req.user.sub);
+router.patch('/accounts/me', requireAuth, async (req, res) => {
+  const account = await prisma.businessAccount.findFirst({ where: { ownerId: req.user.sub } });
   if (!account) return error(res, 'No tienes cuenta empresarial', 404);
 
-  const allowed = ['address', 'website', 'industry'];
-  allowed.forEach(field => {
-    if (req.body[field] !== undefined) account[field] = req.body[field];
-  });
-  account.updated_at = new Date().toISOString();
-  return success(res, account);
+  const data = {};
+  if (req.body.address !== undefined) data.address = req.body.address;
+  if (req.body.website !== undefined) data.website = req.body.website;
+  if (req.body.industry !== undefined) data.industry = req.body.industry;
+
+  const updated = await prisma.businessAccount.update({ where: { id: account.id }, data });
+  return success(res, updated);
 });
 
-// ── Pagos masivos (Bulk) ──────────────────────────────
-
 // POST /v1/business/bulk/payments — Lanzar pago masivo
-router.post('/bulk/payments', requireAuth, requireKYC, (req, res) => {
+router.post('/bulk/payments', requireAuth, requireKYC, async (req, res) => {
   const { recipients, currency = 'XAF', description } = req.body;
   if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
     return error(res, 'recipients requerido: array de {user_id, amount}', 400);
   }
   if (recipients.length > 500) return error(res, 'Máximo 500 destinatarios por lote', 400);
 
-  const account = DB.business_accounts.find(b => b.owner_id === req.user.sub);
+  const account = await prisma.businessAccount.findFirst({ where: { ownerId: req.user.sub } });
   if (!account) return error(res, 'Necesitas una cuenta empresarial para pagos masivos', 403);
 
-  const wallet   = DB.wallets[req.user.sub];
-  const balKey   = `balance_${currency.toLowerCase()}`;
+  const balanceField = CURRENCY_FIELD[currency] || 'balanceXaf';
+  const wallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
   const totalAmt = recipients.reduce((s, r) => s + (r.amount || 0), 0);
 
-  if (!wallet || wallet[balKey] < totalAmt) {
-    return error(res, `Saldo ${currency} insuficiente. Necesitas ${totalAmt}, tienes ${wallet?.[balKey] || 0}`, 422);
+  if (!wallet || wallet[balanceField] < totalAmt) {
+    return error(res, `Saldo ${currency} insuficiente. Necesitas ${totalAmt}, tienes ${wallet?.[balanceField] || 0}`, 422);
   }
 
   const results = [];
   let succeeded = 0;
-  let failed    = 0;
+  let failed = 0;
 
   for (const rec of recipients) {
-    const recipient = DB.users.find(u => u.id === rec.user_id || u.email === rec.user_id || u.phone === rec.user_id);
+    const recipient = await prisma.user.findFirst({
+      where: { OR: [{ id: rec.user_id }, { email: rec.user_id }, { phone: rec.user_id }] }
+    });
     if (!recipient || !rec.amount || rec.amount <= 0) {
       results.push({ recipient_ref: rec.user_id, status: 'failed', reason: recipient ? 'Importe inválido' : 'Usuario no encontrado' });
       failed++;
       continue;
     }
-    wallet[balKey] -= rec.amount;
-    const recWallet = DB.wallets[recipient.id] || { balance_eur: 0, balance_usd: 0, balance_xaf: 0, balance_xof: 0 };
-    recWallet[balKey] = (recWallet[balKey] || 0) + rec.amount;
-    DB.wallets[recipient.id] = recWallet;
-
+    await prisma.$transaction([
+      prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: rec.amount } } }),
+      prisma.wallet.upsert({
+        where: { userId: recipient.id },
+        update: { [balanceField]: { increment: rec.amount } },
+        create: { userId: recipient.id, [balanceField]: rec.amount }
+      })
+    ]);
     notify(recipient.id, {
       title: 'Pago recibido',
-      body: `Has recibido ${rec.amount} ${currency} de ${account.company_name}.`,
-      type: 'success', data: { amount: rec.amount, currency, from: account.company_name }
+      body: `Has recibido ${rec.amount} ${currency} de ${account.companyName}.`,
+      type: 'success', data: { amount: rec.amount, currency, from: account.companyName }
     });
     results.push({ recipient_ref: rec.user_id, recipient_name: recipient.name, amount: rec.amount, status: 'completed' });
     succeeded++;
   }
 
-  const bulk = {
-    id: `bulk_${uuidv4().slice(0, 8)}`,
-    owner_id: req.user.sub,
-    company: account.company_name,
-    description: description || null,
-    currency,
-    total_amount: totalAmt,
-    recipients_total: recipients.length,
-    succeeded, failed,
-    results,
-    status: failed === 0 ? 'completed' : 'partial',
-    created_at: new Date().toISOString()
-  };
-  DB.bulk_payments.push(bulk);
-  triggerWebhook('bulk_payment.completed', { id: bulk.id, succeeded, failed, total_amount: totalAmt });
+  const bulk = await prisma.bulkPayment.create({
+    data: {
+      id: `bulk_${uuidv4().slice(0, 8)}`,
+      ownerId: req.user.sub, companyName: account.companyName,
+      description: description || null, currency,
+      totalAmount: totalAmt, recipientsTotal: recipients.length,
+      succeeded, failed,
+      status: failed === 0 ? 'completed' : 'partial',
+      results: { create: results.map(r => ({ recipientRef: r.recipient_ref, status: r.status, amount: r.amount || null, reason: r.reason || null })) }
+    }
+  });
+
+  await triggerWebhook('bulk_payment.completed', { id: bulk.id, succeeded, failed, total_amount: totalAmt });
 
   return success(res, {
     id: bulk.id, status: bulk.status,
-    total_amount: totalAmt, currency,
-    succeeded, failed,
-    results,
-    created_at: bulk.created_at
+    total_amount: totalAmt, currency, succeeded, failed, results,
+    created_at: bulk.createdAt
   }, 201);
 });
 
 // GET /v1/business/bulk/payments — Historial
-router.get('/bulk/payments', requireAuth, (req, res) => {
+router.get('/bulk/payments', requireAuth, async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
-  const payments = DB.bulk_payments
-    .filter(b => b.owner_id === req.user.sub)
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const payments = await prisma.bulkPayment.findMany({
+    where: { ownerId: req.user.sub }, orderBy: { createdAt: 'desc' }
+  });
   return success(res, paginate(payments, page, limit));
 });
 
 // GET /v1/business/bulk/payments/:id — Detalle
-router.get('/bulk/payments/:id', requireAuth, (req, res) => {
-  const payment = DB.bulk_payments.find(b => b.id === req.params.id && b.owner_id === req.user.sub);
+router.get('/bulk/payments/:id', requireAuth, async (req, res) => {
+  const payment = await prisma.bulkPayment.findFirst({
+    where: { id: req.params.id, ownerId: req.user.sub },
+    include: { results: true }
+  });
   if (!payment) return error(res, 'Pago masivo no encontrado', 404);
   return success(res, payment);
 });
 
-// ── Facturas digitales ────────────────────────────────
-
 // POST /v1/business/invoices — Crear factura
-router.post('/invoices', requireAuth, requireKYC, (req, res) => {
+router.post('/invoices', requireAuth, requireKYC, async (req, res) => {
   const { client_id, client_name, client_email, items, currency = 'EUR', due_date, notes } = req.body;
   if (!items || items.length === 0) return error(res, 'items requerido: array de {description, quantity, unit_price}', 400);
   if (!client_name && !client_id) return error(res, 'Indica client_id o client_name', 400);
 
-  const account = DB.business_accounts.find(b => b.owner_id === req.user.sub);
+  const account = await prisma.businessAccount.findFirst({ where: { ownerId: req.user.sub } });
   if (!account) return error(res, 'Necesitas una cuenta empresarial para crear facturas', 403);
 
   const lineItems = items.map(item => ({
     description: item.description,
     quantity: item.quantity || 1,
-    unit_price: item.unit_price,
+    unitPrice: item.unit_price,
     subtotal: Math.round(item.unit_price * (item.quantity || 1) * 100) / 100
   }));
   const subtotal = lineItems.reduce((s, i) => s + i.subtotal, 0);
-  const tax_rate = 0.19;
-  const tax      = Math.round(subtotal * tax_rate * 100) / 100;
-  const total    = Math.round((subtotal + tax) * 100) / 100;
+  const taxRate = 0.19;
+  const tax = Math.round(subtotal * taxRate * 100) / 100;
+  const total = Math.round((subtotal + tax) * 100) / 100;
 
-  const invoice_number = `INV-${account.id.slice(-4).toUpperCase()}-${String(DB.invoices.filter(i => i.issuer_id === req.user.sub).length + 1).padStart(4, '0')}`;
+  const invoiceCount = await prisma.invoice.count({ where: { issuerId: req.user.sub } });
+  const invoiceNumber = `INV-${account.id.slice(-4).toUpperCase()}-${String(invoiceCount + 1).padStart(4, '0')}`;
 
-  const invoice = {
-    id: `inv_${uuidv4().slice(0, 8)}`,
-    invoice_number,
-    issuer_id: req.user.sub,
-    issuer_name: account.company_name,
-    client_id: client_id || null,
-    client_name,
-    client_email: client_email || null,
-    currency,
-    items: lineItems,
-    subtotal: Math.round(subtotal * 100) / 100,
-    tax_rate,
-    tax_amount: tax,
-    total_eur: total,
-    notes: notes || null,
-    status: 'draft',
-    due_date: due_date || null,
-    created_at: new Date().toISOString()
-  };
-  DB.invoices.push(invoice);
+  const invoice = await prisma.invoice.create({
+    data: {
+      id: `inv_${uuidv4().slice(0, 8)}`,
+      invoiceNumber, issuerId: req.user.sub,
+      issuerName: account.companyName,
+      clientId: client_id || null, clientName: client_name || null, clientEmail: client_email || null,
+      currency,
+      subtotal: Math.round(subtotal * 100) / 100,
+      taxRate, taxAmount: tax, totalEur: total,
+      notes: notes || null, status: 'draft',
+      dueDate: due_date ? new Date(due_date) : null,
+      items: { create: lineItems }
+    },
+    include: { items: true }
+  });
   return success(res, invoice, 201);
 });
 
 // GET /v1/business/invoices — Listar mis facturas
-router.get('/invoices', requireAuth, (req, res) => {
+router.get('/invoices', requireAuth, async (req, res) => {
   const { status, page = 1, limit = 20 } = req.query;
-  let invoices = DB.invoices.filter(i => i.issuer_id === req.user.sub);
-  if (status) invoices = invoices.filter(i => i.status === status);
-  invoices.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const where = { issuerId: req.user.sub };
+  if (status) where.status = status;
+
+  const invoices = await prisma.invoice.findMany({ where, include: { items: true }, orderBy: { createdAt: 'desc' } });
   return success(res, paginate(invoices, page, limit));
 });
 
 // GET /v1/business/invoices/:id
-router.get('/invoices/:id', requireAuth, (req, res) => {
-  const invoice = DB.invoices.find(i => i.id === req.params.id &&
-    (i.issuer_id === req.user.sub || i.client_id === req.user.sub));
+router.get('/invoices/:id', requireAuth, async (req, res) => {
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: req.params.id, OR: [{ issuerId: req.user.sub }, { clientId: req.user.sub }] },
+    include: { items: true }
+  });
   if (!invoice) return error(res, 'Factura no encontrada', 404);
   return success(res, invoice);
 });
 
 // PATCH /v1/business/invoices/:id/send — Enviar factura al cliente
-router.patch('/invoices/:id/send', requireAuth, (req, res) => {
-  const invoice = DB.invoices.find(i => i.id === req.params.id && i.issuer_id === req.user.sub);
+router.patch('/invoices/:id/send', requireAuth, async (req, res) => {
+  const invoice = await prisma.invoice.findFirst({ where: { id: req.params.id, issuerId: req.user.sub } });
   if (!invoice) return error(res, 'Factura no encontrada', 404);
   if (invoice.status !== 'draft') return error(res, 'Solo se pueden enviar facturas en estado draft', 400);
 
-  invoice.status = 'sent';
-  invoice.sent_at = new Date().toISOString();
+  const updated = await prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'sent', sentAt: new Date() } });
 
-  if (invoice.client_id) {
-    notify(invoice.client_id, {
+  if (invoice.clientId) {
+    notify(invoice.clientId, {
       title: 'Nueva factura recibida',
-      body: `${invoice.issuer_name} te ha enviado la factura ${invoice.invoice_number} por ${invoice.total_eur} ${invoice.currency}.`,
-      type: 'info', data: { invoice_id: invoice.id, total: invoice.total_eur }
+      body: `${invoice.issuerName} te ha enviado la factura ${invoice.invoiceNumber} por ${invoice.totalEur} ${invoice.currency}.`,
+      type: 'info', data: { invoice_id: invoice.id, total: invoice.totalEur }
     });
   }
-  triggerWebhook('invoice.sent', { id: invoice.id, invoice_number: invoice.invoice_number, total: invoice.total_eur });
-  return success(res, { id: invoice.id, invoice_number: invoice.invoice_number, status: 'sent', sent_at: invoice.sent_at });
+  await triggerWebhook('invoice.sent', { id: invoice.id, invoice_number: invoice.invoiceNumber, total: invoice.totalEur });
+  return success(res, { id: invoice.id, invoice_number: invoice.invoiceNumber, status: 'sent', sent_at: updated.sentAt });
 });
 
-// PATCH /v1/business/invoices/:id/pay — Pagar factura (cliente paga desde su wallet)
-router.patch('/invoices/:id/pay', requireAuth, requireKYC, (req, res) => {
-  const invoice = DB.invoices.find(i => i.id === req.params.id);
+// PATCH /v1/business/invoices/:id/pay — Pagar factura
+router.patch('/invoices/:id/pay', requireAuth, requireKYC, async (req, res) => {
+  const invoice = await prisma.invoice.findUnique({ where: { id: req.params.id } });
   if (!invoice) return error(res, 'Factura no encontrada', 404);
   if (!['sent', 'draft'].includes(invoice.status)) return error(res, 'Esta factura ya fue pagada o cancelada', 400);
 
-  const wallet  = DB.wallets[req.user.sub];
-  const balKey  = `balance_${invoice.currency.toLowerCase()}`;
-  if (!wallet || wallet[balKey] < invoice.total_eur) {
+  const balanceField = CURRENCY_FIELD[invoice.currency] || 'balanceEur';
+  const wallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
+  if (!wallet || wallet[balanceField] < invoice.totalEur) {
     return error(res, `Saldo ${invoice.currency} insuficiente`, 422);
   }
 
-  wallet[balKey] -= invoice.total_eur;
+  await prisma.$transaction([
+    prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: invoice.totalEur } } }),
+    prisma.wallet.upsert({
+      where: { userId: invoice.issuerId },
+      update: { [balanceField]: { increment: invoice.totalEur } },
+      create: { userId: invoice.issuerId, [balanceField]: invoice.totalEur }
+    }),
+    prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'paid', paidAt: new Date(), paidBy: req.user.sub } })
+  ]);
 
-  const issuerWallet = DB.wallets[invoice.issuer_id];
-  if (issuerWallet) issuerWallet[balKey] = (issuerWallet[balKey] || 0) + invoice.total_eur;
-
-  invoice.status  = 'paid';
-  invoice.paid_at = new Date().toISOString();
-  invoice.paid_by = req.user.sub;
-
-  notify(invoice.issuer_id, {
+  notify(invoice.issuerId, {
     title: 'Factura pagada',
-    body: `La factura ${invoice.invoice_number} ha sido pagada. Importe: ${invoice.total_eur} ${invoice.currency}.`,
-    type: 'success', data: { invoice_id: invoice.id, amount: invoice.total_eur }
+    body: `La factura ${invoice.invoiceNumber} ha sido pagada. Importe: ${invoice.totalEur} ${invoice.currency}.`,
+    type: 'success', data: { invoice_id: invoice.id, amount: invoice.totalEur }
   });
-  triggerWebhook('invoice.paid', { id: invoice.id, amount: invoice.total_eur, currency: invoice.currency });
+  await triggerWebhook('invoice.paid', { id: invoice.id, amount: invoice.totalEur, currency: invoice.currency });
 
-  return success(res, { id: invoice.id, invoice_number: invoice.invoice_number, status: 'paid', paid_at: invoice.paid_at, amount: invoice.total_eur });
+  return success(res, { id: invoice.id, invoice_number: invoice.invoiceNumber, status: 'paid', paid_at: new Date(), amount: invoice.totalEur });
 });
 
-// ── Analíticas ────────────────────────────────────────
-
 // GET /v1/business/analytics — Panel analítico del negocio
-router.get('/analytics', requireAuth, (req, res) => {
-  const account = DB.business_accounts.find(b => b.owner_id === req.user.sub);
+router.get('/analytics', requireAuth, async (req, res) => {
+  const account = await prisma.businessAccount.findFirst({ where: { ownerId: req.user.sub } });
   if (!account) return error(res, 'No tienes cuenta empresarial', 404);
 
-  const myOrders   = DB.orders.filter(o => o.user_id === req.user.sub);
-  const myInvoices = DB.invoices.filter(i => i.issuer_id === req.user.sub);
-  const myBulk     = DB.bulk_payments.filter(b => b.owner_id === req.user.sub);
-  const myTxns     = DB.transactions.filter(t => t.user_id === req.user.sub);
+  const now = new Date();
+  const month30 = new Date(now - 30 * 86400000);
 
-  const invoicePaid = myInvoices.filter(i => i.status === 'paid');
-  const revenue_eur = invoicePaid.reduce((s, i) => s + i.total_eur, 0);
+  const [invoices, bulkPayments, recentTxns, wallet] = await Promise.all([
+    prisma.invoice.findMany({ where: { issuerId: req.user.sub } }),
+    prisma.bulkPayment.findMany({ where: { ownerId: req.user.sub } }),
+    prisma.transaction.findMany({ where: { userId: req.user.sub, createdAt: { gte: month30 } } }),
+    prisma.wallet.findUnique({ where: { userId: req.user.sub } })
+  ]);
 
-  const now      = new Date();
-  const month30  = new Date(now - 30 * 86400000);
-  const recentTx = myTxns.filter(t => new Date(t.created_at) > month30);
+  const paidInvoices = invoices.filter(i => i.status === 'paid');
+  const revenue_eur = paidInvoices.reduce((s, i) => s + i.totalEur, 0);
 
   return success(res, {
-    company: account.company_name,
-    plan: account.plan,
-    period: 'all_time',
+    company: account.companyName, plan: account.plan, period: 'all_time',
     revenue: {
       total_eur: Math.round(revenue_eur * 100) / 100,
-      invoices_paid: invoicePaid.length,
-      invoices_pending: myInvoices.filter(i => i.status === 'sent').length,
-      invoices_draft: myInvoices.filter(i => i.status === 'draft').length
+      invoices_paid: paidInvoices.length,
+      invoices_pending: invoices.filter(i => i.status === 'sent').length,
+      invoices_draft: invoices.filter(i => i.status === 'draft').length
     },
     bulk_payments: {
-      total: myBulk.length,
-      recipients_paid: myBulk.reduce((s, b) => s + b.succeeded, 0),
-      total_disbursed_xaf: myBulk.filter(b => b.currency === 'XAF').reduce((s, b) => s + b.total_amount, 0)
+      total: bulkPayments.length,
+      recipients_paid: bulkPayments.reduce((s, b) => s + b.succeeded, 0),
+      total_disbursed_xaf: bulkPayments.filter(b => b.currency === 'XAF').reduce((s, b) => s + b.totalAmount, 0)
     },
     transactions_last_30d: {
-      count: recentTx.length,
-      volume_eur: recentTx.filter(t => t.currency_sent === 'EUR').reduce((s, t) => s + (t.amount_sent || t.amount || 0), 0)
+      count: recentTxns.length,
+      volume_eur: recentTxns.filter(t => t.currencySent === 'EUR').reduce((s, t) => s + (t.amountSent || 0), 0)
     },
-    wallet: DB.wallets[req.user.sub] || {}
+    wallet: wallet || {}
   });
 });
 

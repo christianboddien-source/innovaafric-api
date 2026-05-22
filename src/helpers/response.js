@@ -1,6 +1,7 @@
 'use strict';
 
-const DB = require('../config/db');
+const { v4: uuidv4 } = require('uuid');
+const prisma = require('../config/prisma');
 
 function success(res, data, code = 200) {
   return res.status(code).json({ success: true, data, timestamp: new Date().toISOString() });
@@ -20,9 +21,10 @@ function paginate(array, page = 1, limit = 20) {
   };
 }
 
-function getRate(from, to) {
+async function getRate(from, to) {
   if (from === to) return 1;
-  return DB.exchange_rates[`${from}-${to}`] || null;
+  const record = await prisma.exchangeRate.findUnique({ where: { pair: `${from}-${to}` } });
+  return record?.rate || null;
 }
 
 function calcFee(amount, type = 'send') {
@@ -30,10 +32,12 @@ function calcFee(amount, type = 'send') {
   return Math.round((amount * (feeRates[type] || 0.02)) * 100) / 100;
 }
 
-function triggerWebhook(event, data) {
-  const payload = { event, data, timestamp: new Date().toISOString(), id: require('uuid').v4() };
-  DB.webhooks.push(payload);
-  console.log(`[WEBHOOK] ${event}:`, JSON.stringify(data).slice(0, 80));
+async function triggerWebhook(event, data) {
+  const payload = JSON.stringify(data);
+  console.log(`[WEBHOOK] ${event}:`, payload.slice(0, 80));
+  try {
+    await prisma.webhook.create({ data: { id: uuidv4(), event, data: payload } });
+  } catch { /* no bloquear si falla el webhook */ }
 }
 
 module.exports = { success, error, paginate, getRate, calcFee, triggerWebhook };

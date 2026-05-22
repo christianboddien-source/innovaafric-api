@@ -1,0 +1,512 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id
+  email        String   @unique
+  name         String
+  phone        String
+  country      String
+  role         String   @default("customer")
+  passwordHash String
+  kycStatus    String   @default("pending")
+  kycDocument  String?
+  referralCode String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  wallet          Wallet?
+  sentTxns        Transaction[]       @relation("SentTxns")
+  receivedTxns    Transaction[]       @relation("ReceivedTxns")
+  orders          Order[]
+  groceryOrders   GroceryOrder[]
+  billPayments    BillPayment[]
+  tontineMembers  TontineMember[]
+  virtualCards    VirtualCard[]
+  notifications   Notification[]
+  loyalty         LoyaltyAccount?
+  business        BusinessAccount?
+  wishlist        WishlistItem[]
+  reviews         Review[]
+  referrerOf      Referral[]          @relation("Referrer")
+  referredBy      Referral?           @relation("Referred")
+  bulkPayments    BulkPayment[]
+  invoicesIssued  Invoice[]           @relation("Issuer")
+  invoicesPaid    Invoice[]           @relation("Payer")
+  cartItems       CartItem[]
+}
+
+model Wallet {
+  id         String @id @default(cuid())
+  userId     String @unique
+  balanceEur Float  @default(0)
+  balanceUsd Float  @default(0)
+  balanceXaf Float  @default(0)
+  balanceXof Float  @default(0)
+  user       User   @relation(fields: [userId], references: [id])
+}
+
+model Transaction {
+  id               String   @id
+  type             String
+  userId           String
+  recipientId      String?
+  amountSent       Float?
+  currencySent     String?
+  amountReceived   Float?
+  currencyReceived String?
+  fee              Float    @default(0)
+  exchangeRate     Float?
+  amount           Float?
+  currency         String?
+  method           String?
+  destination      String?
+  reference        String?
+  note             String?
+  merchantId       String?
+  status           String   @default("completed")
+  createdAt        DateTime @default(now())
+
+  user      User  @relation("SentTxns",     fields: [userId],      references: [id])
+  recipient User? @relation("ReceivedTxns", fields: [recipientId], references: [id])
+}
+
+model Product {
+  id           String  @id
+  name         String
+  priceEur     Float
+  priceXaf     Float
+  category     String
+  stock        Int     @default(0)
+  origin       String
+  ceCertified  Boolean @default(true)
+  deliveryDays Int     @default(5)
+  ratingAvg    Float?
+  ratingCount  Int     @default(0)
+
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  wishlistItems WishlistItem[]
+}
+
+model GroceryProduct {
+  id        String  @id
+  name      String
+  priceXaf  Float
+  category  String
+  store     String
+  available Boolean @default(true)
+
+  groceryOrderItems GroceryOrderItem[]
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int
+  priceEur  Float
+  priceXaf  Float
+
+  user    User    @relation(fields: [userId],    references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id                  String    @id
+  userId              String
+  totalEur            Float
+  totalXaf            Float
+  paymentCurrency     String
+  paymentAmount       Float
+  deliveryAddress     String
+  notes               String?
+  status              String    @default("confirmed")
+  estimatedDelivery   String?
+  trackingId          String    @unique
+  hubLocation         String?
+  loyaltyPointsEarned Int       @default(0)
+  deliveryProof       String?
+  createdAt           DateTime  @default(now())
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  priceEur  Float
+  priceXaf  Float
+
+  order   Order   @relation(fields: [orderId],   references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model GroceryOrder {
+  id                String   @id
+  userId            String
+  totalXaf          Float
+  notes             String?
+  deliveryAddress   String
+  riderId           String?
+  status            String   @default("preparing")
+  estimatedDelivery String?
+  deliveryProof     String?
+  createdAt         DateTime @default(now())
+
+  user  User               @relation(fields: [userId],  references: [id])
+  rider Rider?             @relation(fields: [riderId], references: [id])
+  items GroceryOrderItem[]
+}
+
+model GroceryOrderItem {
+  id             String @id @default(cuid())
+  groceryOrderId String
+  productId      String
+  quantity       Int
+  priceXaf       Float
+
+  groceryOrder GroceryOrder   @relation(fields: [groceryOrderId], references: [id])
+  product      GroceryProduct @relation(fields: [productId],      references: [id])
+}
+
+model Rider {
+  id              String   @id
+  name            String
+  phone           String
+  zone            String
+  vehicle         String
+  status          String   @default("available")
+  rating          Float?
+  deliveriesTotal Int      @default(0)
+  registeredBy    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  groceryOrders GroceryOrder[]
+}
+
+model Merchant {
+  id         String  @id
+  name       String
+  circularId String
+  qrCode     String  @unique
+  active     Boolean @default(true)
+}
+
+model ApiClient {
+  id           String @id @default(cuid())
+  clientId     String @unique
+  clientSecret String
+  name         String
+  scopes       String
+}
+
+model BillProvider {
+  id        String @id
+  name      String
+  category  String
+  country   String
+  field     String
+  currency  String @default("XAF")
+  minAmount Float
+  maxAmount Float
+
+  payments BillPayment[]
+}
+
+model BillPayment {
+  id               String   @id
+  userId           String
+  providerId       String
+  amount           Float
+  currency         String
+  referenceNumber  String
+  note             String?
+  status           String   @default("completed")
+  confirmationCode String
+  createdAt        DateTime @default(now())
+
+  user     User         @relation(fields: [userId],     references: [id])
+  provider BillProvider @relation(fields: [providerId], references: [id])
+}
+
+model Tontine {
+  id                 String   @id
+  name               String
+  description        String?
+  adminId            String
+  contributionAmount Float
+  currency           String   @default("XAF")
+  frequency          String
+  maxMembers         Int
+  currentRound       Int      @default(1)
+  status             String   @default("open")
+  createdAt          DateTime @default(now())
+
+  members       TontineMember[]
+  contributions TontineContribution[]
+}
+
+model TontineMember {
+  id          String   @id @default(cuid())
+  tontineId   String
+  userId      String
+  turn        Int
+  hasReceived Boolean  @default(false)
+  joinedAt    DateTime @default(now())
+
+  tontine Tontine @relation(fields: [tontineId], references: [id])
+  user    User    @relation(fields: [userId],    references: [id])
+
+  @@unique([tontineId, userId])
+}
+
+model TontineContribution {
+  id        String   @id
+  tontineId String
+  userId    String
+  round     Int
+  amount    Float
+  currency  String
+  createdAt DateTime @default(now())
+
+  tontine Tontine @relation(fields: [tontineId], references: [id])
+}
+
+model VirtualCard {
+  id          String    @id
+  userId      String
+  label       String
+  number      String
+  cvv         String
+  expiry      String
+  currency    String
+  balance     Float     @default(0)
+  status      String    @default("active")
+  frozen      Boolean   @default(false)
+  spentTotal  Float     @default(0)
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user         User                   @relation(fields: [userId], references: [id])
+  transactions VirtualCardTransaction[]
+}
+
+model VirtualCardTransaction {
+  id        String   @id @default(cuid())
+  cardId    String
+  type      String
+  amount    Float
+  createdAt DateTime @default(now())
+
+  card VirtualCard @relation(fields: [cardId], references: [id])
+}
+
+model Review {
+  id         String   @id
+  type       String
+  targetId   String
+  targetName String
+  userId     String
+  rating     Int
+  comment    String?
+  orderId    String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([type, targetId, userId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId],    references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
+}
+
+model Coupon {
+  id            String   @id
+  code          String   @unique
+  discountType  String
+  discountValue Float
+  minOrderEur   Float?
+  minOrderXaf   Float?
+  maxUses       Int
+  uses          Int      @default(0)
+  active        Boolean  @default(true)
+  expiresAt     DateTime
+  description   String?
+  createdAt     DateTime @default(now())
+}
+
+model LoyaltyAccount {
+  id            String         @id @default(cuid())
+  userId        String         @unique
+  points        Int            @default(0)
+  totalEarned   Int            @default(0)
+  totalRedeemed Int            @default(0)
+  user          User           @relation(fields: [userId], references: [id])
+  history       LoyaltyHistory[]
+}
+
+model LoyaltyHistory {
+  id           String         @id @default(cuid())
+  loyaltyId    String
+  userId       String
+  points       Int
+  type         String
+  source       String
+  refId        String?
+  balanceAfter Int
+  createdAt    DateTime       @default(now())
+
+  loyalty LoyaltyAccount @relation(fields: [loyaltyId], references: [id])
+}
+
+model Referral {
+  id           String   @id @default(cuid())
+  referrerId   String
+  referredId   String   @unique
+  bonusAwarded Int
+  createdAt    DateTime @default(now())
+
+  referrer User @relation("Referrer", fields: [referrerId], references: [id])
+  referred User @relation("Referred", fields: [referredId], references: [id])
+}
+
+model BusinessAccount {
+  id            String   @id
+  ownerId       String   @unique
+  companyName   String
+  taxId         String
+  industry      String
+  country       String
+  address       String?
+  website       String?
+  status           String   @default("active")
+  plan             String   @default("basic")
+  monthlyLimitEur  Float    @default(10000)
+  createdAt        DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  owner        User          @relation(fields: [ownerId],     references: [id])
+  bulkPayments BulkPayment[]
+  invoices     Invoice[]     @relation("BusinessInvoices")
+}
+
+model BulkPayment {
+  id              String   @id
+  ownerId         String
+  businessId      String?
+  companyName     String
+  description     String?
+  currency        String
+  totalAmount     Float
+  recipientsTotal Int
+  succeeded       Int
+  failed          Int
+  status          String
+  createdAt       DateTime @default(now())
+
+  owner    User             @relation(fields: [ownerId],     references: [id])
+  business BusinessAccount? @relation(fields: [businessId], references: [id])
+  results  BulkPaymentResult[]
+}
+
+model BulkPaymentResult {
+  id            String  @id @default(cuid())
+  bulkPaymentId String
+  recipientRef  String
+  recipientName String?
+  amount        Float?
+  status        String
+  reason        String?
+
+  bulkPayment BulkPayment @relation(fields: [bulkPaymentId], references: [id])
+}
+
+model Invoice {
+  id            String    @id
+  invoiceNumber String    @unique
+  issuerId      String
+  issuerName    String
+  businessId    String?
+  clientId      String?
+  clientName    String
+  clientEmail   String?
+  currency      String
+  subtotal      Float
+  taxRate       Float
+  taxAmount     Float
+  totalEur      Float
+  notes         String?
+  status        String    @default("draft")
+  dueDate       DateTime?
+  sentAt        DateTime?
+  paidAt        DateTime?
+  paidBy        String?
+  createdAt     DateTime  @default(now())
+
+  issuer   User             @relation("Issuer", fields: [issuerId], references: [id])
+  payer    User?            @relation("Payer",  fields: [paidBy],   references: [id])
+  business BusinessAccount? @relation("BusinessInvoices", fields: [businessId], references: [id])
+  items    InvoiceItem[]
+}
+
+model InvoiceItem {
+  id          String @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Int
+  unitPrice   Float
+  subtotal    Float
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+model Notification {
+  id        String    @id
+  userId    String
+  title     String
+  body      String
+  type      String    @default("info")
+  channel   String    @default("in_app")
+  data      String?
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  event     String
+  data      String
+  timestamp DateTime @default(now())
+}
+
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  pair      String   @unique
+  rate      Float
+  updatedAt DateTime @updatedAt
+}
