@@ -1,9 +1,11 @@
 'use strict';
 
-const express   = require('express');
-const cors      = require('cors');
-const helmet    = require('helmet');
-const rateLimit = require('express-rate-limit');
+const express      = require('express');
+const cors         = require('cors');
+const helmet       = require('helmet');
+const rateLimit    = require('express-rate-limit');
+const swaggerUi    = require('swagger-ui-express');
+const swaggerSpec  = require('./src/config/swagger');
 require('dotenv').config();
 
 const authRoutes     = require('./src/routes/auth');
@@ -46,6 +48,13 @@ app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
+
+// ── Documentación Swagger ───────────────────────────────
+app.use('/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'INNOVAAFRIC API Docs',
+  customCss: '.swagger-ui .topbar { background-color: #1a1a2e; }'
+}));
+app.get('/v1/docs.json', (_req, res) => res.json(swaggerSpec));
 
 // ── Rutas ───────────────────────────────────────────────
 app.use('/v1/auth',     authRoutes);
