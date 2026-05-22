@@ -57,6 +57,12 @@ const DB = {
     'XAF-EUR': 0.00152, 'XOF-EUR': 0.00152
   },
 
+  // ── Fase 4: Negocio y comunicaciones ───────────────────
+  business_accounts: [],
+  bulk_payments: [],
+  invoices: [],
+  notifications: [],
+
   // ── Fase 3: Comercio y fidelización ────────────────────
   reviews: [],
   wishlists: {},

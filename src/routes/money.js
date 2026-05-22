@@ -7,6 +7,7 @@ const router  = express.Router();
 const DB = require('../config/db');
 const { success, error, paginate, getRate, calcFee, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireRole, requireKYC } = require('../middleware/auth');
+const { notify } = require('../helpers/notify');
 
 // GET /v1/money/balance
 router.get('/balance', requireAuth, requireKYC, (req, res) => {
@@ -83,6 +84,11 @@ router.post('/send', requireAuth, requireKYC, (req, res) => {
   };
   DB.transactions.push(txn);
   triggerWebhook('payment.completed', { id: txn.id, type: 'send', amount, currency, recipient_id: recipient.id });
+  notify(recipient.id, {
+    title: 'Dinero recibido',
+    body: `Has recibido ${amount_received} ${dest_currency} de un usuario INNOVAAFRIC.`,
+    type: 'success', data: { txn_id: txn.id, amount: amount_received, currency: dest_currency }
+  });
 
   return success(res, {
     id: txn.id, status: txn.status,
@@ -165,6 +171,11 @@ router.post('/transfer', requireAuth, requireKYC, (req, res) => {
   };
   DB.transactions.push(txn);
   triggerWebhook('transfer.completed', { id: txn.id, amount, currency });
+  notify(recipient.id, {
+    title: 'Transferencia recibida',
+    body: `Has recibido ${amount} ${currency}${note ? ` — "${note}"` : ''}.`,
+    type: 'success', data: { txn_id: txn.id, amount, currency }
+  });
 
   return success(res, {
     id: txn.id, status: txn.status,
