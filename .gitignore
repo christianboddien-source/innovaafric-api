@@ -3,3 +3,12 @@ node_modules/
 *.log
 coverage/
 dist/
+
+# SQLite artifacts (legacy — project now uses PostgreSQL)
+prisma/*.db
+prisma/*.db-wal
+prisma/*.db-shm
+prisma/prisma/
+
+# Claude Code session data
+.claude/

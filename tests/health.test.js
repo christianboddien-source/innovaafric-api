@@ -19,7 +19,10 @@ describe('GET /v1/utils/rates', () => {
     const res = await request(app).get('/v1/utils/rates');
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.rates).toHaveProperty('EUR-XAF');
+    // rates es un array de objetos {pair, rate, ...} en la BD
+    const rates = res.body.data.rates;
+    expect(Array.isArray(rates)).toBe(true);
+    expect(rates.some(r => r.pair === 'EUR-XAF')).toBe(true);
   });
 
   it('devuelve tasa para un par específico', async () => {

@@ -17,8 +17,8 @@ describe('GET /v1/shop/products', () => {
     const res = await request(app).get('/v1/shop/products');
     expect(res.statusCode).toBe(200);
     expect(res.body.data.items.length).toBeGreaterThan(0);
-    expect(res.body.data.items[0]).toHaveProperty('price_eur');
-    expect(res.body.data.items[0]).toHaveProperty('price_xaf');
+    expect(res.body.data.items[0]).toHaveProperty('priceEur');
+    expect(res.body.data.items[0]).toHaveProperty('priceXaf');
   });
 
   it('filtra por categoría', async () => {
@@ -70,7 +70,7 @@ describe('Carrito y pedidos', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ payment_currency: 'EUR', delivery_address: 'Malabo Centro, GQ' });
     expect(res.statusCode).toBe(201);
-    expect(res.body.data).toHaveProperty('tracking_id');
+    expect(res.body.data).toHaveProperty('trackingId');
     expect(res.body.data).toHaveProperty('loyalty_points_earned');
     expect(res.body.data.loyalty_points_earned).toBeGreaterThan(0);
   });

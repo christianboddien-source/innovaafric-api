@@ -3,8 +3,9 @@
 const request = require('supertest');
 const app     = require('../app');
 
-let userToken   = '';
-let userId      = '';
+let userToken    = '';
+let userId       = '';
+let kycUserToken = '';
 
 describe('POST /v1/auth/register', () => {
   it('registra un nuevo usuario correctamente', async () => {
@@ -70,10 +71,17 @@ describe('POST /v1/auth/token (client_credentials)', () => {
 });
 
 describe('POST /v1/auth/kyc', () => {
+  beforeAll(async () => {
+    const res = await request(app).post('/v1/auth/token').send({
+      grant_type: 'password', email: 'test_jest@example.com', password: 'testpass123'
+    });
+    kycUserToken = res.body.data.access_token;
+  });
+
   it('envía documentación KYC correctamente', async () => {
     const res = await request(app)
       .post('/v1/auth/kyc')
-      .set('Authorization', `Bearer ${userToken}`)
+      .set('Authorization', `Bearer ${kycUserToken}`)
       .send({ document_type: 'passport', document_number: 'P9876543' });
     expect(res.statusCode).toBe(200);
     expect(res.body.data.status).toBe('under_review');
