@@ -4,7 +4,8 @@
   "description": "INNOVAAFRIC REST API — Ecosistema digital tricontinental",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node node_modules/prisma/build/index.js migrate deploy && node server.js",
+    "postinstall": "node node_modules/prisma/build/index.js generate",
     "dev": "nodemon server.js",
     "test": "jest --coverage --runInBand --forceExit",
     "db:migrate": "node node_modules/prisma/build/index.js migrate dev",
@@ -18,6 +19,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
+    "prisma": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -31,7 +33,6 @@
   "devDependencies": {
     "jest": "^29.7.0",
     "nodemon": "^3.1.0",
-    "prisma": "^6.0.0",
     "supertest": "^6.3.4"
   },
   "engines": {
