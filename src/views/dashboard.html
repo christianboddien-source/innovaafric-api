@@ -4,50 +4,70 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>INNOVAAFRIC — Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
 
-    /* LOGIN */
+    /* ── LOGIN ── */
     #login-page{display:flex;align-items:center;justify-content:center;min-height:100vh}
-    .login-card{background:#1e293b;border-radius:12px;padding:40px;width:380px;border:1px solid #334155}
+    .login-card{background:#1e293b;border-radius:14px;padding:44px;width:400px;border:1px solid #334155;box-shadow:0 20px 60px rgba(0,0,0,.5)}
     .login-logo{text-align:center;margin-bottom:32px}
-    .login-logo h1{font-size:26px;color:#10b981;font-weight:700;letter-spacing:-0.5px}
-    .login-logo p{color:#64748b;font-size:14px;margin-top:6px}
     .form-group{margin-bottom:16px}
     .form-group label{display:block;font-size:13px;color:#94a3b8;margin-bottom:6px}
-    .form-group input{width:100%;padding:10px 14px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:14px;outline:none;transition:border-color .2s}
-    .form-group input:focus{border-color:#10b981}
-    .btn-primary{width:100%;padding:12px;background:#10b981;border:none;border-radius:8px;color:white;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s}
-    .btn-primary:hover{background:#059669}
-    .btn-primary:disabled{opacity:.6;cursor:not-allowed}
+    .form-group input{width:100%;padding:11px 14px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:14px;outline:none;transition:border-color .2s}
+    .form-group input:focus{border-color:#00AEEF}
+    .btn-login{width:100%;padding:13px;background:#00AEEF;border:none;border-radius:8px;color:white;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s;letter-spacing:.5px}
+    .btn-login:hover{background:#0096d6}
+    .btn-login:disabled{opacity:.6;cursor:not-allowed}
     .error-msg{color:#f87171;font-size:13px;margin-top:12px;text-align:center;display:none}
 
-    /* HEADER */
-    #dashboard-page{display:none}
-    .header{background:#1e293b;border-bottom:1px solid #334155;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-    .brand{display:flex;align-items:center;gap:10px}
-    .brand .logo{font-size:20px;font-weight:700;color:#10b981}
-    .brand .tag{font-size:11px;color:#64748b;background:#0f172a;padding:2px 8px;border-radius:4px;border:1px solid #334155}
-    .header-right{display:flex;align-items:center;gap:12px}
-    .header-right .admin-name{font-size:13px;color:#94a3b8}
-    .btn-sm{padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:none}
-    .btn-refresh{background:#10b981;color:white}
-    .btn-refresh:hover{background:#059669}
-    .btn-logout{background:transparent;border:1px solid #334155;color:#94a3b8}
+    /* ── LAYOUT ── */
+    #dashboard-page{display:none;min-height:100vh}
+    .layout{display:flex;min-height:100vh}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:230px;background:#1e293b;border-right:1px solid #334155;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:20}
+    .sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:10px}
+    .sidebar-brand .slogo{font-size:16px;font-weight:800;color:#00AEEF;letter-spacing:.5px}
+    .sidebar-brand .stag{font-size:10px;color:#64748b;background:#0f172a;padding:2px 6px;border-radius:4px}
+    .sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
+    .nav-section{padding:8px 16px 4px;font-size:10px;color:#334155;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:all .15s;font-size:14px;color:#94a3b8;border-left:3px solid transparent}
+    .nav-item:hover{background:#243354;color:#e2e8f0}
+    .nav-item.active{background:#162032;color:#00AEEF;border-left-color:#00AEEF;font-weight:600}
+    .nav-item .icon{font-size:16px;width:20px;text-align:center}
+    .sidebar-footer{padding:16px 20px;border-top:1px solid #334155}
+    .admin-info{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .admin-avatar{width:32px;height:32px;border-radius:50%;background:#00AEEF;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white}
+    .admin-details .name{font-size:13px;font-weight:600;color:#e2e8f0}
+    .admin-details .role{font-size:11px;color:#64748b}
+    .btn-logout{width:100%;padding:8px;background:transparent;border:1px solid #334155;border-radius:6px;color:#94a3b8;cursor:pointer;font-size:13px;transition:all .2s}
     .btn-logout:hover{border-color:#f87171;color:#f87171}
 
-    /* MAIN */
-    .main{padding:24px;max-width:1400px;margin:0 auto}
-    .section-title{font-size:16px;font-weight:600;color:#94a3b8;margin:28px 0 14px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.5px;font-size:12px}
-    .section-title:first-child{margin-top:0}
+    /* ── MAIN ── */
+    .main-content{margin-left:230px;flex:1;min-height:100vh}
+    .topbar{background:#1e293b;border-bottom:1px solid #334155;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+    .topbar-title{font-size:18px;font-weight:700;color:#e2e8f0}
+    .topbar-right{display:flex;align-items:center;gap:10px}
+    .online-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:4px}
+    .btn-sm{padding:7px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:none}
+    .btn-refresh{background:#00AEEF;color:white}
+    .btn-refresh:hover{background:#0096d6}
 
-    /* STATS */
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
-    .stat-card{background:#1e293b;border-radius:10px;padding:20px;border:1px solid #334155}
+    /* ── PAGES ── */
+    .page{display:none;padding:24px;animation:fadeIn .2s ease}
+    .page.active{display:block}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── STATS ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+    .stat-card{background:#1e293b;border-radius:10px;padding:20px;border:1px solid #334155;transition:transform .2s}
+    .stat-card:hover{transform:translateY(-2px)}
     .stat-card .lbl{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
-    .stat-card .val{font-size:30px;font-weight:700;margin-top:8px;line-height:1}
+    .stat-card .val{font-size:32px;font-weight:800;margin-top:8px;line-height:1}
     .stat-card .sub{font-size:12px;color:#64748b;margin-top:6px}
+    .c-cyan .val{color:#00AEEF}
     .c-green .val{color:#10b981}
     .c-blue .val{color:#60a5fa}
     .c-yellow .val{color:#fbbf24}
@@ -55,25 +75,32 @@
     .c-red .val{color:#f87171}
     .c-default .val{color:#e2e8f0}
 
-    /* SYSTEM */
-    .system-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+    /* ── CHARTS ── */
+    .charts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px}
+    .chart-card{background:#1e293b;border-radius:10px;padding:20px;border:1px solid #334155}
+    .chart-title{font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+    .chart-wrap{position:relative;height:220px;display:flex;align-items:center;justify-content:center}
+
+    /* ── SYSTEM ── */
+    .system-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
     .sys-card{background:#1e293b;border-radius:10px;padding:20px;border:1px solid #334155}
-    .sys-card h4{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+    .sys-card h4{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;font-weight:700}
     .sys-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #0f172a}
     .sys-row:last-child{border-bottom:none}
     .sys-row .k{font-size:13px;color:#94a3b8}
     .sys-row .v{font-size:13px;color:#e2e8f0;font-weight:600}
 
-    /* TABLES */
-    .table-wrap{background:#1e293b;border-radius:10px;border:1px solid #334155;overflow:hidden;overflow-x:auto}
-    table{width:100%;border-collapse:collapse;min-width:600px}
-    thead th{padding:10px 16px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;background:#0f172a;border-bottom:1px solid #334155;white-space:nowrap}
-    tbody td{padding:11px 16px;font-size:13px;border-bottom:1px solid #162032;vertical-align:middle}
+    /* ── TABLES ── */
+    .section-title{font-size:14px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+    .table-wrap{background:#1e293b;border-radius:10px;border:1px solid #334155;overflow:hidden;overflow-x:auto;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse;min-width:500px}
+    thead th{padding:11px 16px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;background:#0f172a;border-bottom:1px solid #334155;white-space:nowrap}
+    tbody td{padding:12px 16px;font-size:13px;border-bottom:1px solid #162032;vertical-align:middle}
     tbody tr:last-child td{border-bottom:none}
     tbody tr:hover{background:#162032}
 
-    /* BADGES */
-    .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap}
+    /* ── BADGES ── */
+    .badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap}
     .b-verified{background:#064e3b;color:#10b981}
     .b-pending{background:#451a03;color:#fbbf24}
     .b-rejected{background:#450a0a;color:#f87171}
@@ -85,24 +112,45 @@
     .b-available{background:#064e3b;color:#10b981}
     .b-busy{background:#451a03;color:#fbbf24}
     .b-offline{background:#1e293b;color:#64748b}
-    .b-type{background:#162032;color:#94a3b8}
     .b-completed{background:#064e3b;color:#10b981}
+    .b-electricity{background:#451a03;color:#fbbf24}
+    .b-water{background:#1e3a5f;color:#60a5fa}
+    .b-airtime{background:#064e3b;color:#10b981}
+    .b-internet{background:#2d1b69;color:#a78bfa}
+    .b-tv{background:#3b1f00;color:#fb923c}
 
-    /* MISC */
+    /* ── FILTER BAR ── */
+    .filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+    .filter-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid #334155;background:transparent;color:#94a3b8}
+    .filter-btn:hover,.filter-btn.active{background:#00AEEF;color:white;border-color:#00AEEF}
+
+    /* ── RATES ── */
+    .rates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+    .rate-card{background:#1e293b;border-radius:10px;padding:16px;border:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
+    .rate-pair{font-size:15px;font-weight:700;color:#e2e8f0}
+    .rate-val{font-size:18px;font-weight:800;color:#00AEEF}
+
+    /* ── KYC ACTIONS ── */
+    .btn-approve{padding:4px 10px;background:#064e3b;color:#10b981;border:1px solid #10b981;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s}
+    .btn-approve:hover{background:#10b981;color:white}
+    .btn-reject{padding:4px 10px;background:#450a0a;color:#f87171;border:1px solid #f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px;transition:all .15s}
+    .btn-reject:hover{background:#f87171;color:white}
+
+    /* ── MISC ── */
     .empty{text-align:center;padding:32px;color:#334155;font-size:14px}
-    .loading{text-align:center;padding:32px;color:#334155;font-size:14px}
-    .footer{text-align:center;padding:32px 0 16px;color:#1e293b;font-size:12px}
-    .online-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:6px}
+    .loading{text-align:center;padding:24px;color:#334155;font-size:13px}
+    .footer{text-align:center;padding:24px;color:#1e293b;font-size:12px;margin-top:8px}
+    .progress-bar{height:6px;background:#334155;border-radius:3px;overflow:hidden;margin-top:8px}
+    .progress-fill{height:100%;border-radius:3px;transition:width .5s ease}
   </style>
 </head>
 <body>
 
-<!-- ── LOGIN ───────────────────────────────────────────── -->
+<!-- ══════════════ LOGIN ══════════════ -->
 <div id="login-page">
   <div class="login-card">
     <div class="login-logo">
-      <svg viewBox="0 0 200 200" width="120" height="120" xmlns="http://www.w3.org/2000/svg">
-        <!-- Radiating lines with dots -->
+      <svg viewBox="0 0 200 200" width="110" height="110" xmlns="http://www.w3.org/2000/svg">
         <g stroke="#00AEEF" stroke-width="3" fill="#00AEEF">
           <line x1="100" y1="100" x2="100" y2="30"/><circle cx="100" cy="26" r="5"/>
           <line x1="100" y1="100" x2="148" y2="46"/><circle cx="151" cy="43" r="5"/>
@@ -117,169 +165,278 @@
           <line x1="100" y1="100" x2="68" y2="35"/><circle cx="65" cy="31" r="4"/>
           <line x1="100" y1="100" x2="132" y2="35"/><circle cx="135" cy="31" r="4"/>
         </g>
-        <!-- Globe -->
         <circle cx="100" cy="100" r="32" fill="none" stroke="#00AEEF" stroke-width="3"/>
         <ellipse cx="100" cy="100" rx="16" ry="32" fill="none" stroke="#00AEEF" stroke-width="2"/>
         <line x1="68" y1="100" x2="132" y2="100" stroke="#00AEEF" stroke-width="2"/>
         <line x1="72" y1="85" x2="128" y2="85" stroke="#00AEEF" stroke-width="1.5"/>
         <line x1="72" y1="115" x2="128" y2="115" stroke="#00AEEF" stroke-width="1.5"/>
-        <!-- Small dots -->
         <circle cx="140" cy="60" r="3" fill="#00AEEF"/>
-        <circle cx="155" cy="100" r="3" fill="#00AEEF"/>
         <circle cx="60" cy="60" r="3" fill="#00AEEF"/>
+        <circle cx="155" cy="100" r="3" fill="#00AEEF"/>
       </svg>
       <h1 style="color:#00AEEF;font-size:24px;margin-top:6px;font-weight:900;letter-spacing:1px">InnovaAFRIC</h1>
-      <p style="color:#00AEEF;font-size:14px;margin-top:4px;font-weight:600;letter-spacing:2px">We Simplify Life</p>
+      <p style="color:#00AEEF;font-size:13px;margin-top:4px;font-weight:600;letter-spacing:2px">We Simplify Life</p>
       <p style="color:#64748b;font-size:12px;margin-top:10px;border-top:1px solid #334155;padding-top:10px">Panel de Administración</p>
     </div>
     <div class="form-group">
-      <label>Email admin</label>
+      <label>Email administrador</label>
       <input type="email" id="inp-email" value="admin@innovaafric.com" placeholder="admin@innovaafric.com">
     </div>
     <div class="form-group">
       <label>Contraseña</label>
       <input type="password" id="inp-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar al Panel</button>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">Entrar al Panel</button>
     <div class="error-msg" id="login-err">Credenciales inválidas o sin permisos de admin</div>
   </div>
 </div>
 
-<!-- ── DASHBOARD ───────────────────────────────────────── -->
+<!-- ══════════════ DASHBOARD ══════════════ -->
 <div id="dashboard-page">
-  <div class="header">
-    <div class="brand">
-      <svg viewBox="0 0 200 200" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
-        <g stroke="#00AEEF" stroke-width="3" fill="#00AEEF">
-          <line x1="100" y1="100" x2="100" y2="30"/><circle cx="100" cy="26" r="5"/>
-          <line x1="100" y1="100" x2="148" y2="46"/><circle cx="151" cy="43" r="5"/>
-          <line x1="100" y1="100" x2="165" y2="80"/><circle cx="169" cy="80" r="5"/>
-          <line x1="100" y1="100" x2="170" y2="120"/><circle cx="174" cy="122" r="5"/>
-          <line x1="100" y1="100" x2="148" y2="154"/><circle cx="151" cy="157" r="5"/>
-          <line x1="100" y1="100" x2="100" y2="170"/><circle cx="100" cy="174" r="5"/>
-          <line x1="100" y1="100" x2="52" y2="154"/><circle cx="49" cy="157" r="5"/>
-          <line x1="100" y1="100" x2="30" y2="120"/><circle cx="26" cy="122" r="5"/>
-          <line x1="100" y1="100" x2="35" y2="80"/><circle cx="31" cy="80" r="5"/>
-          <line x1="100" y1="100" x2="52" y2="46"/><circle cx="49" cy="43" r="5"/>
-        </g>
-        <circle cx="100" cy="100" r="32" fill="none" stroke="#00AEEF" stroke-width="3"/>
-        <ellipse cx="100" cy="100" rx="16" ry="32" fill="none" stroke="#00AEEF" stroke-width="2"/>
-        <line x1="68" y1="100" x2="132" y2="100" stroke="#00AEEF" stroke-width="2"/>
-        <line x1="72" y1="85" x2="128" y2="85" stroke="#00AEEF" stroke-width="1.5"/>
-        <line x1="72" y1="115" x2="128" y2="115" stroke="#00AEEF" stroke-width="1.5"/>
-      </svg>
-      <span class="logo" style="color:#00AEEF">InnovaAFRIC</span>
-      <span class="tag">Admin v1.0</span>
-    </div>
-    <div class="header-right">
-      <span><span class="online-dot"></span></span>
-      <span class="admin-name" id="admin-name">—</span>
-      <button class="btn-sm btn-refresh" onclick="loadAll()">↻ Actualizar</button>
-      <button class="btn-sm btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
+  <div class="layout">
 
-  <div class="main">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <svg viewBox="0 0 200 200" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+          <g stroke="#00AEEF" stroke-width="4" fill="#00AEEF">
+            <line x1="100" y1="100" x2="100" y2="40"/><circle cx="100" cy="35" r="6"/>
+            <line x1="100" y1="100" x2="150" y2="55"/><circle cx="155" cy="51" r="6"/>
+            <line x1="100" y1="100" x2="160" y2="100"/><circle cx="165" cy="100" r="6"/>
+            <line x1="100" y1="100" x2="150" y2="145"/><circle cx="155" cy="149" r="6"/>
+            <line x1="100" y1="100" x2="100" y2="160"/><circle cx="100" cy="165" r="6"/>
+            <line x1="100" y1="100" x2="50" y2="145"/><circle cx="45" cy="149" r="6"/>
+            <line x1="100" y1="100" x2="40" y2="100"/><circle cx="35" cy="100" r="6"/>
+            <line x1="100" y1="100" x2="50" y2="55"/><circle cx="45" cy="51" r="6"/>
+          </g>
+          <circle cx="100" cy="100" r="28" fill="none" stroke="#00AEEF" stroke-width="4"/>
+          <ellipse cx="100" cy="100" rx="14" ry="28" fill="none" stroke="#00AEEF" stroke-width="2.5"/>
+          <line x1="72" y1="100" x2="128" y2="100" stroke="#00AEEF" stroke-width="2.5"/>
+          <line x1="76" y1="87" x2="124" y2="87" stroke="#00AEEF" stroke-width="2"/>
+          <line x1="76" y1="113" x2="124" y2="113" stroke="#00AEEF" stroke-width="2"/>
+        </svg>
+        <div>
+          <div class="slogo">InnovaAFRIC</div>
+          <div class="stag">Admin v1.0</div>
+        </div>
+      </div>
 
-    <!-- Stats -->
-    <div class="section-title">📊 Estadísticas Globales</div>
-    <div class="stats-grid" id="stats-grid"><div class="loading">Cargando...</div></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <div class="nav-item active" onclick="goPage('overview')">
+          <span class="icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="goPage('charts')">
+          <span class="icon">📈</span> Gráficos
+        </div>
+        <div class="nav-section">Gestión</div>
+        <div class="nav-item" onclick="goPage('users')">
+          <span class="icon">👥</span> Usuarios
+        </div>
+        <div class="nav-item" onclick="goPage('transactions')">
+          <span class="icon">💸</span> Transacciones
+        </div>
+        <div class="nav-item" onclick="goPage('riders')">
+          <span class="icon">🚴</span> Riders
+        </div>
+        <div class="nav-section">Servicios</div>
+        <div class="nav-item" onclick="goPage('bills')">
+          <span class="icon">📋</span> Proveedores
+        </div>
+        <div class="nav-item" onclick="goPage('rates')">
+          <span class="icon">💱</span> Tasas de cambio
+        </div>
+        <div class="nav-section">Sistema</div>
+        <div class="nav-item" onclick="goPage('system')">
+          <span class="icon">🖥️</span> Estado del sistema
+        </div>
+      </nav>
 
-    <!-- System -->
-    <div class="section-title">🖥️ Estado del Sistema</div>
-    <div class="system-grid" id="system-grid"><div class="loading">Cargando...</div></div>
+      <div class="sidebar-footer">
+        <div class="admin-info">
+          <div class="admin-avatar" id="admin-avatar">A</div>
+          <div class="admin-details">
+            <div class="name" id="admin-name">Admin</div>
+            <div class="role">Administrador</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()">🚪 Cerrar sesión</button>
+      </div>
+    </aside>
 
-    <!-- Users -->
-    <div class="section-title">👥 Usuarios</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>ID</th><th>Nombre</th><th>Email</th><th>País</th>
-          <th>Rol</th><th>KYC</th><th>Registro</th>
-        </tr></thead>
-        <tbody id="tb-users"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
-      </table>
-    </div>
+    <!-- MAIN -->
+    <div class="main-content">
+      <div class="topbar">
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-right">
+          <span><span class="online-dot"></span>En línea</span>
+          <button class="btn-sm btn-refresh" onclick="refreshPage()">↻ Actualizar</button>
+        </div>
+      </div>
 
-    <!-- Transactions -->
-    <div class="section-title">💸 Transacciones Recientes</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>ID</th><th>Tipo</th><th>Usuario</th><th>Importe</th>
-          <th>Moneda</th><th>Estado</th><th>Fecha</th>
-        </tr></thead>
-        <tbody id="tb-txns"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
-      </table>
-    </div>
+      <!-- ── OVERVIEW ── -->
+      <div class="page active" id="page-overview">
+        <div class="stats-grid" id="stats-grid"><div class="loading">Cargando estadísticas...</div></div>
+        <div class="section-title">Estado del Sistema</div>
+        <div class="system-grid" id="system-mini"><div class="loading">Cargando...</div></div>
+        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026 · We Simplify Life</div>
+      </div>
 
-    <!-- Riders -->
-    <div class="section-title">🚴 Riders</div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>ID</th><th>Nombre</th><th>Teléfono</th><th>Zona</th>
-          <th>Vehículo</th><th>Estado</th><th>Rating</th><th>Entregas</th>
-        </tr></thead>
-        <tbody id="tb-riders"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
-      </table>
-    </div>
+      <!-- ── CHARTS ── -->
+      <div class="page" id="page-charts">
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title">Estado KYC de usuarios</div>
+            <div class="chart-wrap"><canvas id="chart-kyc"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Usuarios por rol</div>
+            <div class="chart-wrap"><canvas id="chart-roles"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Proveedores por categoría</div>
+            <div class="chart-wrap"><canvas id="chart-bills"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Tasas de cambio principales</div>
+            <div class="chart-wrap"><canvas id="chart-rates"></canvas></div>
+          </div>
+        </div>
+        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      </div>
 
-    <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
-  </div>
-</div>
+      <!-- ── USERS ── -->
+      <div class="page" id="page-users">
+        <div class="section-title">
+          <span>Usuarios registrados</span>
+          <div class="filter-bar" style="margin:0">
+            <button class="filter-btn active" onclick="filterUsers(this,'')">Todos</button>
+            <button class="filter-btn" onclick="filterUsers(this,'customer')">Clientes</button>
+            <button class="filter-btn" onclick="filterUsers(this,'admin')">Admin</button>
+            <button class="filter-btn" onclick="filterUsers(this,'circular_autorizada')">Circulares</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>País</th><th>Rol</th><th>KYC</th><th>Registro</th><th>Acciones KYC</th></tr></thead>
+            <tbody id="tb-users"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      </div>
+
+      <!-- ── TRANSACTIONS ── -->
+      <div class="page" id="page-transactions">
+        <div class="section-title">Transacciones recientes</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Tipo</th><th>Usuario</th><th>Importe</th><th>Moneda</th><th>Estado</th><th>Fecha</th></tr></thead>
+            <tbody id="tb-txns"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      </div>
+
+      <!-- ── RIDERS ── -->
+      <div class="page" id="page-riders">
+        <div class="section-title">Riders activos</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Zona</th><th>Vehículo</th><th>Estado</th><th>Rating</th><th>Entregas</th></tr></thead>
+            <tbody id="tb-riders"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      </div>
+
+      <!-- ── BILLS ── -->
+      <div class="page" id="page-bills">
+        <div class="section-title">Proveedores de facturas</div>
+        <div class="filter-bar" id="bills-filters">
+          <button class="filter-btn active" onclick="filterBills(this,'')">Todos</button>
+          <button class="filter-btn" onclick="filterBills(this,'electricity')">⚡ Electricidad</button>
+          <button class="filter-btn" onclick="filterBills(this,'water')">💧 Agua</button>
+          <button class="filter-btn" onclick="filterBills(this,'airtime')">📱 Airtime</button>
+          <button class="filter-btn" onclick="filterBills(this,'internet')">🌐 Internet</button>
+          <button class="filter-btn" onclick="filterBills(this,'tv')">📺 TV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Proveedor</th><th>Categoría</th><th>País</th><th>Campo requerido</th><th>Min</th><th>Max</th></tr></thead>
+            <tbody id="tb-bills"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      </div>
+
+      <!-- ── RATES ── -->
+      <div class="page" id="page-rates">
+        <div class="section-title">Tasas de cambio — BCEAO + Mercado</div>
+        <div class="rates-grid" id="rates-grid"><div class="loading">Cargando...</div></div>
+        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      </div>
+
+      <!-- ── SYSTEM ── -->
+      <div class="page" id="page-system">
+        <div class="section-title">Estado del sistema en tiempo real</div>
+        <div class="system-grid" id="system-grid"><div class="loading">Cargando...</div></div>
+        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /layout -->
+</div><!-- /dashboard-page -->
 
 <script>
 const BASE = '/v1';
 let TOKEN = localStorage.getItem('inn_token');
+let ALL_USERS = [], ALL_BILLS = [];
+let chartsBuilt = false;
 
-/* ── API helper ─────────────────────────────────────── */
-async function api(path) {
+/* ═══ API ═══════════════════════════════════════════════ */
+async function api(path, opts={}) {
   try {
     const r = await fetch(BASE + path, {
-      headers: { Authorization: `Bearer ${TOKEN}` }
+      ...opts,
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(opts.headers||{}) }
     });
     return r.json();
-  } catch(e) { return { success: false }; }
+  } catch(e) { return { success:false }; }
 }
 
-/* ── LOGIN ──────────────────────────────────────────── */
+/* ═══ LOGIN ══════════════════════════════════════════════ */
 async function doLogin() {
   const email = document.getElementById('inp-email').value.trim();
   const pass  = document.getElementById('inp-pass').value;
   const btn   = document.getElementById('btn-login');
   const err   = document.getElementById('login-err');
   err.style.display = 'none';
-  btn.textContent = 'Entrando...';
-  btn.disabled = true;
-
+  btn.textContent = 'Entrando...'; btn.disabled = true;
   try {
-    const r = await fetch(BASE + '/auth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grant_type: 'password', email, password: pass })
+    const r = await fetch(BASE+'/auth/token', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ grant_type:'password', email, password:pass })
     });
     const d = await r.json();
     if (!d.success || d.data.user.role !== 'admin') {
-      err.style.display = 'block';
-      btn.textContent = 'Entrar al Panel';
-      btn.disabled = false;
-      return;
+      err.style.display = 'block'; btn.textContent = 'Entrar al Panel'; btn.disabled = false; return;
     }
     TOKEN = d.data.access_token;
     localStorage.setItem('inn_token', TOKEN);
-    document.getElementById('admin-name').textContent = d.data.user.name;
+    setAdminInfo(d.data.user);
     showDashboard();
   } catch(e) {
-    err.style.display = 'block';
-    btn.textContent = 'Entrar al Panel';
-    btn.disabled = false;
+    err.style.display = 'block'; btn.textContent = 'Entrar al Panel'; btn.disabled = false;
   }
 }
 
+function setAdminInfo(user) {
+  document.getElementById('admin-name').textContent = user.name || user.email;
+  document.getElementById('admin-avatar').textContent = (user.name||'A')[0].toUpperCase();
+}
+
 function doLogout() {
-  localStorage.removeItem('inn_token');
-  TOKEN = null;
+  localStorage.removeItem('inn_token'); TOKEN = null;
   document.getElementById('dashboard-page').style.display = 'none';
   document.getElementById('login-page').style.display = 'flex';
 }
@@ -287,85 +444,296 @@ function doLogout() {
 function showDashboard() {
   document.getElementById('login-page').style.display = 'none';
   document.getElementById('dashboard-page').style.display = 'block';
-  loadAll();
+  loadOverview(); loadUsers(); loadTxns(); loadRiders(); loadBills(); loadRates(); loadSystem();
 }
 
-/* ── LOAD ALL ───────────────────────────────────────── */
-function loadAll() {
-  loadStats();
-  loadSystem();
-  loadUsers();
-  loadTxns();
-  loadRiders();
+/* ═══ NAVIGATION ═════════════════════════════════════════ */
+const pageTitles = {
+  overview:'Dashboard', charts:'Gráficos y Analíticas', users:'Usuarios',
+  transactions:'Transacciones', riders:'Riders', bills:'Proveedores de Facturas',
+  rates:'Tasas de Cambio', system:'Estado del Sistema'
+};
+
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'"+name+"'")) n.classList.add('active');
+  });
+  document.getElementById('page-title').textContent = pageTitles[name] || name;
+  if (name === 'charts' && !chartsBuilt) buildCharts();
 }
 
-/* ── STATS ──────────────────────────────────────────── */
-async function loadStats() {
+function refreshPage() {
+  loadOverview(); loadUsers(); loadTxns(); loadRiders(); loadBills(); loadRates(); loadSystem();
+  chartsBuilt = false;
+  const active = document.querySelector('.page.active');
+  if (active?.id === 'page-charts') { chartsBuilt = false; buildCharts(); }
+}
+
+/* ═══ OVERVIEW ═══════════════════════════════════════════ */
+async function loadOverview() {
   const r = await api('/admin/stats');
-  if (!r.success) { document.getElementById('stats-grid').innerHTML = '<div class="empty">Error cargando estadísticas</div>'; return; }
+  if (!r.success) return;
   const d = r.data;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card c-green">
-      <div class="lbl">Usuarios totales</div>
-      <div class="val">${d.users.total}</div>
-      <div class="sub">Verificados KYC: ${d.users.kyc_verified} · Pendientes: ${d.users.kyc_pending}</div>
+    <div class="stat-card c-cyan">
+      <div class="lbl">Usuarios totales</div><div class="val">${d.users.total}</div>
+      <div class="sub">KYC verificados: ${d.users.kyc_verified}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${d.users.total?d.users.kyc_verified/d.users.total*100:0}%;background:#00AEEF"></div></div>
     </div>
     <div class="stat-card c-blue">
-      <div class="lbl">Transacciones 24h</div>
-      <div class="val">${d.transactions.last_24h}</div>
-      <div class="sub">Total histórico: ${d.transactions.total} · 30d: ${d.transactions.last_30d}</div>
+      <div class="lbl">Transacciones 24h</div><div class="val">${d.transactions.last_24h}</div>
+      <div class="sub">Total histórico: ${d.transactions.total}</div>
     </div>
     <div class="stat-card c-yellow">
-      <div class="lbl">Volumen EUR</div>
-      <div class="val">€${d.transactions.volume_eur_total.toFixed(0)}</div>
-      <div class="sub">Volumen XAF: ${(d.transactions.volume_xaf_total/1000).toFixed(0)}k XAF</div>
+      <div class="lbl">Volumen EUR total</div><div class="val">€${d.transactions.volume_eur_total.toFixed(0)}</div>
+      <div class="sub">XAF: ${(d.transactions.volume_xaf_total/1000).toFixed(0)}k</div>
     </div>
     <div class="stat-card c-green">
-      <div class="lbl">Riders</div>
-      <div class="val">${d.riders.total}</div>
+      <div class="lbl">Riders</div><div class="val">${d.riders.total}</div>
       <div class="sub">Disponibles: ${d.riders.available} · Ocupados: ${d.riders.busy}</div>
     </div>
     <div class="stat-card c-blue">
-      <div class="lbl">Pedidos Shop</div>
-      <div class="val">${d.orders.shop_total}</div>
+      <div class="lbl">Pedidos shop</div><div class="val">${d.orders.shop_total}</div>
       <div class="sub">Grocery: ${d.orders.grocery_total}</div>
     </div>
     <div class="stat-card c-purple">
-      <div class="lbl">Puntos fidelidad</div>
-      <div class="val">${d.loyalty.total_points_issued}</div>
+      <div class="lbl">Puntos fidelidad</div><div class="val">${d.loyalty.total_points_issued}</div>
       <div class="sub">Usuarios con puntos: ${d.loyalty.users_with_points}</div>
     </div>
     <div class="stat-card c-yellow">
-      <div class="lbl">Tontinas</div>
-      <div class="val">${d.tontines.total}</div>
+      <div class="lbl">Tontinas</div><div class="val">${d.tontines.total}</div>
       <div class="sub">Activas: ${d.tontines.active}</div>
     </div>
     <div class="stat-card c-default">
-      <div class="lbl">Notificaciones</div>
-      <div class="val">${d.notifications.total}</div>
+      <div class="lbl">Notificaciones</div><div class="val">${d.notifications.total}</div>
       <div class="sub">No leídas: ${d.notifications.unread}</div>
     </div>
   `;
+  // store for charts
+  window._statsData = d;
 }
 
-/* ── SYSTEM ─────────────────────────────────────────── */
+/* ═══ CHARTS ═════════════════════════════════════════════ */
+const CHART_COLORS = ['#00AEEF','#10b981','#fbbf24','#a78bfa','#f87171','#60a5fa','#fb923c','#34d399'];
+const CHART_OPTS = { responsive:true, maintainAspectRatio:true, plugins:{ legend:{ labels:{ color:'#94a3b8', font:{ size:12 } } } } };
+
+function buildCharts() {
+  buildKycChart(); buildRoleChart(); buildBillsChart(); buildRatesChart();
+  chartsBuilt = true;
+}
+
+function buildKycChart() {
+  const d = window._statsData;
+  if (!d) return;
+  const ctx = document.getElementById('chart-kyc').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Verificados','Pendientes','Rechazados'],
+      datasets:[{ data:[d.users.kyc_verified, d.users.kyc_pending, Math.max(0,d.users.total-d.users.kyc_verified-d.users.kyc_pending)],
+        backgroundColor:['#10b981','#fbbf24','#f87171'], borderColor:'#0f172a', borderWidth:3 }]
+    },
+    options: { ...CHART_OPTS, cutout:'65%' }
+  });
+}
+
+function buildRoleChart() {
+  const users = ALL_USERS;
+  const roles = {};
+  users.forEach(u => roles[u.role] = (roles[u.role]||0)+1);
+  const ctx = document.getElementById('chart-roles').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(roles),
+      datasets:[{ data: Object.values(roles),
+        backgroundColor: CHART_COLORS, borderColor:'#0f172a', borderWidth:3 }]
+    },
+    options: { ...CHART_OPTS, cutout:'65%' }
+  });
+}
+
+function buildBillsChart() {
+  const cats = {};
+  ALL_BILLS.forEach(b => cats[b.category] = (cats[b.category]||0)+1);
+  const catLabels = { electricity:'Electricidad', water:'Agua', airtime:'Airtime', internet:'Internet', tv:'TV' };
+  const ctx = document.getElementById('chart-bills').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(cats).map(k => catLabels[k]||k),
+      datasets:[{ label:'Proveedores', data: Object.values(cats),
+        backgroundColor: CHART_COLORS, borderRadius:6, borderWidth:0 }]
+    },
+    options: { ...CHART_OPTS, plugins:{ legend:{ display:false } },
+      scales:{ x:{ ticks:{ color:'#64748b' }, grid:{ color:'#1e293b' } },
+               y:{ ticks:{ color:'#64748b', stepSize:1 }, grid:{ color:'#334155' }, beginAtZero:true } } }
+  });
+}
+
+async function buildRatesChart() {
+  const r = await api('/utils/rates');
+  if (!r.success) return;
+  const rates = r.data.rates.filter(r => ['EUR-XAF','EUR-USD','EUR-XOF','USD-XAF'].includes(r.pair));
+  const ctx = document.getElementById('chart-rates').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rates.map(r => r.pair),
+      datasets:[{ label:'Tasa', data: rates.map(r => r.rate),
+        backgroundColor:['#00AEEF','#10b981','#fbbf24','#a78bfa'], borderRadius:6, borderWidth:0 }]
+    },
+    options: { ...CHART_OPTS, plugins:{ legend:{ display:false } },
+      scales:{ x:{ ticks:{ color:'#64748b' }, grid:{ color:'#1e293b' } },
+               y:{ ticks:{ color:'#64748b' }, grid:{ color:'#334155' }, beginAtZero:true } } }
+  });
+}
+
+/* ═══ USERS ══════════════════════════════════════════════ */
+async function loadUsers() {
+  const r = await api('/admin/users');
+  if (!r.success) return;
+  ALL_USERS = r.data.items || [];
+  renderUsers(ALL_USERS);
+}
+
+function renderUsers(users) {
+  if (!users.length) { document.getElementById('tb-users').innerHTML='<tr><td colspan="8" class="empty">Sin usuarios</td></tr>'; return; }
+  document.getElementById('tb-users').innerHTML = users.map(u => `
+    <tr>
+      <td style="color:#334155;font-size:11px">${u.id}</td>
+      <td style="font-weight:600">${u.name}</td>
+      <td style="color:#64748b">${u.email}</td>
+      <td style="font-weight:600">${u.country}</td>
+      <td>${badge(u.role,'b-'+u.role)}</td>
+      <td>${badge(u.kycStatus,'b-'+u.kycStatus)}</td>
+      <td style="color:#64748b">${new Date(u.createdAt).toLocaleDateString('es')}</td>
+      <td>
+        ${u.kycStatus!=='verified'?`<button class="btn-approve" onclick="updateKyc('${u.id}','verified')">✓ Aprobar</button>`:''}
+        ${u.kycStatus!=='rejected'?`<button class="btn-reject" onclick="updateKyc('${u.id}','rejected')">✗ Rechazar</button>`:''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterUsers(btn, role) {
+  document.querySelectorAll('#page-users .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderUsers(role ? ALL_USERS.filter(u => u.role===role) : ALL_USERS);
+}
+
+async function updateKyc(userId, status) {
+  const r = await api(`/admin/users/${userId}/kyc`, { method:'PATCH', body: JSON.stringify({ status }) });
+  if (r.success) { await loadUsers(); alert(`KYC actualizado a: ${status}`); }
+  else alert('Error al actualizar KYC');
+}
+
+/* ═══ TRANSACTIONS ═══════════════════════════════════════ */
+async function loadTxns() {
+  const r = await api('/admin/transactions');
+  if (!r.success) return;
+  const txns = r.data.items || [];
+  if (!txns.length) { document.getElementById('tb-txns').innerHTML='<tr><td colspan="7" class="empty">Sin transacciones aún — serán visibles al operar</td></tr>'; return; }
+  document.getElementById('tb-txns').innerHTML = txns.map(t => `
+    <tr>
+      <td style="color:#334155;font-size:11px">${t.id.slice(0,12)}…</td>
+      <td>${badge(t.type,'b-customer')}</td>
+      <td style="color:#64748b;font-size:11px">${t.userId}</td>
+      <td style="font-weight:600">${t.amountSent||t.amount||'—'}</td>
+      <td>${t.currencySent||t.currency||'—'}</td>
+      <td>${badge(t.status||'completed','b-completed')}</td>
+      <td style="color:#64748b">${new Date(t.createdAt).toLocaleDateString('es')}</td>
+    </tr>
+  `).join('');
+}
+
+/* ═══ RIDERS ════════════════════════════════════════════ */
+async function loadRiders() {
+  const r = await api('/delivery/riders');
+  if (!r.success) return;
+  const riders = r.data.riders || r.data.items || [];
+  if (!riders.length) { document.getElementById('tb-riders').innerHTML='<tr><td colspan="8" class="empty">Sin riders</td></tr>'; return; }
+  document.getElementById('tb-riders').innerHTML = riders.map(r => `
+    <tr>
+      <td style="color:#334155;font-size:11px">${r.id}</td>
+      <td style="font-weight:600">${r.name}</td>
+      <td style="color:#64748b">${r.phone}</td>
+      <td>${r.zone}</td>
+      <td style="text-transform:capitalize">${r.vehicle}</td>
+      <td>${badge(r.status,'b-'+r.status)}</td>
+      <td>⭐ ${r.rating||'—'}</td>
+      <td style="font-weight:600">${r.deliveriesTotal||0}</td>
+    </tr>
+  `).join('');
+}
+
+/* ═══ BILLS ═════════════════════════════════════════════ */
+async function loadBills() {
+  const r = await api('/bills/providers');
+  if (!r.success) return;
+  ALL_BILLS = r.data.providers || r.data.items || r.data || [];
+  renderBills(ALL_BILLS);
+}
+
+function renderBills(bills) {
+  if (!bills.length) { document.getElementById('tb-bills').innerHTML='<tr><td colspan="7" class="empty">Sin proveedores</td></tr>'; return; }
+  document.getElementById('tb-bills').innerHTML = bills.map(b => `
+    <tr>
+      <td style="color:#334155;font-size:11px">${b.id}</td>
+      <td style="font-weight:600">${b.name}</td>
+      <td>${badge(b.category,'b-'+b.category)}</td>
+      <td style="font-weight:600">${b.country}</td>
+      <td style="color:#94a3b8">${b.field}</td>
+      <td>${b.minAmount.toLocaleString()} ${b.currency}</td>
+      <td>${b.maxAmount.toLocaleString()} ${b.currency}</td>
+    </tr>
+  `).join('');
+}
+
+function filterBills(btn, cat) {
+  document.querySelectorAll('#bills-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBills(cat ? ALL_BILLS.filter(b => b.category===cat) : ALL_BILLS);
+}
+
+/* ═══ RATES ═════════════════════════════════════════════ */
+async function loadRates() {
+  const r = await api('/utils/rates');
+  if (!r.success) return;
+  const rates = r.data.rates || [];
+  document.getElementById('rates-grid').innerHTML = rates.map(r => `
+    <div class="rate-card">
+      <div>
+        <div class="rate-pair">${r.pair}</div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px">${new Date(r.updatedAt).toLocaleDateString('es')}</div>
+      </div>
+      <div class="rate-val">${r.rate >= 1 ? r.rate.toLocaleString() : r.rate.toFixed(5)}</div>
+    </div>
+  `).join('');
+}
+
+/* ═══ SYSTEM ════════════════════════════════════════════ */
 async function loadSystem() {
   const r = await api('/admin/system');
   if (!r.success) return;
   const d = r.data;
-  document.getElementById('system-grid').innerHTML = `
+  const sysHtml = `
     <div class="sys-card">
       <h4>Servidor</h4>
       <div class="sys-row"><span class="k">Uptime</span><span class="v">${d.uptime_human}</span></div>
       <div class="sys-row"><span class="k">Node.js</span><span class="v">${d.node_version}</span></div>
       <div class="sys-row"><span class="k">Entorno</span><span class="v">${d.environment}</span></div>
-      <div class="sys-row"><span class="k">Hora</span><span class="v">${new Date(d.timestamp).toLocaleTimeString('es')}</span></div>
+      <div class="sys-row"><span class="k">Hora servidor</span><span class="v">${new Date(d.timestamp).toLocaleTimeString('es')}</span></div>
     </div>
     <div class="sys-card">
       <h4>Memoria</h4>
       <div class="sys-row"><span class="k">Heap usado</span><span class="v">${d.memory.heap_used_mb} MB</span></div>
       <div class="sys-row"><span class="k">Heap total</span><span class="v">${d.memory.heap_total_mb} MB</span></div>
       <div class="sys-row"><span class="k">RSS</span><span class="v">${d.memory.rss_mb} MB</span></div>
+      <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:${d.memory.heap_used_mb/d.memory.heap_total_mb*100}%;background:#00AEEF"></div></div>
     </div>
     <div class="sys-card">
       <h4>Base de datos</h4>
@@ -375,82 +743,22 @@ async function loadSystem() {
       <div class="sys-row"><span class="k">Notificaciones</span><span class="v">${d.db_records.notifications}</span></div>
     </div>
   `;
+  document.getElementById('system-grid').innerHTML = sysHtml;
+  document.getElementById('system-mini').innerHTML = sysHtml;
 }
 
-/* ── USERS ──────────────────────────────────────────── */
-async function loadUsers() {
-  const r = await api('/admin/users');
-  if (!r.success) return;
-  const users = r.data.items || [];
-  if (!users.length) { document.getElementById('tb-users').innerHTML = '<tr><td colspan="7" class="empty">Sin usuarios registrados</td></tr>'; return; }
-  document.getElementById('tb-users').innerHTML = users.map(u => `
-    <tr>
-      <td style="color:#334155;font-size:11px">${u.id}</td>
-      <td style="font-weight:600">${u.name}</td>
-      <td style="color:#64748b">${u.email}</td>
-      <td style="font-weight:600">${u.country}</td>
-      <td>${badge(u.role, 'b-'+u.role)}</td>
-      <td>${badge(u.kycStatus, 'b-'+u.kycStatus)}</td>
-      <td style="color:#64748b">${new Date(u.createdAt).toLocaleDateString('es')}</td>
-    </tr>
-  `).join('');
-}
+/* ═══ HELPERS ═══════════════════════════════════════════ */
+function badge(text, cls) { return `<span class="badge ${cls}">${text}</span>`; }
 
-/* ── TRANSACTIONS ───────────────────────────────────── */
-async function loadTxns() {
-  const r = await api('/admin/transactions');
-  if (!r.success) return;
-  const txns = r.data.items || [];
-  if (!txns.length) { document.getElementById('tb-txns').innerHTML = '<tr><td colspan="7" class="empty">Sin transacciones aún</td></tr>'; return; }
-  document.getElementById('tb-txns').innerHTML = txns.map(t => `
-    <tr>
-      <td style="color:#334155;font-size:11px">${t.id.slice(0,10)}…</td>
-      <td>${badge(t.type, 'b-type')}</td>
-      <td style="color:#64748b;font-size:11px">${t.userId}</td>
-      <td style="font-weight:600">${(t.amountSent||t.amount||'—')}</td>
-      <td>${t.currencySent||t.currency||'—'}</td>
-      <td>${badge(t.status||'completed', 'b-completed')}</td>
-      <td style="color:#64748b">${new Date(t.createdAt).toLocaleDateString('es')}</td>
-    </tr>
-  `).join('');
-}
-
-/* ── RIDERS ─────────────────────────────────────────── */
-async function loadRiders() {
-  const r = await api('/delivery/riders');
-  if (!r.success) return;
-  const riders = r.data.riders || r.data.items || [];
-  if (!riders.length) { document.getElementById('tb-riders').innerHTML = '<tr><td colspan="8" class="empty">Sin riders registrados</td></tr>'; return; }
-  document.getElementById('tb-riders').innerHTML = riders.map(r => `
-    <tr>
-      <td style="color:#334155;font-size:11px">${r.id}</td>
-      <td style="font-weight:600">${r.name}</td>
-      <td style="color:#64748b">${r.phone}</td>
-      <td>${r.zone}</td>
-      <td style="text-transform:capitalize">${r.vehicle}</td>
-      <td>${badge(r.status, 'b-'+r.status)}</td>
-      <td>⭐ ${r.rating||'—'}</td>
-      <td style="font-weight:600">${r.deliveriesTotal||0}</td>
-    </tr>
-  `).join('');
-}
-
-/* ── HELPERS ────────────────────────────────────────── */
-function badge(text, cls) {
-  return `<span class="badge ${cls}">${text}</span>`;
-}
-
-/* ── AUTO SESSION ───────────────────────────────────── */
+/* ═══ AUTO SESSION ══════════════════════════════════════ */
 if (TOKEN) {
   try {
     const p = JSON.parse(atob(TOKEN.split('.')[1]));
     if (p.exp * 1000 > Date.now()) {
       document.getElementById('admin-name').textContent = p.email;
+      document.getElementById('admin-avatar').textContent = p.email[0].toUpperCase();
       showDashboard();
-    } else {
-      localStorage.removeItem('inn_token');
-      TOKEN = null;
-    }
+    } else { localStorage.removeItem('inn_token'); TOKEN = null; }
   } catch(e) { localStorage.removeItem('inn_token'); TOKEN = null; }
 }
 </script>
