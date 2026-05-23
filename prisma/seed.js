@@ -7,6 +7,22 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Sembrando base de datos...');
 
+  // Admin
+  await prisma.user.upsert({
+    where: { email: 'admin@innovaafric.com' },
+    update: {},
+    create: {
+      id: 'usr_admin', email: 'admin@innovaafric.com', name: 'Admin INNOVAAFRIC',
+      phone: '+240000000001', country: 'GQ', role: 'admin',
+      passwordHash: await bcrypt.hash('Admin2026!', 10),
+      kycStatus: 'verified'
+    }
+  });
+  await prisma.wallet.upsert({
+    where: { userId: 'usr_admin' }, update: {},
+    create: { userId: 'usr_admin', balanceEur: 0, balanceUsd: 0, balanceXaf: 0, balanceXof: 0 }
+  });
+
   // Usuarios
   const [amara, carlos] = await Promise.all([
     prisma.user.upsert({

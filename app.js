@@ -6,6 +6,7 @@ const helmet       = require('helmet');
 const rateLimit    = require('express-rate-limit');
 const swaggerUi    = require('swagger-ui-express');
 const swaggerSpec  = require('./src/config/swagger');
+const path         = require('path');
 require('dotenv').config();
 
 const authRoutes     = require('./src/routes/auth');
@@ -47,6 +48,11 @@ app.use('/v1', limiter);
 app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
+});
+
+// ── Admin Dashboard ─────────────────────────────────────
+app.get('/admin', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'src/views/dashboard.html'));
 });
 
 // ── Documentación Swagger ───────────────────────────────
