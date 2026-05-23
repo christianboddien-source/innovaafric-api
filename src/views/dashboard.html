@@ -1,766 +1,1538 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>INNOVAAFRIC — Admin Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
-
-    /* ── LOGIN ── */
-    #login-page{display:flex;align-items:center;justify-content:center;min-height:100vh}
-    .login-card{background:#1e293b;border-radius:14px;padding:44px;width:400px;border:1px solid #334155;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-    .login-logo{text-align:center;margin-bottom:32px}
-    .form-group{margin-bottom:16px}
-    .form-group label{display:block;font-size:13px;color:#94a3b8;margin-bottom:6px}
-    .form-group input{width:100%;padding:11px 14px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:14px;outline:none;transition:border-color .2s}
-    .form-group input:focus{border-color:#00AEEF}
-    .btn-login{width:100%;padding:13px;background:#00AEEF;border:none;border-radius:8px;color:white;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s;letter-spacing:.5px}
-    .btn-login:hover{background:#0096d6}
-    .btn-login:disabled{opacity:.6;cursor:not-allowed}
-    .error-msg{color:#f87171;font-size:13px;margin-top:12px;text-align:center;display:none}
-
-    /* ── LAYOUT ── */
-    #dashboard-page{display:none;min-height:100vh}
-    .layout{display:flex;min-height:100vh}
-
-    /* ── SIDEBAR ── */
-    .sidebar{width:230px;background:#1e293b;border-right:1px solid #334155;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:20}
-    .sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:10px}
-    .sidebar-brand .slogo{font-size:16px;font-weight:800;color:#00AEEF;letter-spacing:.5px}
-    .sidebar-brand .stag{font-size:10px;color:#64748b;background:#0f172a;padding:2px 6px;border-radius:4px}
-    .sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
-    .nav-section{padding:8px 16px 4px;font-size:10px;color:#334155;text-transform:uppercase;letter-spacing:1px;font-weight:700}
-    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:all .15s;font-size:14px;color:#94a3b8;border-left:3px solid transparent}
-    .nav-item:hover{background:#243354;color:#e2e8f0}
-    .nav-item.active{background:#162032;color:#00AEEF;border-left-color:#00AEEF;font-weight:600}
-    .nav-item .icon{font-size:16px;width:20px;text-align:center}
-    .sidebar-footer{padding:16px 20px;border-top:1px solid #334155}
-    .admin-info{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-    .admin-avatar{width:32px;height:32px;border-radius:50%;background:#00AEEF;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white}
-    .admin-details .name{font-size:13px;font-weight:600;color:#e2e8f0}
-    .admin-details .role{font-size:11px;color:#64748b}
-    .btn-logout{width:100%;padding:8px;background:transparent;border:1px solid #334155;border-radius:6px;color:#94a3b8;cursor:pointer;font-size:13px;transition:all .2s}
-    .btn-logout:hover{border-color:#f87171;color:#f87171}
-
-    /* ── MAIN ── */
-    .main-content{margin-left:230px;flex:1;min-height:100vh}
-    .topbar{background:#1e293b;border-bottom:1px solid #334155;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-    .topbar-title{font-size:18px;font-weight:700;color:#e2e8f0}
-    .topbar-right{display:flex;align-items:center;gap:10px}
-    .online-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:4px}
-    .btn-sm{padding:7px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:none}
-    .btn-refresh{background:#00AEEF;color:white}
-    .btn-refresh:hover{background:#0096d6}
-
-    /* ── PAGES ── */
-    .page{display:none;padding:24px;animation:fadeIn .2s ease}
-    .page.active{display:block}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-    /* ── STATS ── */
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px}
-    .stat-card{background:#1e293b;border-radius:10px;padding:20px;border:1px solid #334155;transition:transform .2s}
-    .stat-card:hover{transform:translateY(-2px)}
-    .stat-card .lbl{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
-    .stat-card .val{font-size:32px;font-weight:800;margin-top:8px;line-height:1}
-    .stat-card .sub{font-size:12px;color:#64748b;margin-top:6px}
-    .c-cyan .val{color:#00AEEF}
-    .c-green .val{color:#10b981}
-    .c-blue .val{color:#60a5fa}
-    .c-yellow .val{color:#fbbf24}
-    .c-purple .val{color:#a78bfa}
-    .c-red .val{color:#f87171}
-    .c-default .val{color:#e2e8f0}
-
-    /* ── CHARTS ── */
-    .charts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px}
-    .chart-card{background:#1e293b;border-radius:10px;padding:20px;border:1px solid #334155}
-    .chart-title{font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
-    .chart-wrap{position:relative;height:220px;display:flex;align-items:center;justify-content:center}
-
-    /* ── SYSTEM ── */
-    .system-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
-    .sys-card{background:#1e293b;border-radius:10px;padding:20px;border:1px solid #334155}
-    .sys-card h4{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;font-weight:700}
-    .sys-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #0f172a}
-    .sys-row:last-child{border-bottom:none}
-    .sys-row .k{font-size:13px;color:#94a3b8}
-    .sys-row .v{font-size:13px;color:#e2e8f0;font-weight:600}
-
-    /* ── TABLES ── */
-    .section-title{font-size:14px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
-    .table-wrap{background:#1e293b;border-radius:10px;border:1px solid #334155;overflow:hidden;overflow-x:auto;margin-bottom:24px}
-    table{width:100%;border-collapse:collapse;min-width:500px}
-    thead th{padding:11px 16px;text-align:left;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;background:#0f172a;border-bottom:1px solid #334155;white-space:nowrap}
-    tbody td{padding:12px 16px;font-size:13px;border-bottom:1px solid #162032;vertical-align:middle}
-    tbody tr:last-child td{border-bottom:none}
-    tbody tr:hover{background:#162032}
-
-    /* ── BADGES ── */
-    .badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap}
-    .b-verified{background:#064e3b;color:#10b981}
-    .b-pending{background:#451a03;color:#fbbf24}
-    .b-rejected{background:#450a0a;color:#f87171}
-    .b-under_review{background:#1e3a5f;color:#60a5fa}
-    .b-customer{background:#1e3a5f;color:#60a5fa}
-    .b-admin{background:#2d1b69;color:#a78bfa}
-    .b-circular_autorizada{background:#063a25;color:#34d399}
-    .b-rider{background:#3b1f00;color:#fb923c}
-    .b-available{background:#064e3b;color:#10b981}
-    .b-busy{background:#451a03;color:#fbbf24}
-    .b-offline{background:#1e293b;color:#64748b}
-    .b-completed{background:#064e3b;color:#10b981}
-    .b-electricity{background:#451a03;color:#fbbf24}
-    .b-water{background:#1e3a5f;color:#60a5fa}
-    .b-airtime{background:#064e3b;color:#10b981}
-    .b-internet{background:#2d1b69;color:#a78bfa}
-    .b-tv{background:#3b1f00;color:#fb923c}
-
-    /* ── FILTER BAR ── */
-    .filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-    .filter-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid #334155;background:transparent;color:#94a3b8}
-    .filter-btn:hover,.filter-btn.active{background:#00AEEF;color:white;border-color:#00AEEF}
-
-    /* ── RATES ── */
-    .rates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px}
-    .rate-card{background:#1e293b;border-radius:10px;padding:16px;border:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
-    .rate-pair{font-size:15px;font-weight:700;color:#e2e8f0}
-    .rate-val{font-size:18px;font-weight:800;color:#00AEEF}
-
-    /* ── KYC ACTIONS ── */
-    .btn-approve{padding:4px 10px;background:#064e3b;color:#10b981;border:1px solid #10b981;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s}
-    .btn-approve:hover{background:#10b981;color:white}
-    .btn-reject{padding:4px 10px;background:#450a0a;color:#f87171;border:1px solid #f87171;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px;transition:all .15s}
-    .btn-reject:hover{background:#f87171;color:white}
-
-    /* ── MISC ── */
-    .empty{text-align:center;padding:32px;color:#334155;font-size:14px}
-    .loading{text-align:center;padding:24px;color:#334155;font-size:13px}
-    .footer{text-align:center;padding:24px;color:#1e293b;font-size:12px;margin-top:8px}
-    .progress-bar{height:6px;background:#334155;border-radius:3px;overflow:hidden;margin-top:8px}
-    .progress-fill{height:100%;border-radius:3px;transition:width .5s ease}
-  </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>INNOVAAFRIC — Admin Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+/* LOGIN */
+#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.login-card{background:#1e293b;border-radius:14px;padding:44px;width:400px;border:1px solid #334155;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.login-logo{text-align:center;margin-bottom:28px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;color:#94a3b8;margin-bottom:5px}
+.fg input,.fg select{width:100%;padding:10px 13px;background:#0f172a;border:1px solid #334155;border-radius:7px;color:#e2e8f0;font-size:13px;outline:none}
+.fg input:focus,.fg select:focus{border-color:#00AEEF}
+.fg select option{background:#1e293b}
+.btn-login{width:100%;padding:12px;background:#00AEEF;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+.btn-login:hover{background:#0096d6}
+.err{color:#f87171;font-size:12px;margin-top:10px;text-align:center;display:none}
+/* LAYOUT */
+#app{display:none;min-height:100vh}
+.layout{display:flex;min-height:100vh}
+/* SIDEBAR */
+.sb{width:220px;background:#1e293b;border-right:1px solid #334155;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:20;overflow-y:auto}
+.sb-brand{padding:16px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sb-brand .sl{font-size:14px;font-weight:800;color:#00AEEF}
+.sb-brand .st{font-size:10px;color:#475569;background:#0f172a;padding:1px 5px;border-radius:3px}
+.sb-nav{flex:1;padding:8px 0}
+.sb-sec{padding:6px 14px 2px;font-size:9px;color:#334155;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-top:4px}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;transition:all .15s;font-size:13px;color:#94a3b8;border-left:3px solid transparent;white-space:nowrap}
+.ni:hover{background:#243354;color:#e2e8f0}
+.ni.active{background:#162032;color:#00AEEF;border-left-color:#00AEEF;font-weight:600}
+.ni .ic{font-size:14px;width:18px;text-align:center}
+.sb-foot{padding:12px 16px;border-top:1px solid #334155;flex-shrink:0}
+.av-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.av{width:30px;height:30px;border-radius:50%;background:#00AEEF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.av-d .nm{font-size:12px;font-weight:600}
+.av-d .rl{font-size:10px;color:#64748b}
+.btn-lo{width:100%;padding:7px;background:transparent;border:1px solid #334155;border-radius:5px;color:#94a3b8;cursor:pointer;font-size:12px}
+.btn-lo:hover{border-color:#f87171;color:#f87171}
+/* MAIN */
+.main{margin-left:220px;flex:1}
+.topbar{background:#1e293b;border-bottom:1px solid #334155;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.tb-title{font-size:16px;font-weight:700}
+.tb-right{display:flex;align-items:center;gap:8px}
+.dot-online{display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;margin-right:4px}
+.btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-cyan{background:#00AEEF;color:#fff}
+.btn-cyan:hover{background:#0096d6}
+.btn-green{background:#064e3b;color:#10b981;border:1px solid #10b981}
+.btn-green:hover{background:#10b981;color:#fff}
+.btn-red{background:#450a0a;color:#f87171;border:1px solid #f87171}
+.btn-red:hover{background:#f87171;color:#fff}
+.btn-ghost{background:transparent;border:1px solid #334155;color:#94a3b8}
+.btn-ghost:hover{border-color:#00AEEF;color:#00AEEF}
+.btn-sm{padding:4px 10px;font-size:11px}
+/* PAGES */
+.page{display:none;padding:20px;animation:fi .2s ease}
+.page.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+/* STATS */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:14px;margin-bottom:20px}
+.sc{background:#1e293b;border-radius:9px;padding:18px;border:1px solid #334155;transition:transform .2s}
+.sc:hover{transform:translateY(-2px)}
+.sc .lbl{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+.sc .val{font-size:28px;font-weight:800;margin-top:6px;line-height:1}
+.sc .sub{font-size:11px;color:#64748b;margin-top:4px}
+.c-cyan .val{color:#00AEEF}.c-green .val{color:#10b981}.c-blue .val{color:#60a5fa}
+.c-yellow .val{color:#fbbf24}.c-purple .val{color:#a78bfa}.c-red .val{color:#f87171}
+.c-orange .val{color:#fb923c}.c-def .val{color:#e2e8f0}
+/* CHARTS */
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:20px}
+.cc{background:#1e293b;border-radius:9px;padding:18px;border:1px solid #334155}
+.ct{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+.cw{position:relative;height:200px;display:flex;align-items:center;justify-content:center}
+/* TABLES */
+.sec-hd{font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.tw{background:#1e293b;border-radius:9px;border:1px solid #334155;overflow:hidden;overflow-x:auto;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;min-width:480px}
+thead th{padding:10px 14px;text-align:left;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;background:#0f172a;border-bottom:1px solid #334155;white-space:nowrap}
+tbody td{padding:11px 14px;font-size:12px;border-bottom:1px solid #162032;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#162032}
+/* BADGES */
+.b{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap}
+.bv{background:#064e3b;color:#10b981}.bp{background:#451a03;color:#fbbf24}
+.br{background:#450a0a;color:#f87171}.bu{background:#1e3a5f;color:#60a5fa}
+.bc{background:#1e3a5f;color:#60a5fa}.ba{background:#2d1b69;color:#a78bfa}
+.bca{background:#063a25;color:#34d399}.bri{background:#3b1f00;color:#fb923c}
+.bav{background:#064e3b;color:#10b981}.bbu{background:#451a03;color:#fbbf24}
+.bof{background:#1e293b;color:#64748b}.bco{background:#064e3b;color:#10b981}
+.bel{background:#451a03;color:#fbbf24}.bwa{background:#1e3a5f;color:#60a5fa}
+.bai{background:#064e3b;color:#10b981}.bin{background:#2d1b69;color:#a78bfa}
+.btv{background:#3b1f00;color:#fb923c}
+/* FILTER BAR */
+.fb{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fb-btn{padding:5px 12px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #334155;background:transparent;color:#94a3b8}
+.fb-btn:hover,.fb-btn.active{background:#00AEEF;color:#fff;border-color:#00AEEF}
+/* RATES */
+.rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:20px}
+.rc{background:#1e293b;border-radius:9px;padding:14px;border:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
+.rp{font-size:14px;font-weight:700}.rv{font-size:16px;font-weight:800;color:#00AEEF}
+/* COUNTRIES */
+.kg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:20px}
+.kc{background:#1e293b;border-radius:9px;padding:14px;border:1px solid #334155}
+.kc .cn{font-size:13px;font-weight:700;margin-bottom:4px}
+.kc .cd{font-size:11px;color:#64748b}
+/* SYSTEM */
+.syg{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.syc{background:#1e293b;border-radius:9px;padding:18px;border:1px solid #334155}
+.syc h4{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;font-weight:700}
+.syr{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #0f172a}
+.syr:last-child{border-bottom:none}
+.syr .k{font-size:12px;color:#94a3b8}.syr .v{font-size:12px;color:#e2e8f0;font-weight:600}
+/* PROGRESS */
+.pb{height:5px;background:#334155;border-radius:3px;overflow:hidden;margin-top:6px}
+.pf{height:100%;border-radius:3px;transition:width .5s ease}
+/* FORMS / CARDS */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.info-card{background:#1e293b;border-radius:9px;padding:18px;border:1px solid #334155;margin-bottom:16px}
+.info-card h4{font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:12px}
+.topup-form{background:#1e293b;border-radius:9px;padding:20px;border:1px solid #00AEEF;margin-bottom:20px;max-width:540px}
+.topup-form h3{font-size:14px;font-weight:700;color:#00AEEF;margin-bottom:16px}
+/* MODALS */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:16px}
+.modal-bg.open{display:flex}
+.modal{background:#1e293b;border-radius:12px;padding:28px;width:100%;max-width:500px;border:1px solid #334155;max-height:90vh;overflow-y:auto}
+.modal.wide{max-width:640px}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:20px;color:#e2e8f0}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid #334155}
+/* TOAST */
+#toast-ct{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;max-width:300px;animation:fi .3s ease;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast-ok{background:#064e3b;color:#10b981;border:1px solid #10b981}
+.toast-err{background:#450a0a;color:#f87171;border:1px solid #f87171}
+.toast-info{background:#1e3a5f;color:#60a5fa;border:1px solid #60a5fa}
+/* LANG SELECTOR */
+.lang-card{background:#1e293b;border-radius:9px;padding:20px;border:1px solid #334155;max-width:420px;margin-bottom:16px}
+.lang-card h4{font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:14px}
+.lang-opt{display:flex;align-items:center;gap:12px;padding:10px;border-radius:7px;cursor:pointer;border:1px solid #334155;margin-bottom:8px;transition:all .15s}
+.lang-opt:hover{border-color:#00AEEF}
+.lang-opt.selected{border-color:#00AEEF;background:#162032}
+.lang-opt .flag{font-size:22px}.lang-opt .ln{font-size:14px;font-weight:600}
+.lang-opt .ls{font-size:11px;color:#64748b}
+/* REPORT */
+.rep-card{background:#1e293b;border-radius:9px;padding:18px;border:1px solid #334155;margin-bottom:14px}
+.rep-card h4{font-size:13px;font-weight:700;margin-bottom:6px}
+.rep-card p{font-size:12px;color:#64748b;margin-bottom:14px}
+.misc{color:#334155;font-size:13px;text-align:center;padding:28px}
+.loading{text-align:center;padding:20px;color:#334155;font-size:12px}
+.footer-note{text-align:center;padding:20px;color:#1e293b;font-size:11px}
+.search-bar{padding:8px 13px;background:#0f172a;border:1px solid #334155;border-radius:7px;color:#e2e8f0;font-size:12px;outline:none;min-width:200px}
+.search-bar:focus{border-color:#00AEEF}
+.tag-region{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:#162032;color:#60a5fa;margin-left:6px}
+</style>
 </head>
 <body>
 
-<!-- ══════════════ LOGIN ══════════════ -->
+<!-- ══ LOGIN ══════════════════════════════════════ -->
 <div id="login-page">
   <div class="login-card">
     <div class="login-logo">
-      <svg viewBox="0 0 200 200" width="110" height="110" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 200 200" width="90" height="90" xmlns="http://www.w3.org/2000/svg">
         <g stroke="#00AEEF" stroke-width="3" fill="#00AEEF">
           <line x1="100" y1="100" x2="100" y2="30"/><circle cx="100" cy="26" r="5"/>
           <line x1="100" y1="100" x2="148" y2="46"/><circle cx="151" cy="43" r="5"/>
           <line x1="100" y1="100" x2="165" y2="80"/><circle cx="169" cy="80" r="5"/>
-          <line x1="100" y1="100" x2="170" y2="120"/><circle cx="174" cy="122" r="5"/>
+          <line x1="100" y1="100" x2="165" y2="120"/><circle cx="169" cy="123" r="5"/>
           <line x1="100" y1="100" x2="148" y2="154"/><circle cx="151" cy="157" r="5"/>
           <line x1="100" y1="100" x2="100" y2="170"/><circle cx="100" cy="174" r="5"/>
           <line x1="100" y1="100" x2="52" y2="154"/><circle cx="49" cy="157" r="5"/>
-          <line x1="100" y1="100" x2="30" y2="120"/><circle cx="26" cy="122" r="5"/>
+          <line x1="100" y1="100" x2="35" y2="120"/><circle cx="31" cy="123" r="5"/>
           <line x1="100" y1="100" x2="35" y2="80"/><circle cx="31" cy="80" r="5"/>
           <line x1="100" y1="100" x2="52" y2="46"/><circle cx="49" cy="43" r="5"/>
-          <line x1="100" y1="100" x2="68" y2="35"/><circle cx="65" cy="31" r="4"/>
-          <line x1="100" y1="100" x2="132" y2="35"/><circle cx="135" cy="31" r="4"/>
         </g>
         <circle cx="100" cy="100" r="32" fill="none" stroke="#00AEEF" stroke-width="3"/>
         <ellipse cx="100" cy="100" rx="16" ry="32" fill="none" stroke="#00AEEF" stroke-width="2"/>
         <line x1="68" y1="100" x2="132" y2="100" stroke="#00AEEF" stroke-width="2"/>
         <line x1="72" y1="85" x2="128" y2="85" stroke="#00AEEF" stroke-width="1.5"/>
         <line x1="72" y1="115" x2="128" y2="115" stroke="#00AEEF" stroke-width="1.5"/>
-        <circle cx="140" cy="60" r="3" fill="#00AEEF"/>
-        <circle cx="60" cy="60" r="3" fill="#00AEEF"/>
-        <circle cx="155" cy="100" r="3" fill="#00AEEF"/>
       </svg>
-      <h1 style="color:#00AEEF;font-size:24px;margin-top:6px;font-weight:900;letter-spacing:1px">InnovaAFRIC</h1>
-      <p style="color:#00AEEF;font-size:13px;margin-top:4px;font-weight:600;letter-spacing:2px">We Simplify Life</p>
-      <p style="color:#64748b;font-size:12px;margin-top:10px;border-top:1px solid #334155;padding-top:10px">Panel de Administración</p>
+      <h1 style="color:#00AEEF;font-size:22px;margin-top:4px;font-weight:900;letter-spacing:1px">InnovaAFRIC</h1>
+      <p style="color:#00AEEF;font-size:11px;margin-top:3px;font-weight:600;letter-spacing:2px">We Simplify Life</p>
+      <p style="color:#64748b;font-size:11px;margin-top:8px;border-top:1px solid #334155;padding-top:8px">Panel de Administración</p>
     </div>
-    <div class="form-group">
-      <label>Email administrador</label>
-      <input type="email" id="inp-email" value="admin@innovaafric.com" placeholder="admin@innovaafric.com">
-    </div>
-    <div class="form-group">
-      <label>Contraseña</label>
-      <input type="password" id="inp-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <button class="btn-login" id="btn-login" onclick="doLogin()">Entrar al Panel</button>
-    <div class="error-msg" id="login-err">Credenciales inválidas o sin permisos de admin</div>
+    <div class="fg"><label>Email</label><input type="email" id="l-email" value="admin@innovaafric.com"></div>
+    <div class="fg"><label>Contraseña</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn-login" id="l-btn" onclick="doLogin()">Entrar al Panel</button>
+    <div class="err" id="l-err">Credenciales inválidas o sin permisos de admin</div>
   </div>
 </div>
 
-<!-- ══════════════ DASHBOARD ══════════════ -->
-<div id="dashboard-page">
-  <div class="layout">
+<!-- ══ APP ════════════════════════════════════════ -->
+<div id="app">
+<div class="layout">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <svg viewBox="0 0 200 200" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
-          <g stroke="#00AEEF" stroke-width="4" fill="#00AEEF">
-            <line x1="100" y1="100" x2="100" y2="40"/><circle cx="100" cy="35" r="6"/>
-            <line x1="100" y1="100" x2="150" y2="55"/><circle cx="155" cy="51" r="6"/>
-            <line x1="100" y1="100" x2="160" y2="100"/><circle cx="165" cy="100" r="6"/>
-            <line x1="100" y1="100" x2="150" y2="145"/><circle cx="155" cy="149" r="6"/>
-            <line x1="100" y1="100" x2="100" y2="160"/><circle cx="100" cy="165" r="6"/>
-            <line x1="100" y1="100" x2="50" y2="145"/><circle cx="45" cy="149" r="6"/>
-            <line x1="100" y1="100" x2="40" y2="100"/><circle cx="35" cy="100" r="6"/>
-            <line x1="100" y1="100" x2="50" y2="55"/><circle cx="45" cy="51" r="6"/>
-          </g>
-          <circle cx="100" cy="100" r="28" fill="none" stroke="#00AEEF" stroke-width="4"/>
-          <ellipse cx="100" cy="100" rx="14" ry="28" fill="none" stroke="#00AEEF" stroke-width="2.5"/>
-          <line x1="72" y1="100" x2="128" y2="100" stroke="#00AEEF" stroke-width="2.5"/>
-          <line x1="76" y1="87" x2="124" y2="87" stroke="#00AEEF" stroke-width="2"/>
-          <line x1="76" y1="113" x2="124" y2="113" stroke="#00AEEF" stroke-width="2"/>
-        </svg>
-        <div>
-          <div class="slogo">InnovaAFRIC</div>
-          <div class="stag">Admin v1.0</div>
-        </div>
+<!-- SIDEBAR -->
+<aside class="sb">
+  <div class="sb-brand">
+    <svg viewBox="0 0 200 200" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#00AEEF" stroke-width="4" fill="#00AEEF">
+        <line x1="100" y1="100" x2="100" y2="40"/><circle cx="100" cy="35" r="6"/>
+        <line x1="100" y1="100" x2="150" y2="55"/><circle cx="155" cy="51" r="6"/>
+        <line x1="100" y1="100" x2="160" y2="100"/><circle cx="165" cy="100" r="6"/>
+        <line x1="100" y1="100" x2="150" y2="145"/><circle cx="155" cy="149" r="6"/>
+        <line x1="100" y1="100" x2="100" y2="160"/><circle cx="100" cy="165" r="6"/>
+        <line x1="100" y1="100" x2="50" y2="145"/><circle cx="45" cy="149" r="6"/>
+        <line x1="100" y1="100" x2="40" y2="100"/><circle cx="35" cy="100" r="6"/>
+        <line x1="100" y1="100" x2="50" y2="55"/><circle cx="45" cy="51" r="6"/>
+      </g>
+      <circle cx="100" cy="100" r="28" fill="none" stroke="#00AEEF" stroke-width="3"/>
+      <ellipse cx="100" cy="100" rx="14" ry="28" fill="none" stroke="#00AEEF" stroke-width="2"/>
+      <line x1="72" y1="100" x2="128" y2="100" stroke="#00AEEF" stroke-width="2"/>
+    </svg>
+    <div><div class="sl">InnovaAFRIC</div><div class="st">Admin v2.0</div></div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="sb-sec" data-i18n="nav_principal">PRINCIPAL</div>
+    <div class="ni active" onclick="gp('overview')"><span class="ic">📊</span> <span data-i18n="nav_dashboard">Dashboard</span></div>
+    <div class="ni" onclick="gp('charts')"><span class="ic">📈</span> <span data-i18n="nav_charts">Gráficos</span></div>
+
+    <div class="sb-sec" data-i18n="nav_users_sec">USUARIOS</div>
+    <div class="ni" onclick="gp('users')"><span class="ic">👥</span> <span data-i18n="nav_users">Usuarios</span></div>
+    <div class="ni" onclick="gp('reps')"><span class="ic">🏢</span> <span data-i18n="nav_reps">Representantes</span></div>
+    <div class="ni" onclick="gp('roles')"><span class="ic">🎭</span> <span data-i18n="nav_roles">Roles</span></div>
+
+    <div class="sb-sec" data-i18n="nav_finance_sec">FINANZAS</div>
+    <div class="ni" onclick="gp('txns')"><span class="ic">💸</span> <span data-i18n="nav_txns">Transacciones</span></div>
+    <div class="ni" onclick="gp('topup')"><span class="ic">💰</span> <span data-i18n="nav_topup">Recargas</span></div>
+    <div class="ni" onclick="gp('withdraw')"><span class="ic">🏧</span> <span data-i18n="nav_withdraw">Reintegros</span></div>
+
+    <div class="sb-sec" data-i18n="nav_services_sec">SERVICIOS</div>
+    <div class="ni" onclick="gp('riders')"><span class="ic">🚴</span> <span data-i18n="nav_riders">Riders</span></div>
+    <div class="ni" onclick="gp('providers')"><span class="ic">📋</span> <span data-i18n="nav_providers">Proveedores</span></div>
+    <div class="ni" onclick="gp('rates')"><span class="ic">💱</span> <span data-i18n="nav_rates">Tasas de cambio</span></div>
+
+    <div class="sb-sec" data-i18n="nav_system_sec">SISTEMA</div>
+    <div class="ni" onclick="gp('countries')"><span class="ic">🌍</span> <span data-i18n="nav_countries">Países</span></div>
+    <div class="ni" onclick="gp('reports')"><span class="ic">📊</span> <span data-i18n="nav_reports">Informes</span></div>
+    <div class="ni" onclick="gp('settings')"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Configuración</span></div>
+    <div class="ni" onclick="gp('system')"><span class="ic">🖥️</span> <span data-i18n="nav_system">Sistema</span></div>
+  </nav>
+
+  <div class="sb-foot">
+    <div class="av-row">
+      <div class="av" id="av-init">A</div>
+      <div class="av-d"><div class="nm" id="av-name">Admin</div><div class="rl" data-i18n="role_admin">Administrador</div></div>
+    </div>
+    <button class="btn-lo" onclick="doLogout()">🚪 <span data-i18n="logout">Cerrar sesión</span></button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title" id="pg-title">Dashboard</div>
+    <div class="tb-right">
+      <span><span class="dot-online"></span><span data-i18n="online">En línea</span></span>
+      <button class="btn btn-cyan" onclick="refresh()">↻ <span data-i18n="refresh">Actualizar</span></button>
+    </div>
+  </div>
+
+  <!-- ── OVERVIEW ── -->
+  <div class="page active" id="page-overview">
+    <div class="sg" id="sg"></div>
+    <div class="sec-hd" data-i18n="system_status">Estado del Sistema</div>
+    <div class="syg" id="sys-mini"></div>
+    <div class="footer-note">INNOVAAFRIC Admin © 2026 · We Simplify Life</div>
+  </div>
+
+  <!-- ── CHARTS ── -->
+  <div class="page" id="page-charts">
+    <div class="cg">
+      <div class="cc"><div class="ct" data-i18n="chart_kyc">Estado KYC</div><div class="cw"><canvas id="c-kyc"></canvas></div></div>
+      <div class="cc"><div class="ct" data-i18n="chart_roles">Usuarios por Rol</div><div class="cw"><canvas id="c-roles"></canvas></div></div>
+      <div class="cc"><div class="ct" data-i18n="chart_providers">Proveedores por Categoría</div><div class="cw"><canvas id="c-prov"></canvas></div></div>
+      <div class="cc"><div class="ct" data-i18n="chart_rates">Tasas de Cambio</div><div class="cw"><canvas id="c-rates"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ── USERS ── -->
+  <div class="page" id="page-users">
+    <div class="sec-hd">
+      <span data-i18n="users_title">Usuarios Registrados</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input class="search-bar" id="user-search" placeholder="🔍 Buscar..." oninput="filterUsersSearch()">
+        <button class="btn btn-cyan" onclick="openModal('user',{})">+ <span data-i18n="new_user">Nuevo Usuario</span></button>
       </div>
+    </div>
+    <div class="fb" id="user-role-fb">
+      <button class="fb-btn active" onclick="filterRole(this,'')">Todos</button>
+      <button class="fb-btn" onclick="filterRole(this,'customer')">Clientes</button>
+      <button class="fb-btn" onclick="filterRole(this,'circular_autorizada')">Circulares</button>
+      <button class="fb-btn" onclick="filterRole(this,'rider')">Riders</button>
+      <button class="fb-btn" onclick="filterRole(this,'admin')">Admin</button>
+    </div>
+    <div class="fb" id="user-kyc-fb">
+      <button class="fb-btn active" onclick="filterKyc(this,'')">Todos KYC</button>
+      <button class="fb-btn" onclick="filterKyc(this,'verified')">✓ Verificados</button>
+      <button class="fb-btn" onclick="filterKyc(this,'pending')">⏳ Pendientes</button>
+      <button class="fb-btn" onclick="filterKyc(this,'rejected')">✗ Rechazados</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>País</th><th>Rol</th><th>KYC</th><th>Registro</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-users"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
 
-      <nav class="sidebar-nav">
-        <div class="nav-section">Principal</div>
-        <div class="nav-item active" onclick="goPage('overview')">
-          <span class="icon">📊</span> Dashboard
-        </div>
-        <div class="nav-item" onclick="goPage('charts')">
-          <span class="icon">📈</span> Gráficos
-        </div>
-        <div class="nav-section">Gestión</div>
-        <div class="nav-item" onclick="goPage('users')">
-          <span class="icon">👥</span> Usuarios
-        </div>
-        <div class="nav-item" onclick="goPage('transactions')">
-          <span class="icon">💸</span> Transacciones
-        </div>
-        <div class="nav-item" onclick="goPage('riders')">
-          <span class="icon">🚴</span> Riders
-        </div>
-        <div class="nav-section">Servicios</div>
-        <div class="nav-item" onclick="goPage('bills')">
-          <span class="icon">📋</span> Proveedores
-        </div>
-        <div class="nav-item" onclick="goPage('rates')">
-          <span class="icon">💱</span> Tasas de cambio
-        </div>
-        <div class="nav-section">Sistema</div>
-        <div class="nav-item" onclick="goPage('system')">
-          <span class="icon">🖥️</span> Estado del sistema
-        </div>
-      </nav>
+  <!-- ── REPRESENTANTES ── -->
+  <div class="page" id="page-reps">
+    <div class="sec-hd">
+      <span data-i18n="reps_title">Representantes (Circulares Autorizadas)</span>
+      <button class="btn btn-cyan" onclick="openModal('user',{role:'circular_autorizada'})">+ <span data-i18n="new_rep">Nuevo Representante</span></button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>País</th><th>KYC</th><th>Registro</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-reps"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
 
-      <div class="sidebar-footer">
-        <div class="admin-info">
-          <div class="admin-avatar" id="admin-avatar">A</div>
-          <div class="admin-details">
-            <div class="name" id="admin-name">Admin</div>
-            <div class="role">Administrador</div>
-          </div>
-        </div>
-        <button class="btn-logout" onclick="doLogout()">🚪 Cerrar sesión</button>
+  <!-- ── ROLES ── -->
+  <div class="page" id="page-roles">
+    <div class="sec-hd" data-i18n="roles_title">Gestión de Roles</div>
+    <div class="info-card" style="max-width:600px">
+      <h4 data-i18n="roles_desc">Roles del Sistema</h4>
+      <div style="display:grid;gap:10px">
+        <div class="syr"><span class="k"><span class="b bc">customer</span></span><span class="v" style="font-size:11px;color:#94a3b8">Usuario estándar — acceso a wallet, shop, delivery</span></div>
+        <div class="syr"><span class="k"><span class="b bca">circular_autorizada</span></span><span class="v" style="font-size:11px;color:#94a3b8">Representante regional — puede gestionar riders y pagos QR</span></div>
+        <div class="syr"><span class="k"><span class="b bri">rider</span></span><span class="v" style="font-size:11px;color:#94a3b8">Mensajero de entrega — gestiona órdenes asignadas</span></div>
+        <div class="syr"><span class="k"><span class="b ba">admin</span></span><span class="v" style="font-size:11px;color:#94a3b8">Administrador — acceso total al panel y la API</span></div>
       </div>
-    </aside>
+    </div>
+    <div class="sec-hd" data-i18n="roles_change">Cambiar Rol de Usuario</div>
+    <div class="tw"><table>
+      <thead><tr><th>Nombre</th><th>Email</th><th>Rol Actual</th><th>Nuevo Rol</th><th>Acción</th></tr></thead>
+      <tbody id="tb-roles"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
 
-    <!-- MAIN -->
-    <div class="main-content">
-      <div class="topbar">
-        <div class="topbar-title" id="page-title">Dashboard</div>
-        <div class="topbar-right">
-          <span><span class="online-dot"></span>En línea</span>
-          <button class="btn-sm btn-refresh" onclick="refreshPage()">↻ Actualizar</button>
+  <!-- ── TRANSACTIONS ── -->
+  <div class="page" id="page-txns">
+    <div class="sec-hd">
+      <span data-i18n="txns_title">Transacciones</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="date" class="search-bar" id="txn-from" style="width:140px">
+        <input type="date" class="search-bar" id="txn-to" style="width:140px">
+        <button class="btn btn-cyan" onclick="loadTxns()">Filtrar</button>
+        <button class="btn btn-ghost" onclick="exportTxnCSV()">⬇ CSV</button>
+      </div>
+    </div>
+    <div class="fb" id="txn-type-fb">
+      <button class="fb-btn active" onclick="filterTxnType(this,'')">Todos</button>
+      <button class="fb-btn" onclick="filterTxnType(this,'topup')">Recargas</button>
+      <button class="fb-btn" onclick="filterTxnType(this,'send')">Envíos</button>
+      <button class="fb-btn" onclick="filterTxnType(this,'withdraw')">Reintegros</button>
+      <button class="fb-btn" onclick="filterTxnType(this,'p2p')">P2P</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>ID</th><th>Tipo</th><th>Usuario</th><th>Importe</th><th>Divisa</th><th>Estado</th><th>Fecha</th></tr></thead>
+      <tbody id="tb-txns"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── RECARGAS ── -->
+  <div class="page" id="page-topup">
+    <div class="sec-hd" data-i18n="topup_title">Recargar Wallet de Usuario</div>
+    <div class="topup-form">
+      <h3>💰 <span data-i18n="topup_admin">Recarga Administrativa</span></h3>
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="fg"><label data-i18n="user_id">ID o Email del Usuario</label>
+          <input id="tp-user" placeholder="usr_001 o email@..." list="tp-users-list">
+          <datalist id="tp-users-list"></datalist>
         </div>
+        <div class="fg"><label data-i18n="amount">Importe</label><input type="number" id="tp-amount" placeholder="5000" min="1"></div>
       </div>
-
-      <!-- ── OVERVIEW ── -->
-      <div class="page active" id="page-overview">
-        <div class="stats-grid" id="stats-grid"><div class="loading">Cargando estadísticas...</div></div>
-        <div class="section-title">Estado del Sistema</div>
-        <div class="system-grid" id="system-mini"><div class="loading">Cargando...</div></div>
-        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026 · We Simplify Life</div>
-      </div>
-
-      <!-- ── CHARTS ── -->
-      <div class="page" id="page-charts">
-        <div class="charts-grid">
-          <div class="chart-card">
-            <div class="chart-title">Estado KYC de usuarios</div>
-            <div class="chart-wrap"><canvas id="chart-kyc"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-title">Usuarios por rol</div>
-            <div class="chart-wrap"><canvas id="chart-roles"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-title">Proveedores por categoría</div>
-            <div class="chart-wrap"><canvas id="chart-bills"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-title">Tasas de cambio principales</div>
-            <div class="chart-wrap"><canvas id="chart-rates"></canvas></div>
-          </div>
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="fg"><label data-i18n="currency">Divisa</label>
+          <select id="tp-currency"><option value="XAF">XAF</option><option value="XOF">XOF</option><option value="EUR">EUR</option><option value="USD">USD</option></select>
         </div>
-        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+        <div class="fg"><label data-i18n="note">Nota (opcional)</label><input id="tp-note" placeholder="Motivo de la recarga"></div>
       </div>
+      <button class="btn btn-cyan" onclick="doTopup()" style="width:100%;padding:11px">💰 <span data-i18n="do_topup">Realizar Recarga</span></button>
+    </div>
+    <div class="sec-hd" data-i18n="topup_history">Historial de Recargas Recientes</div>
+    <div class="tw"><table>
+      <thead><tr><th>ID</th><th>Usuario</th><th>Importe</th><th>Divisa</th><th>Referencia</th><th>Fecha</th></tr></thead>
+      <tbody id="tb-topups"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
 
-      <!-- ── USERS ── -->
-      <div class="page" id="page-users">
-        <div class="section-title">
-          <span>Usuarios registrados</span>
-          <div class="filter-bar" style="margin:0">
-            <button class="filter-btn active" onclick="filterUsers(this,'')">Todos</button>
-            <button class="filter-btn" onclick="filterUsers(this,'customer')">Clientes</button>
-            <button class="filter-btn" onclick="filterUsers(this,'admin')">Admin</button>
-            <button class="filter-btn" onclick="filterUsers(this,'circular_autorizada')">Circulares</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>País</th><th>Rol</th><th>KYC</th><th>Registro</th><th>Acciones KYC</th></tr></thead>
-            <tbody id="tb-users"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
-          </table>
-        </div>
-        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+  <!-- ── REINTEGROS ── -->
+  <div class="page" id="page-withdraw">
+    <div class="sec-hd" data-i18n="withdraw_title">Gestión de Reintegros</div>
+    <div class="tw"><table>
+      <thead><tr><th>ID</th><th>Usuario</th><th>Importe</th><th>Divisa</th><th>Método</th><th>Destino</th><th>Estado</th><th>Fecha</th></tr></thead>
+      <tbody id="tb-withdraws"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── RIDERS ── -->
+  <div class="page" id="page-riders">
+    <div class="sec-hd">
+      <span data-i18n="riders_title">Gestión de Riders</span>
+      <button class="btn btn-cyan" onclick="openModal('rider',{})">+ <span data-i18n="new_rider">Nuevo Rider</span></button>
+    </div>
+    <div class="fb" id="rider-fb">
+      <button class="fb-btn active" onclick="filterRider(this,'')">Todos</button>
+      <button class="fb-btn" onclick="filterRider(this,'available')">✓ Disponibles</button>
+      <button class="fb-btn" onclick="filterRider(this,'busy')">⏳ Ocupados</button>
+      <button class="fb-btn" onclick="filterRider(this,'offline')">✗ Offline</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Zona</th><th>Vehículo</th><th>Estado</th><th>Rating</th><th>Entregas</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-riders"><tr><td colspan="9" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── PROVIDERS ── -->
+  <div class="page" id="page-providers">
+    <div class="sec-hd">
+      <span data-i18n="providers_title">Proveedores de Facturas</span>
+      <button class="btn btn-cyan" onclick="openModal('provider',{})">+ <span data-i18n="new_provider">Nuevo Proveedor</span></button>
+    </div>
+    <div class="fb" id="prov-cat-fb">
+      <button class="fb-btn active" onclick="filterProv(this,'')">Todos</button>
+      <button class="fb-btn" onclick="filterProv(this,'electricity')">⚡ Electricidad</button>
+      <button class="fb-btn" onclick="filterProv(this,'water')">💧 Agua</button>
+      <button class="fb-btn" onclick="filterProv(this,'airtime')">📱 Airtime</button>
+      <button class="fb-btn" onclick="filterProv(this,'internet')">🌐 Internet</button>
+      <button class="fb-btn" onclick="filterProv(this,'tv')">📺 TV</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>País</th><th>Campo</th><th>Mín</th><th>Máx</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-prov"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── RATES ── -->
+  <div class="page" id="page-rates">
+    <div class="sec-hd" data-i18n="rates_title">Tasas de Cambio</div>
+    <div class="rg" id="rates-grid"></div>
+  </div>
+
+  <!-- ── COUNTRIES ── -->
+  <div class="page" id="page-countries">
+    <div class="sec-hd">
+      <span data-i18n="countries_title">Países Soportados</span>
+      <input class="search-bar" id="country-search" placeholder="🔍 Buscar país..." oninput="filterCountries()">
+    </div>
+    <div class="kg" id="countries-grid"></div>
+  </div>
+
+  <!-- ── REPORTS ── -->
+  <div class="page" id="page-reports">
+    <div class="sec-hd" data-i18n="reports_title">Informes y Exportaciones</div>
+    <div style="background:#1e293b;border-radius:9px;padding:18px;border:1px solid #334155;margin-bottom:16px;max-width:540px">
+      <h4 style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:14px">Periodo del Informe</h4>
+      <div class="form-row">
+        <div class="fg"><label>Desde</label><input type="date" id="rep-from"></div>
+        <div class="fg"><label>Hasta</label><input type="date" id="rep-to"></div>
       </div>
-
-      <!-- ── TRANSACTIONS ── -->
-      <div class="page" id="page-transactions">
-        <div class="section-title">Transacciones recientes</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>Tipo</th><th>Usuario</th><th>Importe</th><th>Moneda</th><th>Estado</th><th>Fecha</th></tr></thead>
-            <tbody id="tb-txns"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
-          </table>
-        </div>
-        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      <button class="btn btn-cyan" onclick="loadReport()" style="margin-top:4px;width:100%;padding:10px">📊 Generar Informe</button>
+    </div>
+    <div id="rep-results" style="display:none">
+      <div class="sg" id="rep-stats"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn btn-ghost" onclick="exportReport('users')">⬇ CSV Usuarios</button>
+        <button class="btn btn-ghost" onclick="exportReport('txns')">⬇ CSV Transacciones</button>
+        <button class="btn btn-ghost" onclick="printReport()">🖨️ Imprimir</button>
       </div>
+      <div class="tw"><table>
+        <thead><tr><th>Métrica</th><th>Valor</th></tr></thead>
+        <tbody id="tb-report"></tbody>
+      </table></div>
+    </div>
+  </div>
 
-      <!-- ── RIDERS ── -->
-      <div class="page" id="page-riders">
-        <div class="section-title">Riders activos</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Zona</th><th>Vehículo</th><th>Estado</th><th>Rating</th><th>Entregas</th></tr></thead>
-            <tbody id="tb-riders"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
-          </table>
-        </div>
-        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+  <!-- ── SETTINGS ── -->
+  <div class="page" id="page-settings">
+    <div class="sec-hd" data-i18n="settings_title">Configuración del Panel</div>
+    <div class="lang-card">
+      <h4 data-i18n="lang_title">Idioma / Language / Langue</h4>
+      <div class="lang-opt" id="lang-es" onclick="setLang('es')">
+        <span class="flag">🇪🇸</span><div><div class="ln">Español</div><div class="ls">Idioma principal del sistema</div></div>
       </div>
-
-      <!-- ── BILLS ── -->
-      <div class="page" id="page-bills">
-        <div class="section-title">Proveedores de facturas</div>
-        <div class="filter-bar" id="bills-filters">
-          <button class="filter-btn active" onclick="filterBills(this,'')">Todos</button>
-          <button class="filter-btn" onclick="filterBills(this,'electricity')">⚡ Electricidad</button>
-          <button class="filter-btn" onclick="filterBills(this,'water')">💧 Agua</button>
-          <button class="filter-btn" onclick="filterBills(this,'airtime')">📱 Airtime</button>
-          <button class="filter-btn" onclick="filterBills(this,'internet')">🌐 Internet</button>
-          <button class="filter-btn" onclick="filterBills(this,'tv')">📺 TV</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>Proveedor</th><th>Categoría</th><th>País</th><th>Campo requerido</th><th>Min</th><th>Max</th></tr></thead>
-            <tbody id="tb-bills"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
-          </table>
-        </div>
-        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      <div class="lang-opt" id="lang-en" onclick="setLang('en')">
+        <span class="flag">🇬🇧</span><div><div class="ln">English</div><div class="ls">International language</div></div>
       </div>
-
-      <!-- ── RATES ── -->
-      <div class="page" id="page-rates">
-        <div class="section-title">Tasas de cambio — BCEAO + Mercado</div>
-        <div class="rates-grid" id="rates-grid"><div class="loading">Cargando...</div></div>
-        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+      <div class="lang-opt" id="lang-fr" onclick="setLang('fr')">
+        <span class="flag">🇫🇷</span><div><div class="ln">Français</div><div class="ls">Langue internationale africaine</div></div>
       </div>
+    </div>
+    <div class="lang-card">
+      <h4>Información del Sistema</h4>
+      <div class="syr"><span class="k">Versión API</span><span class="v">v1.0.0</span></div>
+      <div class="syr"><span class="k">Base URL</span><span class="v">/v1</span></div>
+      <div class="syr"><span class="k">Dashboard</span><span class="v">v2.0</span></div>
+      <div class="syr"><span class="k">Fecha</span><span class="v" id="cfg-date"></span></div>
+    </div>
+  </div>
 
-      <!-- ── SYSTEM ── -->
-      <div class="page" id="page-system">
-        <div class="section-title">Estado del sistema en tiempo real</div>
-        <div class="system-grid" id="system-grid"><div class="loading">Cargando...</div></div>
-        <div class="footer">INNOVAAFRIC Admin Dashboard — © 2026</div>
+  <!-- ── SYSTEM ── -->
+  <div class="page" id="page-system">
+    <div class="sec-hd" data-i18n="system_title">Estado del Sistema en Tiempo Real</div>
+    <div class="syg" id="sys-grid"></div>
+    <div class="footer-note">INNOVAAFRIC Admin © 2026 · We Simplify Life</div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+</div><!-- /app -->
+
+<!-- ══ MODALS ══════════════════════════════════════ -->
+
+<!-- Modal: Usuario -->
+<div class="modal-bg" id="modal-user">
+  <div class="modal">
+    <h3 id="modal-user-title">Nuevo Usuario</h3>
+    <input type="hidden" id="u-id">
+    <div class="form-row">
+      <div class="fg"><label>Nombre Completo *</label><input id="u-name" placeholder="Amara Diallo"></div>
+      <div class="fg"><label>Email *</label><input type="email" id="u-email" placeholder="amara@..."></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Teléfono *</label><input id="u-phone" placeholder="+2401234567"></div>
+      <div class="fg"><label>País *</label>
+        <select id="u-country"><option value="">-- Seleccionar --</option></select>
       </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Rol *</label>
+        <select id="u-role">
+          <option value="customer">customer</option>
+          <option value="circular_autorizada">circular_autorizada</option>
+          <option value="rider">rider</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div class="fg"><label>KYC</label>
+        <select id="u-kyc">
+          <option value="pending">pending</option>
+          <option value="verified">verified</option>
+          <option value="rejected">rejected</option>
+          <option value="under_review">under_review</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Contraseña <span id="u-pass-hint" style="color:#64748b">(dejar vacío para no cambiar)</span></label>
+      <input type="password" id="u-pass" placeholder="••••••••">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('user')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="saveUser()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
 
-    </div><!-- /main-content -->
-  </div><!-- /layout -->
-</div><!-- /dashboard-page -->
+<!-- Modal: Detalle Usuario -->
+<div class="modal-bg" id="modal-userdetail">
+  <div class="modal wide">
+    <h3>👤 Detalle del Usuario</h3>
+    <div id="userdetail-content"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('userdetail')">Cerrar</button>
+      <button class="btn btn-cyan" id="btn-do-topup-detail" onclick="">💰 Recargar Wallet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Rider -->
+<div class="modal-bg" id="modal-rider">
+  <div class="modal">
+    <h3 id="modal-rider-title">Nuevo Rider</h3>
+    <input type="hidden" id="r-id">
+    <div class="form-row">
+      <div class="fg"><label>Nombre *</label><input id="r-name" placeholder="Jean Pierre Ondo"></div>
+      <div class="fg"><label>Teléfono *</label><input id="r-phone" placeholder="+240..."></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Zona *</label><input id="r-zone" placeholder="Malabo Norte"></div>
+      <div class="fg"><label>Vehículo *</label>
+        <select id="r-vehicle">
+          <option value="moto">🏍️ Moto</option>
+          <option value="bicicleta">🚲 Bicicleta</option>
+          <option value="coche">🚗 Coche</option>
+          <option value="furgoneta">🚐 Furgoneta</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Estado</label>
+        <select id="r-status">
+          <option value="available">available</option>
+          <option value="busy">busy</option>
+          <option value="offline">offline</option>
+        </select>
+      </div>
+      <div class="fg"><label>Rating (0-5)</label><input type="number" id="r-rating" min="0" max="5" step="0.1" placeholder="4.8"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('rider')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="saveRider()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Proveedor -->
+<div class="modal-bg" id="modal-provider">
+  <div class="modal">
+    <h3 id="modal-prov-title">Nuevo Proveedor</h3>
+    <input type="hidden" id="pv-id">
+    <div class="form-row">
+      <div class="fg"><label>Nombre *</label><input id="pv-name" placeholder="MTN Cameroun"></div>
+      <div class="fg"><label>Categoría *</label>
+        <select id="pv-cat">
+          <option value="electricity">⚡ Electricidad</option>
+          <option value="water">💧 Agua</option>
+          <option value="airtime">📱 Airtime</option>
+          <option value="internet">🌐 Internet</option>
+          <option value="tv">📺 TV</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>País *</label>
+        <select id="pv-country"><option value="">-- Seleccionar --</option></select>
+      </div>
+      <div class="fg"><label>Campo requerido *</label>
+        <select id="pv-field">
+          <option value="phone">📱 Teléfono</option>
+          <option value="account_number">🔢 Número de cuenta</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Importe mínimo</label><input type="number" id="pv-min" value="100"></div>
+      <div class="fg"><label>Importe máximo</label><input type="number" id="pv-max" value="500000"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('provider')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="saveProvider()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar Tasa -->
+<div class="modal-bg" id="modal-rate">
+  <div class="modal">
+    <h3>💱 Actualizar Tasa de Cambio</h3>
+    <input type="hidden" id="rt-pair">
+    <div class="fg"><label>Par de divisas</label><input id="rt-pair-show" disabled style="opacity:.5"></div>
+    <div class="fg"><label>Nueva tasa *</label><input type="number" id="rt-rate" step="0.0001" placeholder="655.957"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('rate')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="saveRate()">💾 Actualizar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Recarga rápida desde usuarios -->
+<div class="modal-bg" id="modal-quicktopup">
+  <div class="modal">
+    <h3>💰 Recarga Rápida</h3>
+    <input type="hidden" id="qt-uid">
+    <div class="fg"><label>Usuario</label><input id="qt-uname" disabled style="opacity:.6"></div>
+    <div class="form-row">
+      <div class="fg"><label>Importe *</label><input type="number" id="qt-amount" placeholder="5000" min="1"></div>
+      <div class="fg"><label>Divisa</label>
+        <select id="qt-currency"><option value="XAF">XAF</option><option value="XOF">XOF</option><option value="EUR">EUR</option><option value="USD">USD</option></select>
+      </div>
+    </div>
+    <div class="fg"><label>Nota</label><input id="qt-note" placeholder="Motivo..."></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('quicktopup')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="doQuickTopup()">💰 Recargar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmar eliminación -->
+<div class="modal-bg" id="modal-confirm">
+  <div class="modal" style="max-width:400px">
+    <h3>⚠️ Confirmar eliminación</h3>
+    <p id="confirm-msg" style="color:#94a3b8;font-size:13px;margin-bottom:6px"></p>
+    <p style="color:#f87171;font-size:12px">Esta acción no se puede deshacer.</p>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('confirm')">Cancelar</button>
+      <button class="btn btn-red" id="confirm-ok">🗑️ Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-ct"></div>
 
 <script>
+'use strict';
 const BASE = '/v1';
 let TOKEN = localStorage.getItem('inn_token');
-let ALL_USERS = [], ALL_BILLS = [];
+let LANG  = localStorage.getItem('inn_lang') || 'es';
+let ALL_USERS=[], ALL_RIDERS=[], ALL_PROV=[], ALL_TXNS=[], ALL_COUNTRIES=[];
 let chartsBuilt = false;
+let reportData = null;
+let roleFilter = '', kycFilter = '', riderFilter = '', provFilter = '', txnTypeFilter = '';
 
-/* ═══ API ═══════════════════════════════════════════════ */
-async function api(path, opts={}) {
-  try {
-    const r = await fetch(BASE + path, {
-      ...opts,
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(opts.headers||{}) }
-    });
-    return r.json();
-  } catch(e) { return { success:false }; }
+/* ═══ TRANSLATIONS ══════════════════════════════════ */
+const TR = {
+  es:{
+    nav_principal:'PRINCIPAL',nav_dashboard:'Dashboard',nav_charts:'Gráficos',
+    nav_users_sec:'USUARIOS',nav_users:'Usuarios',nav_reps:'Representantes',nav_roles:'Roles',
+    nav_finance_sec:'FINANZAS',nav_txns:'Transacciones',nav_topup:'Recargas',nav_withdraw:'Reintegros',
+    nav_services_sec:'SERVICIOS',nav_riders:'Riders',nav_providers:'Proveedores',nav_rates:'Tasas de cambio',
+    nav_system_sec:'SISTEMA',nav_countries:'Países',nav_reports:'Informes',nav_settings:'Configuración',nav_system:'Sistema',
+    logout:'Cerrar sesión',online:'En línea',refresh:'Actualizar',role_admin:'Administrador',
+    users_title:'Usuarios Registrados',new_user:'Nuevo Usuario',reps_title:'Representantes',new_rep:'Nuevo Representante',
+    roles_title:'Gestión de Roles',roles_desc:'Roles del Sistema',roles_change:'Cambiar Rol',
+    txns_title:'Transacciones',riders_title:'Gestión de Riders',new_rider:'Nuevo Rider',
+    providers_title:'Proveedores',new_provider:'Nuevo Proveedor',rates_title:'Tasas de Cambio',
+    countries_title:'Países Soportados',reports_title:'Informes y Exportaciones',
+    settings_title:'Configuración',lang_title:'Idioma',system_title:'Estado del Sistema',
+    topup_title:'Recargar Wallet',topup_admin:'Recarga Administrativa',topup_history:'Historial Recargas',
+    withdraw_title:'Gestión de Reintegros',chart_kyc:'Estado KYC',chart_roles:'Usuarios por Rol',
+    chart_providers:'Proveedores',chart_rates:'Tasas de Cambio',user_id:'ID o Email',
+    amount:'Importe',currency:'Divisa',note:'Nota',do_topup:'Realizar Recarga',
+    system_status:'Estado del Sistema'
+  },
+  en:{
+    nav_principal:'MAIN',nav_dashboard:'Dashboard',nav_charts:'Charts',
+    nav_users_sec:'USERS',nav_users:'Users',nav_reps:'Representatives',nav_roles:'Roles',
+    nav_finance_sec:'FINANCE',nav_txns:'Transactions',nav_topup:'Top-ups',nav_withdraw:'Withdrawals',
+    nav_services_sec:'SERVICES',nav_riders:'Riders',nav_providers:'Providers',nav_rates:'Exchange Rates',
+    nav_system_sec:'SYSTEM',nav_countries:'Countries',nav_reports:'Reports',nav_settings:'Settings',nav_system:'System',
+    logout:'Logout',online:'Online',refresh:'Refresh',role_admin:'Administrator',
+    users_title:'Registered Users',new_user:'New User',reps_title:'Representatives',new_rep:'New Representative',
+    roles_title:'Roles Management',roles_desc:'System Roles',roles_change:'Change Role',
+    txns_title:'Transactions',riders_title:'Riders Management',new_rider:'New Rider',
+    providers_title:'Bill Providers',new_provider:'New Provider',rates_title:'Exchange Rates',
+    countries_title:'Supported Countries',reports_title:'Reports & Exports',
+    settings_title:'Settings',lang_title:'Language',system_title:'System Status',
+    topup_title:'Wallet Top-up',topup_admin:'Admin Top-up',topup_history:'Top-up History',
+    withdraw_title:'Withdrawals Management',chart_kyc:'KYC Status',chart_roles:'Users by Role',
+    chart_providers:'Providers by Category',chart_rates:'Exchange Rates',user_id:'User ID or Email',
+    amount:'Amount',currency:'Currency',note:'Note',do_topup:'Process Top-up',
+    system_status:'System Status'
+  },
+  fr:{
+    nav_principal:'PRINCIPAL',nav_dashboard:'Tableau de bord',nav_charts:'Graphiques',
+    nav_users_sec:'UTILISATEURS',nav_users:'Utilisateurs',nav_reps:'Représentants',nav_roles:'Rôles',
+    nav_finance_sec:'FINANCES',nav_txns:'Transactions',nav_topup:'Recharges',nav_withdraw:'Retraits',
+    nav_services_sec:'SERVICES',nav_riders:'Livreurs',nav_providers:'Fournisseurs',nav_rates:'Taux de change',
+    nav_system_sec:'SYSTÈME',nav_countries:'Pays',nav_reports:'Rapports',nav_settings:'Paramètres',nav_system:'Système',
+    logout:'Déconnexion',online:'En ligne',refresh:'Actualiser',role_admin:'Administrateur',
+    users_title:'Utilisateurs Enregistrés',new_user:'Nouvel Utilisateur',reps_title:'Représentants',new_rep:'Nouveau Représentant',
+    roles_title:'Gestion des Rôles',roles_desc:'Rôles du Système',roles_change:'Changer le Rôle',
+    txns_title:'Transactions',riders_title:'Gestion des Livreurs',new_rider:'Nouveau Livreur',
+    providers_title:'Fournisseurs',new_provider:'Nouveau Fournisseur',rates_title:'Taux de Change',
+    countries_title:'Pays Supportés',reports_title:'Rapports et Exportations',
+    settings_title:'Paramètres',lang_title:'Langue',system_title:'État du Système',
+    topup_title:'Recharger Portefeuille',topup_admin:'Recharge Administrative',topup_history:'Historique Recharges',
+    withdraw_title:'Gestion des Retraits',chart_kyc:'Statut KYC',chart_roles:'Utilisateurs par Rôle',
+    chart_providers:'Fournisseurs par Catégorie',chart_rates:'Taux de Change',user_id:'ID ou Email',
+    amount:'Montant',currency:'Devise',note:'Note',do_topup:'Effectuer Recharge',
+    system_status:'État du Système'
+  }
+};
+
+function t(k){ return (TR[LANG]||TR.es)[k] || k; }
+
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k = el.getAttribute('data-i18n');
+    el.textContent = t(k);
+  });
+  ['es','en','fr'].forEach(l=>{
+    const el = document.getElementById('lang-'+l);
+    if(el) el.classList.toggle('selected', l===LANG);
+  });
 }
 
-/* ═══ LOGIN ══════════════════════════════════════════════ */
-async function doLogin() {
-  const email = document.getElementById('inp-email').value.trim();
-  const pass  = document.getElementById('inp-pass').value;
-  const btn   = document.getElementById('btn-login');
-  const err   = document.getElementById('login-err');
-  err.style.display = 'none';
-  btn.textContent = 'Entrando...'; btn.disabled = true;
-  try {
-    const r = await fetch(BASE+'/auth/token', {
+function setLang(l){
+  LANG = l;
+  localStorage.setItem('inn_lang', l);
+  applyLang();
+  toast(LANG==='es'?'Idioma cambiado a Español':LANG==='en'?'Language changed to English':'Langue changée en Français','info');
+}
+
+/* ═══ API ═══════════════════════════════════════════ */
+async function api(path, opts={}){
+  try{
+    const r = await fetch(BASE+path,{
+      ...opts,
+      headers:{ Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json',...(opts.headers||{}) }
+    });
+    return r.json();
+  }catch(e){ return {success:false,error:e.message}; }
+}
+
+/* ═══ LOGIN ═════════════════════════════════════════ */
+async function doLogin(){
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  const btn   = document.getElementById('l-btn');
+  const err   = document.getElementById('l-err');
+  err.style.display='none'; btn.textContent='...'; btn.disabled=true;
+  try{
+    const r = await fetch(BASE+'/auth/token',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ grant_type:'password', email, password:pass })
+      body: JSON.stringify({grant_type:'password',email,password:pass})
     });
     const d = await r.json();
-    if (!d.success || d.data.user.role !== 'admin') {
-      err.style.display = 'block'; btn.textContent = 'Entrar al Panel'; btn.disabled = false; return;
+    if(!d.success || d.data.user.role!=='admin'){
+      err.style.display='block'; btn.textContent='Entrar al Panel'; btn.disabled=false; return;
     }
     TOKEN = d.data.access_token;
     localStorage.setItem('inn_token', TOKEN);
     setAdminInfo(d.data.user);
-    showDashboard();
-  } catch(e) {
-    err.style.display = 'block'; btn.textContent = 'Entrar al Panel'; btn.disabled = false;
+    showApp();
+  }catch(e){
+    err.style.display='block'; btn.textContent='Entrar al Panel'; btn.disabled=false;
   }
 }
 
-function setAdminInfo(user) {
-  document.getElementById('admin-name').textContent = user.name || user.email;
-  document.getElementById('admin-avatar').textContent = (user.name||'A')[0].toUpperCase();
+function setAdminInfo(u){
+  const n = u.name||u.email;
+  document.getElementById('av-name').textContent = n;
+  document.getElementById('av-init').textContent = n[0].toUpperCase();
 }
 
-function doLogout() {
-  localStorage.removeItem('inn_token'); TOKEN = null;
-  document.getElementById('dashboard-page').style.display = 'none';
-  document.getElementById('login-page').style.display = 'flex';
+function doLogout(){
+  localStorage.removeItem('inn_token'); TOKEN=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-page').style.display='flex';
 }
 
-function showDashboard() {
-  document.getElementById('login-page').style.display = 'none';
-  document.getElementById('dashboard-page').style.display = 'block';
-  loadOverview(); loadUsers(); loadTxns(); loadRiders(); loadBills(); loadRates(); loadSystem();
+function showApp(){
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('app').style.display='block';
+  applyLang();
+  fillCountrySelects();
+  document.getElementById('cfg-date').textContent = new Date().toLocaleDateString();
+  loadAll();
 }
 
-/* ═══ NAVIGATION ═════════════════════════════════════════ */
-const pageTitles = {
-  overview:'Dashboard', charts:'Gráficos y Analíticas', users:'Usuarios',
-  transactions:'Transacciones', riders:'Riders', bills:'Proveedores de Facturas',
-  rates:'Tasas de Cambio', system:'Estado del Sistema'
+/* ═══ NAVIGATION ════════════════════════════════════ */
+const PG_TITLES = {
+  overview:'Dashboard',charts:'Gráficos',users:'Usuarios',reps:'Representantes',roles:'Roles',
+  txns:'Transacciones',topup:'Recargas',withdraw:'Reintegros',riders:'Riders',
+  providers:'Proveedores',rates:'Tasas de cambio',countries:'Países',
+  reports:'Informes',settings:'Configuración',system:'Sistema'
 };
 
-function goPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+function gp(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.getAttribute('onclick')?.includes("'"+name+"'")) n.classList.add('active');
+  document.querySelectorAll('.ni').forEach(n=>{
+    if(n.getAttribute('onclick')?.includes("'"+name+"'")) n.classList.add('active');
   });
-  document.getElementById('page-title').textContent = pageTitles[name] || name;
-  if (name === 'charts' && !chartsBuilt) buildCharts();
+  document.getElementById('pg-title').textContent = t('nav_'+name) || PG_TITLES[name] || name;
+  if(name==='charts' && !chartsBuilt) buildCharts();
+  if(name==='countries' && !ALL_COUNTRIES.length) loadCountries();
 }
 
-function refreshPage() {
-  loadOverview(); loadUsers(); loadTxns(); loadRiders(); loadBills(); loadRates(); loadSystem();
-  chartsBuilt = false;
-  const active = document.querySelector('.page.active');
-  if (active?.id === 'page-charts') { chartsBuilt = false; buildCharts(); }
+function refresh(){
+  chartsBuilt=false; loadAll();
+  const a = document.querySelector('.page.active');
+  if(a?.id==='page-charts') buildCharts();
+  toast('Datos actualizados','info');
 }
 
-/* ═══ OVERVIEW ═══════════════════════════════════════════ */
-async function loadOverview() {
+function loadAll(){
+  loadOverview(); loadUsers(); loadTxns(); loadRiders(); loadProv(); loadRates(); loadSystem(); loadTopups(); loadWithdraws();
+}
+
+/* ═══ OVERVIEW ══════════════════════════════════════ */
+async function loadOverview(){
   const r = await api('/admin/stats');
-  if (!r.success) return;
+  if(!r.success) return;
   const d = r.data;
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card c-cyan">
-      <div class="lbl">Usuarios totales</div><div class="val">${d.users.total}</div>
-      <div class="sub">KYC verificados: ${d.users.kyc_verified}</div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${d.users.total?d.users.kyc_verified/d.users.total*100:0}%;background:#00AEEF"></div></div>
-    </div>
-    <div class="stat-card c-blue">
-      <div class="lbl">Transacciones 24h</div><div class="val">${d.transactions.last_24h}</div>
-      <div class="sub">Total histórico: ${d.transactions.total}</div>
-    </div>
-    <div class="stat-card c-yellow">
-      <div class="lbl">Volumen EUR total</div><div class="val">€${d.transactions.volume_eur_total.toFixed(0)}</div>
-      <div class="sub">XAF: ${(d.transactions.volume_xaf_total/1000).toFixed(0)}k</div>
-    </div>
-    <div class="stat-card c-green">
-      <div class="lbl">Riders</div><div class="val">${d.riders.total}</div>
-      <div class="sub">Disponibles: ${d.riders.available} · Ocupados: ${d.riders.busy}</div>
-    </div>
-    <div class="stat-card c-blue">
-      <div class="lbl">Pedidos shop</div><div class="val">${d.orders.shop_total}</div>
-      <div class="sub">Grocery: ${d.orders.grocery_total}</div>
-    </div>
-    <div class="stat-card c-purple">
-      <div class="lbl">Puntos fidelidad</div><div class="val">${d.loyalty.total_points_issued}</div>
-      <div class="sub">Usuarios con puntos: ${d.loyalty.users_with_points}</div>
-    </div>
-    <div class="stat-card c-yellow">
-      <div class="lbl">Tontinas</div><div class="val">${d.tontines.total}</div>
-      <div class="sub">Activas: ${d.tontines.active}</div>
-    </div>
-    <div class="stat-card c-default">
-      <div class="lbl">Notificaciones</div><div class="val">${d.notifications.total}</div>
-      <div class="sub">No leídas: ${d.notifications.unread}</div>
-    </div>
+  document.getElementById('sg').innerHTML=`
+    <div class="sc c-cyan"><div class="lbl">Usuarios</div><div class="val">${d.users.total}</div><div class="sub">KYC ✓ ${d.users.kyc_verified}</div>
+      <div class="pb"><div class="pf" style="width:${d.users.total?d.users.kyc_verified/d.users.total*100:0}%;background:#00AEEF"></div></div></div>
+    <div class="sc c-blue"><div class="lbl">Txns 24h</div><div class="val">${d.transactions.last_24h}</div><div class="sub">Total: ${d.transactions.total}</div></div>
+    <div class="sc c-yellow"><div class="lbl">Volumen EUR</div><div class="val">€${d.transactions.volume_eur_total.toFixed(0)}</div><div class="sub">XAF: ${(d.transactions.volume_xaf_total/1000).toFixed(0)}k</div></div>
+    <div class="sc c-green"><div class="lbl">Riders</div><div class="val">${d.riders.total}</div><div class="sub">✓ ${d.riders.available} · ⏳ ${d.riders.busy}</div></div>
+    <div class="sc c-blue"><div class="lbl">Pedidos</div><div class="val">${d.orders.shop_total}</div><div class="sub">Grocery: ${d.orders.grocery_total}</div></div>
+    <div class="sc c-purple"><div class="lbl">Puntos fidelidad</div><div class="val">${d.loyalty.total_points_issued}</div><div class="sub">${d.loyalty.users_with_points} usuarios</div></div>
+    <div class="sc c-yellow"><div class="lbl">Tontinas</div><div class="val">${d.tontines.total}</div><div class="sub">Activas: ${d.tontines.active}</div></div>
+    <div class="sc c-orange"><div class="lbl">Notificaciones</div><div class="val">${d.notifications.unread}</div><div class="sub">Sin leer / ${d.notifications.total} total</div></div>
   `;
-  // store for charts
-  window._statsData = d;
+  window._stats = d;
 }
 
-/* ═══ CHARTS ═════════════════════════════════════════════ */
-const CHART_COLORS = ['#00AEEF','#10b981','#fbbf24','#a78bfa','#f87171','#60a5fa','#fb923c','#34d399'];
-const CHART_OPTS = { responsive:true, maintainAspectRatio:true, plugins:{ legend:{ labels:{ color:'#94a3b8', font:{ size:12 } } } } };
+/* ═══ CHARTS ════════════════════════════════════════ */
+const CC = ['#00AEEF','#10b981','#fbbf24','#a78bfa','#f87171','#60a5fa','#fb923c','#34d399'];
+const CO = {responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}}};
 
-function buildCharts() {
-  buildKycChart(); buildRoleChart(); buildBillsChart(); buildRatesChart();
-  chartsBuilt = true;
+function buildCharts(){
+  if(window._stats) buildKyc(); else loadOverview().then(()=>buildKyc());
+  buildRoles(); buildProvChart(); buildRatesChart();
+  chartsBuilt=true;
 }
 
-function buildKycChart() {
-  const d = window._statsData;
-  if (!d) return;
-  const ctx = document.getElementById('chart-kyc').getContext('2d');
-  new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Verificados','Pendientes','Rechazados'],
-      datasets:[{ data:[d.users.kyc_verified, d.users.kyc_pending, Math.max(0,d.users.total-d.users.kyc_verified-d.users.kyc_pending)],
-        backgroundColor:['#10b981','#fbbf24','#f87171'], borderColor:'#0f172a', borderWidth:3 }]
-    },
-    options: { ...CHART_OPTS, cutout:'65%' }
+function buildKyc(){
+  const d=window._stats; if(!d) return;
+  new Chart(document.getElementById('c-kyc').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:['Verificados','Pendientes','Rechazados'],
+      datasets:[{data:[d.users.kyc_verified,d.users.kyc_pending,Math.max(0,d.users.total-d.users.kyc_verified-d.users.kyc_pending)],
+        backgroundColor:['#10b981','#fbbf24','#f87171'],borderColor:'#0f172a',borderWidth:3}]},
+    options:{...CO,cutout:'65%'}
   });
 }
 
-function buildRoleChart() {
-  const users = ALL_USERS;
-  const roles = {};
-  users.forEach(u => roles[u.role] = (roles[u.role]||0)+1);
-  const ctx = document.getElementById('chart-roles').getContext('2d');
-  new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(roles),
-      datasets:[{ data: Object.values(roles),
-        backgroundColor: CHART_COLORS, borderColor:'#0f172a', borderWidth:3 }]
-    },
-    options: { ...CHART_OPTS, cutout:'65%' }
+function buildRoles(){
+  const roles={};
+  ALL_USERS.forEach(u=>roles[u.role]=(roles[u.role]||0)+1);
+  if(!Object.keys(roles).length) return;
+  new Chart(document.getElementById('c-roles').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:Object.keys(roles),datasets:[{data:Object.values(roles),backgroundColor:CC,borderColor:'#0f172a',borderWidth:3}]},
+    options:{...CO,cutout:'65%'}
   });
 }
 
-function buildBillsChart() {
-  const cats = {};
-  ALL_BILLS.forEach(b => cats[b.category] = (cats[b.category]||0)+1);
-  const catLabels = { electricity:'Electricidad', water:'Agua', airtime:'Airtime', internet:'Internet', tv:'TV' };
-  const ctx = document.getElementById('chart-bills').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: Object.keys(cats).map(k => catLabels[k]||k),
-      datasets:[{ label:'Proveedores', data: Object.values(cats),
-        backgroundColor: CHART_COLORS, borderRadius:6, borderWidth:0 }]
-    },
-    options: { ...CHART_OPTS, plugins:{ legend:{ display:false } },
-      scales:{ x:{ ticks:{ color:'#64748b' }, grid:{ color:'#1e293b' } },
-               y:{ ticks:{ color:'#64748b', stepSize:1 }, grid:{ color:'#334155' }, beginAtZero:true } } }
+function buildProvChart(){
+  const cats={};
+  ALL_PROV.forEach(b=>cats[b.category]=(cats[b.category]||0)+1);
+  if(!Object.keys(cats).length) return;
+  const lmap={electricity:'⚡ Elec',water:'💧 Agua',airtime:'📱 Air',internet:'🌐 Net',tv:'📺 TV'};
+  new Chart(document.getElementById('c-prov').getContext('2d'),{
+    type:'bar',
+    data:{labels:Object.keys(cats).map(k=>lmap[k]||k),datasets:[{label:'Proveedores',data:Object.values(cats),backgroundColor:CC,borderRadius:5,borderWidth:0}]},
+    options:{...CO,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b'},grid:{color:'#1e293b'}},y:{ticks:{color:'#64748b',stepSize:1},grid:{color:'#334155'},beginAtZero:true}}}
   });
 }
 
-async function buildRatesChart() {
-  const r = await api('/utils/rates');
-  if (!r.success) return;
-  const rates = r.data.rates.filter(r => ['EUR-XAF','EUR-USD','EUR-XOF','USD-XAF'].includes(r.pair));
-  const ctx = document.getElementById('chart-rates').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: rates.map(r => r.pair),
-      datasets:[{ label:'Tasa', data: rates.map(r => r.rate),
-        backgroundColor:['#00AEEF','#10b981','#fbbf24','#a78bfa'], borderRadius:6, borderWidth:0 }]
-    },
-    options: { ...CHART_OPTS, plugins:{ legend:{ display:false } },
-      scales:{ x:{ ticks:{ color:'#64748b' }, grid:{ color:'#1e293b' } },
-               y:{ ticks:{ color:'#64748b' }, grid:{ color:'#334155' }, beginAtZero:true } } }
+async function buildRatesChart(){
+  const r = await api('/utils/rates'); if(!r.success) return;
+  const rates = r.data.rates.filter(x=>['EUR-XAF','EUR-USD','EUR-XOF','USD-XAF'].includes(x.pair));
+  new Chart(document.getElementById('c-rates').getContext('2d'),{
+    type:'bar',
+    data:{labels:rates.map(x=>x.pair),datasets:[{label:'Tasa',data:rates.map(x=>x.rate),backgroundColor:CC,borderRadius:5,borderWidth:0}]},
+    options:{...CO,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b'},grid:{color:'#1e293b'}},y:{ticks:{color:'#64748b'},grid:{color:'#334155'},beginAtZero:true}}}
   });
 }
 
-/* ═══ USERS ══════════════════════════════════════════════ */
-async function loadUsers() {
-  const r = await api('/admin/users');
-  if (!r.success) return;
-  ALL_USERS = r.data.items || [];
-  renderUsers(ALL_USERS);
+/* ═══ USERS ═════════════════════════════════════════ */
+async function loadUsers(){
+  const r = await api('/admin/users?limit=100');
+  if(!r.success) return;
+  ALL_USERS = r.data.items||[];
+  renderUsers(); renderReps(); renderRoles();
+  // fill datalist for topup
+  const dl = document.getElementById('tp-users-list');
+  if(dl) dl.innerHTML = ALL_USERS.map(u=>`<option value="${u.id}">${u.name} — ${u.email}</option>`).join('');
 }
 
-function renderUsers(users) {
-  if (!users.length) { document.getElementById('tb-users').innerHTML='<tr><td colspan="8" class="empty">Sin usuarios</td></tr>'; return; }
-  document.getElementById('tb-users').innerHTML = users.map(u => `
+function renderUsers(){
+  let users = ALL_USERS;
+  if(roleFilter) users = users.filter(u=>u.role===roleFilter);
+  if(kycFilter)  users = users.filter(u=>u.kycStatus===kycFilter);
+  const q = document.getElementById('user-search')?.value.toLowerCase();
+  if(q) users = users.filter(u=>(u.name+u.email+u.id).toLowerCase().includes(q));
+  if(!users.length){ document.getElementById('tb-users').innerHTML='<tr><td colspan="8" class="misc">Sin resultados</td></tr>'; return; }
+  document.getElementById('tb-users').innerHTML = users.map(u=>`
     <tr>
-      <td style="color:#334155;font-size:11px">${u.id}</td>
+      <td style="font-size:10px;color:#475569">${u.id}</td>
       <td style="font-weight:600">${u.name}</td>
-      <td style="color:#64748b">${u.email}</td>
-      <td style="font-weight:600">${u.country}</td>
-      <td>${badge(u.role,'b-'+u.role)}</td>
-      <td>${badge(u.kycStatus,'b-'+u.kycStatus)}</td>
-      <td style="color:#64748b">${new Date(u.createdAt).toLocaleDateString('es')}</td>
-      <td>
-        ${u.kycStatus!=='verified'?`<button class="btn-approve" onclick="updateKyc('${u.id}','verified')">✓ Aprobar</button>`:''}
-        ${u.kycStatus!=='rejected'?`<button class="btn-reject" onclick="updateKyc('${u.id}','rejected')">✗ Rechazar</button>`:''}
+      <td style="color:#64748b;font-size:11px">${u.email}</td>
+      <td>${u.country}</td>
+      <td>${roleBadge(u.role)}</td>
+      <td>${kycBadge(u.kycStatus)}</td>
+      <td style="color:#64748b">${fmtDate(u.createdAt)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="viewUser('${u.id}')">👁</button>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('user',${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="quickTopupModal('${u.id}','${u.name}')">💰</button>
+        ${u.kycStatus!=='verified'?`<button class="btn btn-green btn-sm" onclick="updateKyc('${u.id}','verified')">✓</button>`:''}
+        ${u.kycStatus!=='rejected'?`<button class="btn btn-red btn-sm" onclick="updateKyc('${u.id}','rejected')">✗</button>`:''}
+        <button class="btn btn-red btn-sm" onclick="confirmDelete('usuario','${u.id}','deleteUser')">🗑</button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 }
 
-function filterUsers(btn, role) {
-  document.querySelectorAll('#page-users .filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderUsers(role ? ALL_USERS.filter(u => u.role===role) : ALL_USERS);
+function filterRole(btn,v){ document.querySelectorAll('#user-role-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); roleFilter=v; renderUsers(); }
+function filterKyc(btn,v){ document.querySelectorAll('#user-kyc-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); kycFilter=v; renderUsers(); }
+function filterUsersSearch(){ renderUsers(); }
+
+async function viewUser(id){
+  const r = await api('/admin/users/'+id);
+  if(!r.success){ toast('Error al cargar usuario','err'); return; }
+  const u = r.data;
+  const w = u.wallet;
+  document.getElementById('userdetail-content').innerHTML=`
+    <div class="form-row" style="margin-bottom:12px">
+      <div class="syc"><h4>Perfil</h4>
+        <div class="syr"><span class="k">Nombre</span><span class="v">${u.name}</span></div>
+        <div class="syr"><span class="k">Email</span><span class="v">${u.email}</span></div>
+        <div class="syr"><span class="k">Teléfono</span><span class="v">${u.phone}</span></div>
+        <div class="syr"><span class="k">País</span><span class="v">${u.country}</span></div>
+        <div class="syr"><span class="k">Rol</span><span class="v">${roleBadge(u.role)}</span></div>
+        <div class="syr"><span class="k">KYC</span><span class="v">${kycBadge(u.kycStatus)}</span></div>
+        <div class="syr"><span class="k">Registro</span><span class="v">${fmtDate(u.createdAt)}</span></div>
+      </div>
+      <div class="syc"><h4>Wallet</h4>
+        ${w?`<div class="syr"><span class="k">EUR</span><span class="v" style="color:#fbbf24">€${(w.balanceEur||0).toFixed(2)}</span></div>
+        <div class="syr"><span class="k">USD</span><span class="v" style="color:#60a5fa">$${(w.balanceUsd||0).toFixed(2)}</span></div>
+        <div class="syr"><span class="k">XAF</span><span class="v" style="color:#00AEEF">${(w.balanceXaf||0).toLocaleString()} XAF</span></div>
+        <div class="syr"><span class="k">XOF</span><span class="v" style="color:#10b981">${(w.balanceXof||0).toLocaleString()} XOF</span></div>`:'<p style="color:#64748b;font-size:12px">Sin wallet</p>'}
+      </div>
+    </div>`;
+  document.getElementById('btn-do-topup-detail').onclick = ()=>{ closeModal('userdetail'); quickTopupModal(u.id,u.name); };
+  openModal('userdetail',{});
 }
 
-async function updateKyc(userId, status) {
-  const r = await api(`/admin/users/${userId}/kyc`, { method:'PATCH', body: JSON.stringify({ status }) });
-  if (r.success) { await loadUsers(); alert(`KYC actualizado a: ${status}`); }
-  else alert('Error al actualizar KYC');
+function openModal(name, data){
+  if(name==='user'){
+    const editing = !!data.id;
+    document.getElementById('modal-user-title').textContent = editing ? '✏️ Editar Usuario' : '👤 Nuevo Usuario';
+    document.getElementById('u-id').value     = data.id||'';
+    document.getElementById('u-name').value   = data.name||'';
+    document.getElementById('u-email').value  = data.email||'';
+    document.getElementById('u-email').disabled = editing;
+    document.getElementById('u-phone').value  = data.phone||'';
+    document.getElementById('u-country').value = data.country||'';
+    document.getElementById('u-role').value   = data.role||'customer';
+    document.getElementById('u-kyc').value    = data.kycStatus||'pending';
+    document.getElementById('u-pass').value   = '';
+    document.getElementById('u-pass-hint').style.display = editing ? 'inline' : 'none';
+  }
+  if(name==='rider'){
+    const editing = !!data.id;
+    document.getElementById('modal-rider-title').textContent = editing ? '✏️ Editar Rider' : '🚴 Nuevo Rider';
+    document.getElementById('r-id').value     = data.id||'';
+    document.getElementById('r-name').value   = data.name||'';
+    document.getElementById('r-phone').value  = data.phone||'';
+    document.getElementById('r-zone').value   = data.zone||'';
+    document.getElementById('r-vehicle').value = data.vehicle||'moto';
+    document.getElementById('r-status').value = data.status||'available';
+    document.getElementById('r-rating').value = data.rating||'';
+  }
+  if(name==='provider'){
+    const editing = !!data.id;
+    document.getElementById('modal-prov-title').textContent = editing ? '✏️ Editar Proveedor' : '📋 Nuevo Proveedor';
+    document.getElementById('pv-id').value     = data.id||'';
+    document.getElementById('pv-name').value   = data.name||'';
+    document.getElementById('pv-cat').value    = data.category||'electricity';
+    document.getElementById('pv-country').value = data.country||'';
+    document.getElementById('pv-field').value  = data.field||'phone';
+    document.getElementById('pv-min').value    = data.minAmount||100;
+    document.getElementById('pv-max').value    = data.maxAmount||500000;
+  }
+  if(name==='rate'){
+    document.getElementById('rt-pair').value     = data.pair||'';
+    document.getElementById('rt-pair-show').value= data.pair||'';
+    document.getElementById('rt-rate').value     = data.rate||'';
+  }
+  document.getElementById('modal-'+name).classList.add('open');
 }
 
-/* ═══ TRANSACTIONS ═══════════════════════════════════════ */
-async function loadTxns() {
-  const r = await api('/admin/transactions');
-  if (!r.success) return;
-  const txns = r.data.items || [];
-  if (!txns.length) { document.getElementById('tb-txns').innerHTML='<tr><td colspan="7" class="empty">Sin transacciones aún — serán visibles al operar</td></tr>'; return; }
-  document.getElementById('tb-txns').innerHTML = txns.map(t => `
+function closeModal(name){ document.getElementById('modal-'+name).classList.remove('open'); }
+
+async function saveUser(){
+  const id   = document.getElementById('u-id').value;
+  const body = {
+    name:    document.getElementById('u-name').value,
+    email:   document.getElementById('u-email').value,
+    phone:   document.getElementById('u-phone').value,
+    country: document.getElementById('u-country').value,
+    role:    document.getElementById('u-role').value,
+    kycStatus: document.getElementById('u-kyc').value
+  };
+  const pass = document.getElementById('u-pass').value;
+  if(pass) body.password = pass;
+  if(!id) body.password = pass || 'Innova2026!';
+
+  const r = id
+    ? await api('/admin/users/'+id, {method:'PUT',body:JSON.stringify(body)})
+    : await api('/admin/users',     {method:'POST',body:JSON.stringify(body)});
+
+  if(r.success){ closeModal('user'); loadUsers(); toast(id?'Usuario actualizado':'Usuario creado'); }
+  else toast(r.error||r.message||'Error','err');
+}
+
+async function updateKyc(id, status){
+  const r = await api('/admin/users/'+id+'/kyc',{method:'PATCH',body:JSON.stringify({status})});
+  if(r.success){ loadUsers(); toast('KYC actualizado a: '+status); }
+  else toast('Error al actualizar KYC','err');
+}
+
+function confirmDelete(tipo, id, fn){
+  document.getElementById('confirm-msg').textContent = `¿Eliminar este ${tipo} (${id})?`;
+  document.getElementById('confirm-ok').onclick = async()=>{ await window[fn](id); closeModal('confirm'); };
+  document.getElementById('modal-confirm').classList.add('open');
+}
+
+async function deleteUser(id){
+  const r = await api('/admin/users/'+id,{method:'DELETE'});
+  if(r.success){ loadUsers(); toast('Usuario eliminado'); }
+  else toast(r.error||'Error al eliminar','err');
+}
+
+/* ═══ REPRESENTATIVES ───────────────────────────── */
+function renderReps(){
+  const reps = ALL_USERS.filter(u=>u.role==='circular_autorizada');
+  if(!reps.length){ document.getElementById('tb-reps').innerHTML='<tr><td colspan="8" class="misc">Sin representantes</td></tr>'; return; }
+  document.getElementById('tb-reps').innerHTML = reps.map(u=>`
     <tr>
-      <td style="color:#334155;font-size:11px">${t.id.slice(0,12)}…</td>
-      <td>${badge(t.type,'b-customer')}</td>
-      <td style="color:#64748b;font-size:11px">${t.userId}</td>
+      <td style="font-size:10px;color:#475569">${u.id}</td>
+      <td style="font-weight:600">${u.name}</td>
+      <td style="color:#64748b;font-size:11px">${u.email}</td>
+      <td>${u.phone}</td>
+      <td>${u.country}</td>
+      <td>${kycBadge(u.kycStatus)}</td>
+      <td style="color:#64748b">${fmtDate(u.createdAt)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('user',${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="quickTopupModal('${u.id}','${u.name}')">💰</button>
+      </td>
+    </tr>`).join('');
+}
+
+/* ═══ ROLES ─────────────────────────────────────── */
+function renderRoles(){
+  if(!ALL_USERS.length){ document.getElementById('tb-roles').innerHTML='<tr><td colspan="5" class="loading">Cargando...</td></tr>'; return; }
+  document.getElementById('tb-roles').innerHTML = ALL_USERS.filter(u=>u.role!=='admin').map(u=>`
+    <tr>
+      <td style="font-weight:600">${u.name}</td>
+      <td style="color:#64748b;font-size:11px">${u.email}</td>
+      <td>${roleBadge(u.role)}</td>
+      <td>
+        <select id="role-sel-${u.id}" style="background:#0f172a;border:1px solid #334155;border-radius:5px;color:#e2e8f0;padding:4px 8px;font-size:11px">
+          <option value="customer" ${u.role==='customer'?'selected':''}>customer</option>
+          <option value="circular_autorizada" ${u.role==='circular_autorizada'?'selected':''}>circular_autorizada</option>
+          <option value="rider" ${u.role==='rider'?'selected':''}>rider</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>admin</option>
+        </select>
+      </td>
+      <td><button class="btn btn-cyan btn-sm" onclick="changeRole('${u.id}')">Cambiar</button></td>
+    </tr>`).join('');
+}
+
+async function changeRole(id){
+  const newRole = document.getElementById('role-sel-'+id).value;
+  const r = await api('/admin/users/'+id,{method:'PUT',body:JSON.stringify({role:newRole})});
+  if(r.success){ loadUsers(); toast('Rol actualizado a: '+newRole); }
+  else toast('Error al cambiar rol','err');
+}
+
+/* ═══ TRANSACTIONS ──────────────────────────────── */
+async function loadTxns(){
+  const from = document.getElementById('txn-from')?.value;
+  const to   = document.getElementById('txn-to')?.value;
+  let url = '/admin/transactions?limit=100';
+  if(from) url += '&from='+from;
+  if(to)   url += '&to='+to;
+  const r = await api(url);
+  if(!r.success) return;
+  ALL_TXNS = r.data.items||[];
+  renderTxns();
+}
+
+function renderTxns(){
+  let txns = ALL_TXNS;
+  if(txnTypeFilter) txns = txns.filter(t=>t.type===txnTypeFilter);
+  if(!txns.length){ document.getElementById('tb-txns').innerHTML='<tr><td colspan="7" class="misc">Sin transacciones</td></tr>'; return; }
+  document.getElementById('tb-txns').innerHTML = txns.map(t=>`
+    <tr>
+      <td style="font-size:10px;color:#475569">${t.id}</td>
+      <td><span class="b bc">${t.type}</span></td>
+      <td style="font-size:10px;color:#64748b">${t.userId}</td>
       <td style="font-weight:600">${t.amountSent||t.amount||'—'}</td>
       <td>${t.currencySent||t.currency||'—'}</td>
-      <td>${badge(t.status||'completed','b-completed')}</td>
-      <td style="color:#64748b">${new Date(t.createdAt).toLocaleDateString('es')}</td>
-    </tr>
-  `).join('');
+      <td><span class="b bco">${t.status||'completed'}</span></td>
+      <td style="color:#64748b">${fmtDate(t.createdAt)}</td>
+    </tr>`).join('');
 }
 
-/* ═══ RIDERS ════════════════════════════════════════════ */
-async function loadRiders() {
-  const r = await api('/delivery/riders');
-  if (!r.success) return;
-  const riders = r.data.riders || r.data.items || [];
-  if (!riders.length) { document.getElementById('tb-riders').innerHTML='<tr><td colspan="8" class="empty">Sin riders</td></tr>'; return; }
-  document.getElementById('tb-riders').innerHTML = riders.map(r => `
+function filterTxnType(btn,v){ document.querySelectorAll('#txn-type-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); txnTypeFilter=v; renderTxns(); }
+function exportTxnCSV(){ downloadCSV(ALL_TXNS,'transacciones_innovaafric.csv'); }
+
+/* ═══ TOPUPS ─────────────────────────────────────── */
+async function loadTopups(){
+  const r = await api('/admin/transactions?limit=50');
+  if(!r.success) return;
+  const tops = (r.data.items||[]).filter(t=>t.type==='topup');
+  if(!tops.length){ document.getElementById('tb-topups').innerHTML='<tr><td colspan="6" class="misc">Sin recargas aún</td></tr>'; return; }
+  document.getElementById('tb-topups').innerHTML = tops.map(t=>`
     <tr>
-      <td style="color:#334155;font-size:11px">${r.id}</td>
+      <td style="font-size:10px;color:#475569">${t.id}</td>
+      <td style="font-size:11px;color:#64748b">${t.userId}</td>
+      <td style="font-weight:600;color:#10b981">+${t.amountSent||0}</td>
+      <td>${t.currencySent||'XAF'}</td>
+      <td style="color:#94a3b8;font-size:11px">${t.reference||'—'}</td>
+      <td style="color:#64748b">${fmtDate(t.createdAt)}</td>
+    </tr>`).join('');
+}
+
+async function doTopup(){
+  const user_id = document.getElementById('tp-user').value.trim();
+  const amount  = parseFloat(document.getElementById('tp-amount').value);
+  const currency= document.getElementById('tp-currency').value;
+  const note    = document.getElementById('tp-note').value;
+  if(!user_id||!amount){ toast('Completa los campos requeridos','err'); return; }
+
+  const r = await api('/admin/wallet/topup',{method:'POST',body:JSON.stringify({user_id,amount,currency,note})});
+  if(r.success){
+    document.getElementById('tp-user').value='';
+    document.getElementById('tp-amount').value='';
+    document.getElementById('tp-note').value='';
+    loadTopups(); toast(`✓ Recargados ${amount} ${currency} a ${r.data.user.name}`);
+  } else toast(r.error||r.message||'Error en la recarga','err');
+}
+
+function quickTopupModal(uid, uname){
+  document.getElementById('qt-uid').value   = uid;
+  document.getElementById('qt-uname').value = uname;
+  document.getElementById('qt-amount').value= '';
+  document.getElementById('qt-note').value  = '';
+  document.getElementById('modal-quicktopup').classList.add('open');
+}
+
+async function doQuickTopup(){
+  const user_id  = document.getElementById('qt-uid').value;
+  const amount   = parseFloat(document.getElementById('qt-amount').value);
+  const currency = document.getElementById('qt-currency').value;
+  const note     = document.getElementById('qt-note').value;
+  if(!amount){ toast('Introduce el importe','err'); return; }
+  const r = await api('/admin/wallet/topup',{method:'POST',body:JSON.stringify({user_id,amount,currency,note})});
+  if(r.success){ closeModal('quicktopup'); loadTopups(); toast(`✓ ${amount} ${currency} recargados a ${r.data.user.name}`); }
+  else toast(r.error||'Error','err');
+}
+
+/* ═══ WITHDRAWALS ──────────────────────────────── */
+async function loadWithdraws(){
+  const r = await api('/admin/transactions?limit=50');
+  if(!r.success) return;
+  const ws = (r.data.items||[]).filter(t=>t.type==='withdraw');
+  if(!ws.length){ document.getElementById('tb-withdraws').innerHTML='<tr><td colspan="8" class="misc">Sin reintegros aún</td></tr>'; return; }
+  document.getElementById('tb-withdraws').innerHTML = ws.map(t=>{
+    let ref={}; try{ ref=JSON.parse(t.reference||'{}'); }catch{}
+    return `<tr>
+      <td style="font-size:10px;color:#475569">${t.id}</td>
+      <td style="font-size:11px;color:#64748b">${t.userId}</td>
+      <td style="font-weight:600;color:#f87171">${t.amountSent||0}</td>
+      <td>${t.currencySent||'XAF'}</td>
+      <td>${ref.method||'—'}</td>
+      <td style="font-size:11px">${ref.destination||'—'}</td>
+      <td><span class="b ${t.status==='completed'?'bco':'bp'}">${t.status}</span></td>
+      <td style="color:#64748b">${fmtDate(t.createdAt)}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ═══ RIDERS ────────────────────────────────────── */
+async function loadRiders(){
+  const r = await api('/admin/riders');
+  if(!r.success) return;
+  ALL_RIDERS = r.data.riders||[];
+  renderRiders();
+}
+
+function renderRiders(){
+  let riders = ALL_RIDERS;
+  if(riderFilter) riders = riders.filter(r=>r.status===riderFilter);
+  if(!riders.length){ document.getElementById('tb-riders').innerHTML='<tr><td colspan="9" class="misc">Sin riders</td></tr>'; return; }
+  document.getElementById('tb-riders').innerHTML = riders.map(r=>`
+    <tr>
+      <td style="font-size:10px;color:#475569">${r.id}</td>
       <td style="font-weight:600">${r.name}</td>
       <td style="color:#64748b">${r.phone}</td>
       <td>${r.zone}</td>
       <td style="text-transform:capitalize">${r.vehicle}</td>
-      <td>${badge(r.status,'b-'+r.status)}</td>
+      <td><span class="b ${r.status==='available'?'bav':r.status==='busy'?'bbu':'bof'}">${r.status}</span></td>
       <td>⭐ ${r.rating||'—'}</td>
       <td style="font-weight:600">${r.deliveriesTotal||0}</td>
-    </tr>
-  `).join('');
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="openModal('rider',${JSON.stringify(r).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-red btn-sm" onclick="confirmDelete('rider','${r.id}','deleteRider')">🗑</button>
+      </td>
+    </tr>`).join('');
 }
 
-/* ═══ BILLS ═════════════════════════════════════════════ */
-async function loadBills() {
-  const r = await api('/bills/providers');
-  if (!r.success) return;
-  ALL_BILLS = r.data.providers || r.data.items || r.data || [];
-  renderBills(ALL_BILLS);
+function filterRider(btn,v){ document.querySelectorAll('#rider-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); riderFilter=v; renderRiders(); }
+
+async function saveRider(){
+  const id   = document.getElementById('r-id').value;
+  const body = {
+    name: document.getElementById('r-name').value,
+    phone:document.getElementById('r-phone').value,
+    zone: document.getElementById('r-zone').value,
+    vehicle:document.getElementById('r-vehicle').value,
+    status: document.getElementById('r-status').value,
+    rating: document.getElementById('r-rating').value||undefined
+  };
+  const r = id
+    ? await api('/admin/riders/'+id,{method:'PUT',body:JSON.stringify(body)})
+    : await api('/admin/riders',    {method:'POST',body:JSON.stringify(body)});
+  if(r.success){ closeModal('rider'); loadRiders(); toast(id?'Rider actualizado':'Rider creado'); }
+  else toast(r.error||r.message||'Error','err');
 }
 
-function renderBills(bills) {
-  if (!bills.length) { document.getElementById('tb-bills').innerHTML='<tr><td colspan="7" class="empty">Sin proveedores</td></tr>'; return; }
-  document.getElementById('tb-bills').innerHTML = bills.map(b => `
+async function deleteRider(id){
+  const r = await api('/admin/riders/'+id,{method:'DELETE'});
+  if(r.success){ loadRiders(); toast('Rider eliminado'); }
+  else toast(r.error||'Error','err');
+}
+
+/* ═══ PROVIDERS ─────────────────────────────────── */
+async function loadProv(){
+  const r = await api('/admin/providers');
+  if(!r.success) return;
+  ALL_PROV = r.data.providers||[];
+  renderProv();
+}
+
+function renderProv(){
+  let prov = ALL_PROV;
+  if(provFilter) prov = prov.filter(p=>p.category===provFilter);
+  if(!prov.length){ document.getElementById('tb-prov').innerHTML='<tr><td colspan="8" class="misc">Sin proveedores</td></tr>'; return; }
+  document.getElementById('tb-prov').innerHTML = prov.map(p=>`
     <tr>
-      <td style="color:#334155;font-size:11px">${b.id}</td>
-      <td style="font-weight:600">${b.name}</td>
-      <td>${badge(b.category,'b-'+b.category)}</td>
-      <td style="font-weight:600">${b.country}</td>
-      <td style="color:#94a3b8">${b.field}</td>
-      <td>${b.minAmount.toLocaleString()} ${b.currency}</td>
-      <td>${b.maxAmount.toLocaleString()} ${b.currency}</td>
-    </tr>
-  `).join('');
+      <td style="font-size:10px;color:#475569">${p.id}</td>
+      <td style="font-weight:600">${p.name}</td>
+      <td><span class="b ${catClass(p.category)}">${p.category}</span></td>
+      <td>${p.country}</td>
+      <td style="color:#94a3b8">${p.field}</td>
+      <td>${(p.minAmount||0).toLocaleString()}</td>
+      <td>${(p.maxAmount||0).toLocaleString()}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="openModal('provider',${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-red btn-sm" onclick="confirmDelete('proveedor','${p.id}','deleteProvider')">🗑</button>
+      </td>
+    </tr>`).join('');
 }
 
-function filterBills(btn, cat) {
-  document.querySelectorAll('#bills-filters .filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderBills(cat ? ALL_BILLS.filter(b => b.category===cat) : ALL_BILLS);
+function filterProv(btn,v){ document.querySelectorAll('#prov-cat-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); provFilter=v; renderProv(); }
+
+async function saveProvider(){
+  const id   = document.getElementById('pv-id').value;
+  const body = {
+    name:    document.getElementById('pv-name').value,
+    category:document.getElementById('pv-cat').value,
+    country: document.getElementById('pv-country').value,
+    field:   document.getElementById('pv-field').value,
+    minAmount:parseFloat(document.getElementById('pv-min').value)||100,
+    maxAmount:parseFloat(document.getElementById('pv-max').value)||500000
+  };
+  const r = id
+    ? await api('/admin/providers/'+id,{method:'PUT',body:JSON.stringify(body)})
+    : await api('/admin/providers',    {method:'POST',body:JSON.stringify(body)});
+  if(r.success){ closeModal('provider'); loadProv(); toast(id?'Proveedor actualizado':'Proveedor creado'); }
+  else toast(r.error||r.message||'Error','err');
 }
 
-/* ═══ RATES ═════════════════════════════════════════════ */
-async function loadRates() {
-  const r = await api('/utils/rates');
-  if (!r.success) return;
-  const rates = r.data.rates || [];
-  document.getElementById('rates-grid').innerHTML = rates.map(r => `
-    <div class="rate-card">
+async function deleteProvider(id){
+  const r = await api('/admin/providers/'+id,{method:'DELETE'});
+  if(r.success){ loadProv(); toast('Proveedor eliminado'); }
+  else toast(r.error||'Error','err');
+}
+
+/* ═══ RATES ──────────────────────────────────────── */
+async function loadRates(){
+  const r = await api('/utils/rates'); if(!r.success) return;
+  document.getElementById('rates-grid').innerHTML = (r.data.rates||[]).map(x=>`
+    <div class="rc">
       <div>
-        <div class="rate-pair">${r.pair}</div>
-        <div style="font-size:11px;color:#64748b;margin-top:4px">${new Date(r.updatedAt).toLocaleDateString('es')}</div>
+        <div class="rp">${x.pair}</div>
+        <div style="font-size:10px;color:#475569;margin-top:3px">${fmtDate(x.updatedAt)}</div>
       </div>
-      <div class="rate-val">${r.rate >= 1 ? r.rate.toLocaleString() : r.rate.toFixed(5)}</div>
-    </div>
-  `).join('');
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="rv">${x.rate>=1?x.rate.toLocaleString():x.rate.toFixed(5)}</div>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('rate',{pair:'${x.pair}',rate:${x.rate}})">✏️</button>
+      </div>
+    </div>`).join('');
 }
 
-/* ═══ SYSTEM ════════════════════════════════════════════ */
-async function loadSystem() {
-  const r = await api('/admin/system');
-  if (!r.success) return;
+async function saveRate(){
+  const pair = document.getElementById('rt-pair').value;
+  const rate = parseFloat(document.getElementById('rt-rate').value);
+  const r = await api('/admin/rates/'+pair,{method:'PUT',body:JSON.stringify({rate})});
+  if(r.success){ closeModal('rate'); loadRates(); toast('Tasa actualizada: '+pair+' = '+rate); }
+  else toast(r.error||'Error','err');
+}
+
+/* ═══ COUNTRIES ─────────────────────────────────── */
+async function loadCountries(){
+  const r = await api('/admin/countries'); if(!r.success) return;
+  ALL_COUNTRIES = r.data.countries||[];
+  renderCountries();
+}
+
+function renderCountries(){
+  const q = document.getElementById('country-search')?.value.toLowerCase()||'';
+  let countries = ALL_COUNTRIES;
+  if(q) countries = countries.filter(c=>(c.name+c.code+c.region).toLowerCase().includes(q));
+  const byRegion = {};
+  countries.forEach(c=>{ if(!byRegion[c.region]) byRegion[c.region]=[]; byRegion[c.region].push(c); });
+  document.getElementById('countries-grid').innerHTML = countries.map(c=>`
+    <div class="kc">
+      <div class="cn">${c.name} <span style="color:#475569;font-size:11px">(${c.code})</span></div>
+      <div class="cd">${c.region} · ${c.currency} · ${c.phone}</div>
+    </div>`).join('');
+}
+
+function filterCountries(){ renderCountries(); }
+
+function fillCountrySelects(){
+  loadCountries().then(()=>{
+    ['u-country','pv-country'].forEach(id=>{
+      const sel = document.getElementById(id);
+      if(!sel||sel.options.length>2) return;
+      ALL_COUNTRIES.forEach(c=>{
+        const o = document.createElement('option');
+        o.value=c.code; o.textContent=`${c.code} — ${c.name}`;
+        sel.appendChild(o);
+      });
+    });
+  });
+}
+
+/* ═══ REPORTS ───────────────────────────────────── */
+async function loadReport(){
+  const from = document.getElementById('rep-from').value;
+  const to   = document.getElementById('rep-to').value;
+  let url = '/admin/reports/summary';
+  if(from||to) url += '?'+[from?'from='+from:'',to?'to='+to:''].filter(Boolean).join('&');
+  const r = await api(url); if(!r.success){ toast('Error al generar informe','err'); return; }
+  reportData = r.data;
   const d = r.data;
-  const sysHtml = `
-    <div class="sys-card">
-      <h4>Servidor</h4>
-      <div class="sys-row"><span class="k">Uptime</span><span class="v">${d.uptime_human}</span></div>
-      <div class="sys-row"><span class="k">Node.js</span><span class="v">${d.node_version}</span></div>
-      <div class="sys-row"><span class="k">Entorno</span><span class="v">${d.environment}</span></div>
-      <div class="sys-row"><span class="k">Hora servidor</span><span class="v">${new Date(d.timestamp).toLocaleTimeString('es')}</span></div>
-    </div>
-    <div class="sys-card">
-      <h4>Memoria</h4>
-      <div class="sys-row"><span class="k">Heap usado</span><span class="v">${d.memory.heap_used_mb} MB</span></div>
-      <div class="sys-row"><span class="k">Heap total</span><span class="v">${d.memory.heap_total_mb} MB</span></div>
-      <div class="sys-row"><span class="k">RSS</span><span class="v">${d.memory.rss_mb} MB</span></div>
-      <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" style="width:${d.memory.heap_used_mb/d.memory.heap_total_mb*100}%;background:#00AEEF"></div></div>
-    </div>
-    <div class="sys-card">
-      <h4>Base de datos</h4>
-      <div class="sys-row"><span class="k">Usuarios</span><span class="v">${d.db_records.users}</span></div>
-      <div class="sys-row"><span class="k">Transacciones</span><span class="v">${d.db_records.transactions}</span></div>
-      <div class="sys-row"><span class="k">Pedidos</span><span class="v">${d.db_records.orders}</span></div>
-      <div class="sys-row"><span class="k">Notificaciones</span><span class="v">${d.db_records.notifications}</span></div>
-    </div>
+  document.getElementById('rep-results').style.display='block';
+  document.getElementById('rep-stats').innerHTML=`
+    <div class="sc c-cyan"><div class="lbl">Usuarios</div><div class="val">${d.users.total}</div><div class="sub">KYC ✓ ${d.users.kyc_verified}</div></div>
+    <div class="sc c-yellow"><div class="lbl">Transacciones</div><div class="val">${d.transactions.total}</div><div class="sub">Fees: ${d.transactions.total_fees.toFixed(2)}</div></div>
+    <div class="sc c-blue"><div class="lbl">Volumen EUR</div><div class="val">€${d.transactions.volume_eur.toFixed(0)}</div><div class="sub">XAF: ${(d.transactions.volume_xaf/1000).toFixed(0)}k</div></div>
+    <div class="sc c-green"><div class="lbl">Pedidos</div><div class="val">${d.orders.total}</div><div class="sub">Shop: ${d.orders.shop} · Grocery: ${d.orders.grocery}</div></div>
   `;
-  document.getElementById('system-grid').innerHTML = sysHtml;
-  document.getElementById('system-mini').innerHTML = sysHtml;
+  const rows = [
+    ['Período',`${d.period.from} → ${d.period.to}`],
+    ['Usuarios totales',d.users.total],
+    ['KYC verificados',d.users.kyc_verified],
+    ['Roles',JSON.stringify(d.users.by_role)],
+    ['Países activos',Object.keys(d.users.by_country).length],
+    ['Transacciones totales',d.transactions.total],
+    ['Volumen EUR',`€${d.transactions.volume_eur.toFixed(2)}`],
+    ['Volumen XAF',`${d.transactions.volume_xaf.toLocaleString()} XAF`],
+    ['Fees totales',d.transactions.total_fees.toFixed(2)],
+    ['Pedidos shop',d.orders.shop],
+    ['Pedidos grocery',d.orders.grocery],
+    ['Riders',d.infrastructure.riders],
+    ['Proveedores',d.infrastructure.providers]
+  ];
+  document.getElementById('tb-report').innerHTML = rows.map(([k,v])=>`<tr><td style="font-weight:600;color:#94a3b8">${k}</td><td style="color:#e2e8f0">${v}</td></tr>`).join('');
+  toast('Informe generado');
 }
 
-/* ═══ HELPERS ═══════════════════════════════════════════ */
-function badge(text, cls) { return `<span class="badge ${cls}">${text}</span>`; }
+function exportReport(type){
+  if(!reportData){ toast('Genera primero el informe','err'); return; }
+  if(type==='users')   downloadCSV(reportData.users.list||[],'usuarios_informe.csv');
+  if(type==='txns')    downloadCSV(reportData.transactions.list||[],'transacciones_informe.csv');
+}
 
-/* ═══ AUTO SESSION ══════════════════════════════════════ */
-if (TOKEN) {
-  try {
+function printReport(){ window.print(); }
+
+/* ═══ SYSTEM ─────────────────────────────────────── */
+async function loadSystem(){
+  const r = await api('/admin/system'); if(!r.success) return;
+  const d = r.data;
+  const html=`
+    <div class="syc"><h4>Servidor</h4>
+      <div class="syr"><span class="k">Uptime</span><span class="v">${d.uptime_human}</span></div>
+      <div class="syr"><span class="k">Node.js</span><span class="v">${d.node_version}</span></div>
+      <div class="syr"><span class="k">Entorno</span><span class="v">${d.environment}</span></div>
+      <div class="syr"><span class="k">Hora</span><span class="v">${new Date(d.timestamp).toLocaleTimeString('es')}</span></div>
+    </div>
+    <div class="syc"><h4>Memoria</h4>
+      <div class="syr"><span class="k">Heap usado</span><span class="v">${d.memory.heap_used_mb} MB</span></div>
+      <div class="syr"><span class="k">Heap total</span><span class="v">${d.memory.heap_total_mb} MB</span></div>
+      <div class="syr"><span class="k">RSS</span><span class="v">${d.memory.rss_mb} MB</span></div>
+      <div class="pb"><div class="pf" style="width:${d.memory.heap_used_mb/d.memory.heap_total_mb*100}%;background:#00AEEF"></div></div>
+    </div>
+    <div class="syc"><h4>Base de datos</h4>
+      <div class="syr"><span class="k">Usuarios</span><span class="v">${d.db_records.users}</span></div>
+      <div class="syr"><span class="k">Transacciones</span><span class="v">${d.db_records.transactions}</span></div>
+      <div class="syr"><span class="k">Pedidos</span><span class="v">${d.db_records.orders}</span></div>
+      <div class="syr"><span class="k">Notificaciones</span><span class="v">${d.db_records.notifications}</span></div>
+    </div>`;
+  document.getElementById('sys-grid').innerHTML  = html;
+  document.getElementById('sys-mini').innerHTML  = html;
+}
+
+/* ═══ HELPERS ───────────────────────────────────── */
+function roleBadge(r){ const m={customer:'bc',admin:'ba',circular_autorizada:'bca',rider:'bri'}; return `<span class="b ${m[r]||'bu'}">${r}</span>`; }
+function kycBadge(s){ const m={verified:'bv',pending:'bp',rejected:'br',under_review:'bu'}; return `<span class="b ${m[s]||'bu'}">${s}</span>`; }
+function catClass(c){ const m={electricity:'bel',water:'bwa',airtime:'bai',internet:'bin',tv:'btv'}; return m[c]||'bu'; }
+function fmtDate(d){ return d?new Date(d).toLocaleDateString('es'):'—'; }
+
+function downloadCSV(rows, filename){
+  if(!rows||!rows.length){ toast('Sin datos para exportar','err'); return; }
+  const keys = Object.keys(rows[0]);
+  const csv = [keys.join(','), ...rows.map(r=>keys.map(k=>JSON.stringify(r[k]??'')).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
+  a.download = filename; a.click();
+}
+
+function toast(msg, type='ok'){
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.getElementById('toast-ct').appendChild(t);
+  setTimeout(()=>t.remove(), 4000);
+}
+
+/* ═══ AUTO SESSION ──────────────────────────────── */
+if(TOKEN){
+  try{
     const p = JSON.parse(atob(TOKEN.split('.')[1]));
-    if (p.exp * 1000 > Date.now()) {
-      document.getElementById('admin-name').textContent = p.email;
-      document.getElementById('admin-avatar').textContent = p.email[0].toUpperCase();
-      showDashboard();
-    } else { localStorage.removeItem('inn_token'); TOKEN = null; }
-  } catch(e) { localStorage.removeItem('inn_token'); TOKEN = null; }
+    if(p.exp*1000 > Date.now()){
+      document.getElementById('av-name').textContent = p.email;
+      document.getElementById('av-init').textContent = p.email[0].toUpperCase();
+      showApp();
+    } else { localStorage.removeItem('inn_token'); TOKEN=null; }
+  }catch{ localStorage.removeItem('inn_token'); TOKEN=null; }
 }
+
+// Close modal on background click
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click',e=>{ if(e.target===bg) bg.classList.remove('open'); });
+});
 </script>
 </body>
 </html>
