@@ -4,7 +4,7 @@
   "description": "INNOVAAFRIC REST API — Ecosistema digital tricontinental",
   "main": "server.js",
   "scripts": {
-    "start": "npx prisma migrate deploy && node server.js",
+    "start": "node scripts/start.js",
     "postinstall": "npx prisma generate",
     "dev": "nodemon server.js",
     "test": "jest --coverage --runInBand --forceExit",
