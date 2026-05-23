@@ -31,7 +31,18 @@ const { error }      = require('./src/helpers/response');
 const app = express();
 
 // ── Seguridad y parseo ──────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:  ["'self'"],
+      scriptSrc:   ["'self'", "'unsafe-inline'"],
+      styleSrc:    ["'self'", "'unsafe-inline'"],
+      connectSrc:  ["'self'"],
+      imgSrc:      ["'self'", "data:"],
+      fontSrc:     ["'self'"]
+    }
+  }
+}));
 app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(',') || '*' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
