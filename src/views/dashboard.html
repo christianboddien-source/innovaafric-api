@@ -372,7 +372,7 @@ async function loadTxns() {
 async function loadRiders() {
   const r = await api('/delivery/riders');
   if (!r.success) return;
-  const riders = (r.data.items || r.data) || [];
+  const riders = r.data.riders || r.data.items || [];
   if (!riders.length) { document.getElementById('tb-riders').innerHTML = '<tr><td colspan="8" class="empty">Sin riders registrados</td></tr>'; return; }
   document.getElementById('tb-riders').innerHTML = riders.map(r => `
     <tr>
