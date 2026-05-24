@@ -4,6 +4,8 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>INNOVAAFRIC — Admin Panel</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -474,6 +476,70 @@ html.light tbody tr:hover{background:rgba(0,0,0,.02)}
 html.light .topup-form{background:#fff}
 html.light .lang-card{background:#fff}
 html.light .rep-filters{background:#fff}
+html.light .map-wrap{background:#fff}
+html.light .map-legend{background:#f1f5f9}
+html.light .fee-card{background:#fff}
+html.light .fee-summary{background:#fff}
+html.light .audit-icon{background:#f1f5f9;border-color:#cbd5e1}
+
+/* ── MAP ───────────────────────────────────────── */
+.map-wrap{background:var(--surface);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:24px}
+.map-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.map-head-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:6px}
+.map-head-title::before{content:'';width:3px;height:12px;background:var(--primary);border-radius:2px}
+#map-container{height:420px;z-index:1}
+.leaflet-container{background:#0d1526}
+.map-legend{display:flex;gap:16px;flex-wrap:wrap;padding:12px 20px;background:var(--bg2);border-top:1px solid var(--border)}
+.map-leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+.map-leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.map-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.map-filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+
+/* ── AUDIT LOG ─────────────────────────────────── */
+.audit-timeline{margin-bottom:24px}
+.audit-entry{
+  display:flex;align-items:flex-start;gap:14px;
+  padding:12px 0;border-bottom:1px solid rgba(30,47,71,.5);
+  position:relative}
+.audit-entry:last-child{border-bottom:none}
+.audit-icon{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--surface2);border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;flex-shrink:0}
+.audit-body{flex:1;min-width:0}
+.audit-action{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:2px}
+.audit-detail{font-size:11px;color:var(--text3);margin-bottom:3px}
+.audit-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.audit-time{font-size:10px;color:var(--text3);background:var(--bg2);padding:2px 7px;border-radius:10px}
+.audit-who{font-size:10px;color:var(--primary);font-weight:600}
+.audit-empty{text-align:center;padding:40px;color:var(--text3)}
+.audit-empty .em-ic{font-size:36px;margin-bottom:8px;opacity:.4}
+
+/* ── FEES ──────────────────────────────────────── */
+.fees-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+.fee-card{
+  background:var(--surface);border-radius:12px;border:1px solid var(--border);
+  padding:20px;transition:border-color .2s,box-shadow .2s}
+.fee-card:hover{border-color:var(--border2)}
+.fee-card.editing{border-color:var(--primary);box-shadow:0 0 0 3px var(--glow)}
+.fee-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.fee-card-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text)}
+.fee-card-ic{font-size:20px}
+.fee-card-body{display:grid;gap:10px}
+.fee-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(30,47,71,.4)}
+.fee-row:last-child{border-bottom:none}
+.fee-key{font-size:11px;color:var(--text2)}
+.fee-val{font-size:13px;font-weight:700;color:var(--primary)}
+.fee-input{
+  width:80px;padding:4px 8px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:6px;color:var(--text);font-size:12px;text-align:right;
+  outline:none;font-family:inherit}
+.fee-input:focus{border-color:var(--primary)}
+.fee-summary{
+  background:var(--surface);border-radius:12px;border:1px solid var(--border);
+  padding:20px;margin-bottom:24px}
+.fee-summary h4{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
 
 /* ── PRINT STYLES ──────────────────────────────── */
 @media print{
@@ -597,12 +663,14 @@ html.light .rep-filters{background:#fff}
       <div class="ni" data-tip="Tontinas" onclick="gp('tontines')"><span class="ic">🫂</span> <span data-i18n="nav_tontines">Tontinas</span></div>
       <div class="ni" data-tip="Tarjetas" onclick="gp('cards')"><span class="ic">💳</span> <span data-i18n="nav_cards">Tarjetas</span></div>
       <div class="ni" data-tip="Contabilidad" onclick="gp('accounting')"><span class="ic">📒</span> <span data-i18n="nav_accounting">Contabilidad</span></div>
+      <div class="ni" data-tip="Comisiones" onclick="gp('fees')"><span class="ic">⚙️</span> <span>Comisiones</span></div>
     </div>
 
     <!-- SERVICIOS -->
     <div class="sb-sec" onclick="toggleSec('sec-services')"><span data-i18n="nav_services_sec">SERVICIOS</span><span class="chv">▾</span></div>
     <div class="sb-group" id="sec-services">
       <div class="ni" data-tip="Riders" onclick="gp('riders')"><span class="ic">🚴</span> <span data-i18n="nav_riders">Riders</span></div>
+      <div class="ni" data-tip="Mapa Operacional" onclick="gp('map')"><span class="ic">🗺️</span> <span>Mapa Operacional</span></div>
       <div class="ni" data-tip="Proveedores" onclick="gp('providers')"><span class="ic">📋</span> <span data-i18n="nav_providers">Proveedores</span></div>
       <div class="ni" data-tip="Tasas de cambio" onclick="gp('rates')"><span class="ic">💱</span> <span data-i18n="nav_rates">Tasas de cambio</span></div>
       <div class="ni" data-tip="Facturas" onclick="gp('bills')"><span class="ic">🧾</span> <span data-i18n="nav_bills">Facturas</span></div>
@@ -631,6 +699,7 @@ html.light .rep-filters{background:#fff}
     <!-- SISTEMA -->
     <div class="sb-sec" onclick="toggleSec('sec-system')"><span data-i18n="nav_system_sec">SISTEMA</span><span class="chv">▾</span></div>
     <div class="sb-group" id="sec-system">
+      <div class="ni" data-tip="Auditoría" onclick="gp('audit')"><span class="ic">📋</span> <span>Auditoría</span></div>
       <div class="ni" data-tip="Impuestos" onclick="gp('taxes')"><span class="ic">💼</span> <span data-i18n="nav_taxes">Impuestos</span></div>
       <div class="ni" data-tip="Bancos" onclick="gp('banks')"><span class="ic">🏛️</span> <span data-i18n="nav_banks">Bancos</span></div>
       <div class="ni" data-tip="Categorías" onclick="gp('categories')"><span class="ic">🏷️</span> <span data-i18n="nav_categories">Categorías</span></div>
@@ -1338,6 +1407,100 @@ html.light .rep-filters{background:#fff}
     </table></div>
   </div>
 
+  <!-- ── MAPA OPERACIONAL ── -->
+  <div class="page" id="page-map">
+    <div class="sg map-stats" id="map-rider-stats"></div>
+    <div class="map-filter-bar">
+      <button class="fb-btn active" onclick="mapLayerFilter(this,'all')">Todos</button>
+      <button class="fb-btn" onclick="mapLayerFilter(this,'riders')">🚴 Solo Riders</button>
+      <button class="fb-btn" onclick="mapLayerFilter(this,'users')">👥 Solo Usuarios</button>
+    </div>
+    <div class="map-wrap">
+      <div class="map-head">
+        <div class="map-head-title">Mapa Operacional en tiempo real</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="refreshMap()">↻ Actualizar</button>
+          <button class="btn btn-ghost btn-sm" onclick="mapFlyAfrica()">🌍 África</button>
+          <button class="btn btn-ghost btn-sm" onclick="mapFlyEurope()">🇪🇺 Europa</button>
+        </div>
+      </div>
+      <div id="map-container"></div>
+      <div class="map-legend">
+        <div class="map-leg-item"><div class="map-leg-dot" style="background:#10b981"></div>Rider disponible</div>
+        <div class="map-leg-item"><div class="map-leg-dot" style="background:#fbbf24"></div>Rider ocupado</div>
+        <div class="map-leg-item"><div class="map-leg-dot" style="background:#475569"></div>Rider offline</div>
+        <div class="map-leg-item"><div class="map-leg-dot" style="background:#60a5fa"></div>Zona de usuarios</div>
+        <div class="map-leg-item"><div class="map-leg-dot" style="background:#a78bfa"></div>Entrega activa</div>
+      </div>
+    </div>
+    <div class="sec-hd">Distribución por País</div>
+    <div class="tw"><table>
+      <thead><tr><th>País</th><th>Usuarios</th><th>Riders</th><th>Riders disponibles</th><th>Entregas activas</th></tr></thead>
+      <tbody id="tb-map-country"></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── COMISIONES Y FEES ── -->
+  <div class="page" id="page-fees">
+    <div class="sec-hd">
+      <span>Comisiones por Tipo de Transacción</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="resetFees()">↺ Restablecer</button>
+        <button class="btn btn-cyan btn-sm" onclick="saveFees()">💾 Guardar cambios</button>
+      </div>
+    </div>
+    <div class="info-card" style="border-left:3px solid var(--primary);max-width:700px">
+      <h4>ℹ️ Cómo funcionan las comisiones</h4>
+      <p style="font-size:12px;color:var(--text3);line-height:1.7">Las comisiones se aplican sobre cada transacción. El sistema cobra el porcentaje indicado, con un importe mínimo garantizado. Los cambios se guardan en esta sesión y deben sincronizarse con el backend vía la API de configuración cuando esté disponible.</p>
+    </div>
+    <div class="fees-grid" id="fees-grid"></div>
+    <div class="fee-summary" id="fees-projection">
+      <h4>📈 Proyección de ingresos por comisiones (basado en datos actuales)</h4>
+      <div id="fees-projection-content" style="color:var(--text3);font-size:12px">Cargando proyección...</div>
+    </div>
+    <div class="sec-hd">Historial de cambios en comisiones</div>
+    <div class="tw"><table>
+      <thead><tr><th>Tipo</th><th>Campo</th><th>Valor anterior</th><th>Valor nuevo</th><th>Admin</th><th>Fecha</th></tr></thead>
+      <tbody id="tb-fees-history"></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── AUDITORÍA ── -->
+  <div class="page" id="page-audit">
+    <div class="sg" id="audit-stats">
+      <div class="sc c-cyan"><div class="lbl">Total acciones</div><div class="val" id="audit-total">0</div></div>
+      <div class="sc c-green"><div class="lbl">Hoy</div><div class="val" id="audit-today">0</div></div>
+      <div class="sc c-blue"><div class="lbl">Esta sesión</div><div class="val" id="audit-session">0</div></div>
+      <div class="sc c-yellow"><div class="lbl">KYC actions</div><div class="val" id="audit-kyc">0</div></div>
+      <div class="sc c-red"><div class="lbl">Eliminaciones</div><div class="val" id="audit-deletes">0</div></div>
+    </div>
+    <div class="sec-hd">
+      <span>Log de Auditoría</span>
+      <div style="display:flex;gap:8px">
+        <input class="search-bar" id="audit-search" placeholder="🔍 Filtrar..." oninput="renderAudit()">
+        <button class="btn btn-ghost btn-sm" onclick="exportAuditCSV()">⬇ CSV</button>
+        <button class="btn btn-red btn-sm" onclick="clearAudit()">🗑 Limpiar</button>
+      </div>
+    </div>
+    <div class="fb">
+      <button class="fb-btn active" onclick="filterAudit(this,'')">Todas</button>
+      <button class="fb-btn" onclick="filterAudit(this,'kyc')">🪪 KYC</button>
+      <button class="fb-btn" onclick="filterAudit(this,'topup')">💰 Recargas</button>
+      <button class="fb-btn" onclick="filterAudit(this,'loan')">🤝 Préstamos</button>
+      <button class="fb-btn" onclick="filterAudit(this,'user')">👥 Usuarios</button>
+      <button class="fb-btn" onclick="filterAudit(this,'fee')">⚙️ Fees</button>
+    </div>
+    <div class="info-card">
+      <div class="audit-timeline" id="audit-timeline">
+        <div class="audit-empty">
+          <div class="em-ic">📋</div>
+          <div style="font-size:13px;margin-bottom:6px">Sin acciones registradas</div>
+          <div style="font-size:11px">Las acciones del admin (KYC, recargas, préstamos, etc.) aparecerán aquí.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /main -->
 </div><!-- /layout -->
 </div><!-- /app -->
@@ -1904,7 +2067,8 @@ const PG_TITLES = {
   business:'Business',notifications:'Notificaciones',chat:'Chat / Soporte',
   reviews:'Reseñas',loyalty:'Fidelidad',referrals:'Referidos',
   taxes:'Impuestos',banks:'Bancos',categories:'Categorías',
-  kyc:'KYC / Verificación',products:'Catálogo de Productos'
+  kyc:'KYC / Verificación',products:'Catálogo de Productos',
+  map:'Mapa Operacional',fees:'Comisiones',audit:'Auditoría Admin'
 };
 
 function refresh(){
@@ -1943,6 +2107,9 @@ function gp(name){
   if(name==='kyc') renderKyc();
   if(name==='products') loadProducts();
   if(name==='reports'){ fillRepCountry(); setPeriod(document.querySelector('#period-fb .fb-btn.active')||document.querySelector('#period-fb .fb-btn'), repPeriod); }
+  if(name==='map'){ loadMap(); setTimeout(()=>{ if(mapInst) mapInst.invalidateSize(); },250); }
+  if(name==='fees') loadFees();
+  if(name==='audit'){ renderAuditStats(); renderAudit(); }
 }
 
 /* ═══ OVERVIEW ══════════════════════════════════════ */
@@ -2321,8 +2488,11 @@ async function saveUser(){
 
 async function updateKyc(id, status){
   const r = await api('/admin/users/'+id+'/kyc',{method:'PATCH',body:JSON.stringify({status})});
-  if(r.success){ loadUsers(); toast('KYC actualizado a: '+status); }
-  else toast('Error al actualizar KYC','err');
+  if(r.success){
+    const u = ALL_USERS.find(x=>x.id===id);
+    addAuditEntry('kyc','🪪',`KYC ${status}: ${u?.name||id}`,`Usuario ID: ${id} → estado: ${status}`);
+    loadUsers(); toast('KYC actualizado a: '+status);
+  } else toast('Error al actualizar KYC','err');
 }
 
 function confirmDelete(tipo, id, fn){
@@ -2332,9 +2502,12 @@ function confirmDelete(tipo, id, fn){
 }
 
 async function deleteUser(id){
+  const u = ALL_USERS.find(x=>x.id===id);
   const r = await api('/admin/users/'+id,{method:'DELETE'});
-  if(r.success){ loadUsers(); toast('Usuario eliminado'); }
-  else toast(r.error||'Error al eliminar','err');
+  if(r.success){
+    addAuditEntry('delete','🗑️',`Usuario eliminado: ${u?.name||id}`,`ID: ${id} · Email: ${u?.email||'?'}`);
+    loadUsers(); toast('Usuario eliminado');
+  } else toast(r.error||'Error al eliminar','err');
 }
 
 /* ═══ REPRESENTATIVES ───────────────────────────── */
@@ -2442,6 +2615,7 @@ async function doTopup(){
 
   const r = await api('/admin/wallet/topup',{method:'POST',body:JSON.stringify({user_id,amount,currency,note})});
   if(r.success){
+    addAuditEntry('topup','💰',`Recarga: ${amount} ${currency} → ${r.data.user.name}`,`Usuario: ${user_id} · Nota: ${note||'—'}`);
     document.getElementById('tp-user').value='';
     document.getElementById('tp-amount').value='';
     document.getElementById('tp-note').value='';
@@ -2776,8 +2950,11 @@ async function loanAction(action){
   const notes = document.getElementById('ln-notes').value;
   const endpoints = { approve:'/approve', reject:'/reject', disburse:'/disburse' };
   const r = await api('/loans/'+id+endpoints[action],{method:'PATCH',body:JSON.stringify({notes})});
-  if(r.success){ closeModal('loan'); loadLoans(); toast('Préstamo: '+action); }
-  else toast(r.error||r.message||'Error','err');
+  if(r.success){
+    const l = ALL_LOANS.find(x=>x.id===id);
+    addAuditEntry('loan','🤝',`Préstamo ${action}: ${l?.user?.name||id}`,`ID: ${id} · ${l?.amount||'?'} ${l?.currency||''} · notas: ${notes||'—'}`);
+    closeModal('loan'); loadLoans(); toast('Préstamo: '+action);
+  } else toast(r.error||r.message||'Error','err');
 }
 
 /* ═══ TONTINAS ──────────────────────────────────── */
@@ -3416,7 +3593,10 @@ const MODULES = [
   {ic:'🌍',nm:'Países',sc:'Sistema',pg:'countries'},
   {ic:'📊',nm:'Informes',sc:'Sistema',pg:'reports'},
   {ic:'⚙️',nm:'Configuración',sc:'Sistema',pg:'settings'},
-  {ic:'🖥️',nm:'Sistema',sc:'Sistema',pg:'system'}
+  {ic:'🖥️',nm:'Sistema',sc:'Sistema',pg:'system'},
+  {ic:'🗺️',nm:'Mapa Operacional',sc:'Servicios',pg:'map'},
+  {ic:'⚙️',nm:'Comisiones',sc:'Finanzas',pg:'fees'},
+  {ic:'📋',nm:'Auditoría',sc:'Sistema',pg:'audit'}
 ];
 function searchModules(){
   const q = document.getElementById('tb-search-input').value.trim().toLowerCase();
@@ -3920,6 +4100,337 @@ function exportReport(type){
   if(type==='txns')    downloadCSV(reportData.transactions?.list||ALL_TXNS, 'transacciones_informe.csv');
 }
 function printReport(){ printPDF(); }
+
+/* ═══════════════════════════════════════════════════
+   AUDIT LOG
+═══════════════════════════════════════════════════ */
+const AUDIT_STORAGE = 'inn_audit_log';
+let AUDIT_LOG = JSON.parse(localStorage.getItem(AUDIT_STORAGE)||'[]');
+let auditCatFilter = '';
+
+function addAuditEntry(category, icon, action, detail){
+  const adminName = document.getElementById('av-name')?.textContent||'Admin';
+  AUDIT_LOG.unshift({
+    id: Date.now()+'-'+Math.random().toString(36).slice(2,6),
+    category, icon, action, detail,
+    admin: adminName,
+    ts: new Date().toISOString(),
+    session: true
+  });
+  if(AUDIT_LOG.length>500) AUDIT_LOG=AUDIT_LOG.slice(0,500);
+  localStorage.setItem(AUDIT_STORAGE, JSON.stringify(AUDIT_LOG));
+  renderAuditStats();
+  if(document.getElementById('page-audit')?.classList.contains('active')) renderAudit();
+}
+
+function renderAuditStats(){
+  const today = new Date().toDateString();
+  const set = (id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+  set('audit-total',   AUDIT_LOG.length);
+  set('audit-today',   AUDIT_LOG.filter(e=>new Date(e.ts).toDateString()===today).length);
+  set('audit-session', AUDIT_LOG.filter(e=>e.session).length);
+  set('audit-kyc',     AUDIT_LOG.filter(e=>e.category==='kyc').length);
+  set('audit-deletes', AUDIT_LOG.filter(e=>e.category==='delete').length);
+}
+
+function renderAudit(){
+  const q = (document.getElementById('audit-search')?.value||'').toLowerCase();
+  let entries = AUDIT_LOG;
+  if(auditCatFilter) entries = entries.filter(e=>e.category===auditCatFilter);
+  if(q) entries = entries.filter(e=>(e.action+e.detail+e.admin).toLowerCase().includes(q));
+  const tl = document.getElementById('audit-timeline');
+  if(!tl) return;
+  if(!entries.length){
+    tl.innerHTML=`<div class="audit-empty"><div class="em-ic">📋</div><div style="font-size:13px;margin-bottom:6px">${auditCatFilter||q?'Sin registros con ese filtro':'Sin acciones registradas'}</div><div style="font-size:11px">Las acciones del admin aparecerán aquí.</div></div>`;
+    return;
+  }
+  const catCls = {kyc:'bav',topup:'bc',loan:'bp',user:'bu',fee:'ba',delete:'br',rate:'bco',product:'bri'};
+  tl.innerHTML = entries.slice(0,100).map(e=>`
+    <div class="audit-entry">
+      <div class="audit-icon">${e.icon}</div>
+      <div class="audit-body">
+        <div class="audit-action">${e.action}</div>
+        ${e.detail?`<div class="audit-detail">${e.detail}</div>`:''}
+        <div class="audit-meta">
+          <span class="audit-who">👤 ${e.admin}</span>
+          <span class="audit-time">${new Date(e.ts).toLocaleString('es',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+          <span class="b ${catCls[e.category]||'bu'}" style="font-size:9px;padding:2px 6px">${e.category}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterAudit(btn, v){
+  document.querySelectorAll('#page-audit .fb .fb-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); auditCatFilter=v; renderAudit();
+}
+
+function clearAudit(){
+  if(!confirm('¿Eliminar todos los registros de auditoría?')) return;
+  AUDIT_LOG=[]; localStorage.removeItem(AUDIT_STORAGE);
+  renderAudit(); renderAuditStats();
+  toast('Log de auditoría borrado','info');
+}
+
+function exportAuditCSV(){
+  if(!AUDIT_LOG.length){ toast('Sin registros para exportar','err'); return; }
+  downloadCSV(AUDIT_LOG.map(e=>({fecha:e.ts,admin:e.admin,categoria:e.category,accion:e.action,detalle:e.detail})),'auditoria.csv');
+}
+
+/* ═══════════════════════════════════════════════════
+   MAPA OPERACIONAL (Leaflet.js)
+═══════════════════════════════════════════════════ */
+const COUNTRY_CENTERS = {
+  CM:[3.86,11.52], NG:[9.08,8.67], CI:[7.54,-5.55], SN:[14.50,-14.45],
+  GH:[7.95,-1.02], BJ:[9.31,2.32], TG:[8.62,0.82],  BF:[12.36,-1.53],
+  ML:[17.57,-3.99], NE:[17.61,8.08], CD:[4.04,21.76], GA:[0.41,11.61],
+  GQ:[1.65,10.27], MA:[31.79,-7.09], EG:[26.82,30.80], KE:[-1.29,36.82],
+  ZA:[-30.56,22.93], ET:[9.15,40.49], FR:[46.23,2.21], DE:[51.17,10.45],
+  ES:[40.46,-3.74], IT:[41.87,12.56], GB:[55.37,-3.44], CN:[35.86,104.19],
+  JP:[36.20,138.25], IN:[20.59,78.96], SA:[23.69,45.07]
+};
+
+let mapInst=null, mapRiderLayer=null, mapUserLayer=null, mapDelivLayer=null;
+let mapCurrentFilter='all';
+
+function initMap(){
+  if(mapInst) return;
+  if(typeof L==='undefined'){ toast('Leaflet no cargado. Verifica conexión.','err'); return; }
+  mapInst = L.map('map-container',{center:[5.0,18.0],zoom:3,minZoom:2,maxZoom:10});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom:18
+  }).addTo(mapInst);
+  mapRiderLayer = L.layerGroup().addTo(mapInst);
+  mapUserLayer  = L.layerGroup().addTo(mapInst);
+  mapDelivLayer = L.layerGroup().addTo(mapInst);
+}
+
+async function loadMap(){
+  initMap();
+  renderMapStats();
+  renderMapTable();
+  populateMapMarkers();
+}
+
+function populateMapMarkers(){
+  if(!mapInst||typeof L==='undefined') return;
+  mapRiderLayer.clearLayers();
+  mapUserLayer.clearLayers();
+  mapDelivLayer.clearLayers();
+
+  (ALL_RIDERS||[]).forEach(r=>{
+    const cc = r.user?.country||r.country||'CM';
+    const center = COUNTRY_CENTERS[cc]||[3.86,11.52];
+    const lat = center[0]+(Math.random()-.5)*2;
+    const lng = center[1]+(Math.random()-.5)*2;
+    const col = r.status==='available'?'#10b981':r.status==='busy'?'#fbbf24':'#475569';
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="width:12px;height:12px;border-radius:50%;background:${col};border:2px solid rgba(255,255,255,.85);box-shadow:0 2px 8px rgba(0,0,0,.5)"></div>`,
+      iconSize:[12,12],iconAnchor:[6,6]
+    });
+    L.marker([lat,lng],{icon})
+      .bindPopup(`<b>🚴 Rider</b><br>${r.user?.name||r.id}<br>Estado: <b>${r.status}</b><br>Vehículo: ${r.vehicle||'moto'}<br>País: ${cc}`)
+      .addTo(mapRiderLayer);
+  });
+
+  const byCountry={};
+  (ALL_USERS||[]).forEach(u=>byCountry[u.country]=(byCountry[u.country]||0)+1);
+  Object.entries(byCountry).forEach(([cc,count])=>{
+    const center=COUNTRY_CENTERS[cc]; if(!center) return;
+    L.circleMarker(center,{radius:Math.max(8,Math.min(28,count*3)),
+      color:'#3b82f6',fillColor:'#60a5fa',fillOpacity:.35,weight:2,opacity:.8})
+      .bindPopup(`<b>🌍 ${cc}</b><br>Usuarios: <b>${count}</b>`)
+      .addTo(mapUserLayer);
+  });
+
+  (ALL_DELIVERY||[]).filter(d=>d.status==='in_transit'||d.status==='assigned').forEach(d=>{
+    const cc=d.rider?.user?.country||'CM';
+    const center=COUNTRY_CENTERS[cc]||[3.86,11.52];
+    const lat=center[0]+(Math.random()-.5)*1.5;
+    const lng=center[1]+(Math.random()-.5)*1.5;
+    const icon=L.divIcon({className:'',
+      html:`<div style="width:10px;height:10px;border-radius:50%;background:#a78bfa;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
+      iconSize:[10,10],iconAnchor:[5,5]});
+    L.marker([lat,lng],{icon})
+      .bindPopup(`<b>📦 Entrega</b><br>ID: ${d.id?.slice(0,8)}…<br>Estado: ${d.status}`)
+      .addTo(mapDelivLayer);
+  });
+  applyMapFilter();
+}
+
+function applyMapFilter(){
+  if(!mapInst) return;
+  const add = (lg)=>{ if(!mapInst.hasLayer(lg)) lg.addTo(mapInst); };
+  const rem = (lg)=>{ if(mapInst.hasLayer(lg))  mapInst.removeLayer(lg); };
+  if(mapCurrentFilter==='riders'){ add(mapRiderLayer); rem(mapUserLayer); rem(mapDelivLayer); }
+  else if(mapCurrentFilter==='users'){ rem(mapRiderLayer); add(mapUserLayer); rem(mapDelivLayer); }
+  else { add(mapRiderLayer); add(mapUserLayer); add(mapDelivLayer); }
+}
+
+function mapLayerFilter(btn, type){
+  document.querySelectorAll('#page-map .map-filter-bar .fb-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); mapCurrentFilter=type; applyMapFilter();
+}
+
+function renderMapStats(){
+  const el=document.getElementById('map-rider-stats'); if(!el) return;
+  const avail=(ALL_RIDERS||[]).filter(r=>r.status==='available').length;
+  const busy =(ALL_RIDERS||[]).filter(r=>r.status==='busy').length;
+  const offln=(ALL_RIDERS||[]).filter(r=>r.status==='offline').length;
+  const inTrans=(ALL_DELIVERY||[]).filter(d=>d.status==='in_transit').length;
+  el.innerHTML=`
+    <div class="sc c-cyan"><div class="lbl">Total Riders</div><div class="val">${(ALL_RIDERS||[]).length}</div></div>
+    <div class="sc c-green"><div class="lbl">Disponibles</div><div class="val">${avail}</div></div>
+    <div class="sc c-yellow"><div class="lbl">Ocupados</div><div class="val">${busy}</div></div>
+    <div class="sc c-def"><div class="lbl">Offline</div><div class="val">${offln}</div></div>
+    <div class="sc c-purple"><div class="lbl">En tránsito</div><div class="val">${inTrans}</div></div>
+    <div class="sc c-blue"><div class="lbl">Países activos</div><div class="val">${Object.keys([...(ALL_USERS||[]),...(ALL_RIDERS||[])].reduce((a,x)=>(a[x.user?.country||x.country||'?']=1,a),{})).length}</div></div>`;
+}
+
+function renderMapTable(){
+  const tb=document.getElementById('tb-map-country'); if(!tb) return;
+  const m={};
+  (ALL_USERS||[]).forEach(u=>{const c=u.country||'?';if(!m[c])m[c]={users:0,riders:0,avail:0,deliv:0};m[c].users++;});
+  (ALL_RIDERS||[]).forEach(r=>{const c=r.user?.country||'?';if(!m[c])m[c]={users:0,riders:0,avail:0,deliv:0};m[c].riders++;if(r.status==='available')m[c].avail++;});
+  (ALL_DELIVERY||[]).filter(d=>d.status==='in_transit').forEach(d=>{const c=d.rider?.user?.country||'?';if(!m[c])m[c]={users:0,riders:0,avail:0,deliv:0};m[c].deliv++;});
+  const rows=Object.entries(m).sort((a,b)=>b[1].users-a[1].users);
+  if(!rows.length){tb.innerHTML='<tr><td colspan="5" class="misc">Sin datos geográficos</td></tr>';return;}
+  tb.innerHTML=rows.map(([c,d])=>`
+    <tr>
+      <td style="font-weight:700">${c}</td>
+      <td style="color:#60a5fa;font-weight:600">${d.users}</td>
+      <td>${d.riders}</td>
+      <td><span style="color:#10b981;font-weight:600">${d.avail}</span></td>
+      <td><span style="color:#a78bfa;font-weight:600">${d.deliv}</span></td>
+    </tr>`).join('');
+}
+
+function refreshMap(){ populateMapMarkers(); renderMapStats(); renderMapTable(); toast('Mapa actualizado','info'); }
+function mapFlyAfrica(){ if(mapInst) mapInst.flyTo([5.0,18.0],3,{duration:1.2}); }
+function mapFlyEurope(){ if(mapInst) mapInst.flyTo([48.0,10.0],4,{duration:1.2}); }
+
+/* ═══════════════════════════════════════════════════
+   COMISIONES Y FEES
+═══════════════════════════════════════════════════ */
+const DEFAULT_FEES = {
+  topup:       {label:'Recarga wallet',       ic:'💰',pct:0.5, min:50,   max:5000,  currency:'XAF'},
+  send:        {label:'Envío internacional',  ic:'✈️',pct:1.5, min:200,  max:50000, currency:'XAF'},
+  p2p:         {label:'Transferencia P2P',    ic:'↔️',pct:0.3, min:30,   max:2000,  currency:'XAF'},
+  withdraw:    {label:'Reintegro',            ic:'🏧',pct:1.0, min:100,  max:20000, currency:'XAF'},
+  bill_payment:{label:'Pago de facturas',     ic:'🧾',pct:0.5, min:50,   max:3000,  currency:'XAF'},
+  qr_payment:  {label:'Pago QR',             ic:'📱',pct:0.2, min:20,   max:1000,  currency:'XAF'},
+  card_tx:     {label:'Transacción tarjeta',  ic:'💳',pct:0.8, min:100,  max:10000, currency:'XAF'},
+  tontine:     {label:'Cuota tontina',        ic:'🫂',pct:0.1, min:10,   max:500,   currency:'XAF'},
+};
+let FEES_CONFIG   = JSON.parse(localStorage.getItem('inn_fees')||JSON.stringify(DEFAULT_FEES));
+let FEES_HISTORY  = JSON.parse(localStorage.getItem('inn_fees_history')||'[]');
+
+function loadFees(){ renderFees(); calcFeesProjection(); renderFeesHistory(); }
+
+function renderFees(){
+  const el=document.getElementById('fees-grid'); if(!el) return;
+  el.innerHTML=Object.entries(FEES_CONFIG).map(([key,f])=>`
+    <div class="fee-card" id="fee-card-${key}">
+      <div class="fee-card-head">
+        <div class="fee-card-title"><span class="fee-card-ic">${f.ic}</span>${f.label}</div>
+        <button class="btn btn-ghost btn-sm" onclick="editFee('${key}')">✏️ Editar</button>
+      </div>
+      <div id="fee-view-${key}">
+        <div class="fee-row"><span class="fee-key">Comisión</span><span class="fee-val">${f.pct}%</span></div>
+        <div class="fee-row"><span class="fee-key">Mínimo</span><span class="fee-val">${f.min.toLocaleString()} ${f.currency}</span></div>
+        <div class="fee-row"><span class="fee-key">Máximo</span><span class="fee-val">${f.max.toLocaleString()} ${f.currency}</span></div>
+      </div>
+      <div id="fee-edit-${key}" style="display:none">
+        <div class="fee-row"><span class="fee-key">Comisión (%)</span><input class="fee-input" id="fi-pct-${key}" type="number" value="${f.pct}" min="0" max="20" step="0.05"></div>
+        <div class="fee-row"><span class="fee-key">Mínimo (${f.currency})</span><input class="fee-input" id="fi-min-${key}" type="number" value="${f.min}" min="0"></div>
+        <div class="fee-row"><span class="fee-key">Máximo (${f.currency})</span><input class="fee-input" id="fi-max-${key}" type="number" value="${f.max}" min="0"></div>
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="cancelFeeEdit('${key}')">Cancelar</button>
+          <button class="btn btn-cyan btn-sm" style="flex:1" onclick="applyFeeEdit('${key}')">✓ Aplicar</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function editFee(key){
+  document.getElementById('fee-view-'+key).style.display='none';
+  document.getElementById('fee-edit-'+key).style.display='block';
+  document.getElementById('fee-card-'+key).classList.add('editing');
+}
+function cancelFeeEdit(key){
+  document.getElementById('fee-view-'+key).style.display='block';
+  document.getElementById('fee-edit-'+key).style.display='none';
+  document.getElementById('fee-card-'+key).classList.remove('editing');
+}
+function applyFeeEdit(key){
+  const oldPct=FEES_CONFIG[key].pct;
+  const newPct=parseFloat(document.getElementById('fi-pct-'+key).value)||0;
+  const newMin=parseInt(document.getElementById('fi-min-'+key).value)||0;
+  const newMax=parseInt(document.getElementById('fi-max-'+key).value)||0;
+  if(newPct<0||newPct>20){ toast('Porcentaje inválido (0–20%)','err'); return; }
+  if(newMin>newMax){ toast('El mínimo no puede superar el máximo','err'); return; }
+  if(oldPct!==newPct){
+    FEES_HISTORY.unshift({type:key,field:'pct',old:oldPct+'%',val:newPct+'%',
+      admin:document.getElementById('av-name')?.textContent||'Admin',ts:new Date().toISOString()});
+    addAuditEntry('fee','⚙️',`Comisión modificada: ${FEES_CONFIG[key].label}`,`${key} → ${oldPct}% → ${newPct}%`);
+  }
+  FEES_CONFIG[key].pct=newPct; FEES_CONFIG[key].min=newMin; FEES_CONFIG[key].max=newMax;
+  cancelFeeEdit(key); renderFees(); calcFeesProjection();
+  toast(`Comisión "${FEES_CONFIG[key].label}" actualizada`,'info');
+}
+
+function saveFees(){
+  localStorage.setItem('inn_fees', JSON.stringify(FEES_CONFIG));
+  localStorage.setItem('inn_fees_history', JSON.stringify(FEES_HISTORY.slice(0,200)));
+  renderFeesHistory();
+  addAuditEntry('fee','💾','Configuración de comisiones guardada','Cambios persistidos en localStorage');
+  toast('Comisiones guardadas correctamente');
+}
+
+function resetFees(){
+  if(!confirm('¿Restablecer todas las comisiones a los valores por defecto?')) return;
+  FEES_CONFIG=JSON.parse(JSON.stringify(DEFAULT_FEES));
+  addAuditEntry('fee','↺','Comisiones restablecidas a valores por defecto','');
+  renderFees(); calcFeesProjection(); toast('Comisiones restablecidas','info');
+}
+
+function calcFeesProjection(){
+  const el=document.getElementById('fees-projection-content'); if(!el) return;
+  const txnCount=ALL_TXNS.length||0;
+  const avgVol=15000;
+  let rows='', total=0;
+  Object.entries(FEES_CONFIG).forEach(([key,f])=>{
+    const est=Math.max(f.min, avgVol*(f.pct/100));
+    const monthly=est*Math.max(1,Math.floor(txnCount/8));
+    total+=monthly;
+    rows+=`<div class="fee-row"><span class="fee-key">${f.ic} ${f.label}</span><span class="fee-val">≈ ${monthly.toLocaleString()} ${f.currency}/mes</span></div>`;
+  });
+  el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+    <div>${rows}</div>
+    <div style="background:var(--bg2);border-radius:10px;padding:20px;text-align:center">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-bottom:8px">Estimación mensual total</div>
+      <div style="font-size:30px;font-weight:900;color:var(--primary)">${(total/1000).toFixed(0)}k XAF</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">≈ €${(total/650).toFixed(0)} EUR</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Basado en ${txnCount} txns registradas</div>
+    </div>
+  </div>`;
+}
+
+function renderFeesHistory(){
+  const tb=document.getElementById('tb-fees-history'); if(!tb) return;
+  if(!FEES_HISTORY.length){tb.innerHTML='<tr><td colspan="6" class="misc">Sin cambios registrados</td></tr>';return;}
+  tb.innerHTML=FEES_HISTORY.slice(0,20).map(h=>`
+    <tr>
+      <td>${FEES_CONFIG[h.type]?.label||h.type}</td>
+      <td><span class="b bu">${h.field}</span></td>
+      <td style="color:#f87171">${h.old}</td>
+      <td style="color:#10b981">${h.val}</td>
+      <td style="color:#64748b">${h.admin}</td>
+      <td style="color:#64748b">${new Date(h.ts).toLocaleString('es')}</td>
+    </tr>`).join('');
+}
 
 /* ═══ TREND CHART (7 DÍAS) ══════════════════════════ */
 let trendChartInst = null;
