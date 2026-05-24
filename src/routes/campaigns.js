@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 const prisma  = new PrismaClient();
-const requireAdmin = requireRole('admin');
+const requireAdmin = requireRole('admin', 'super_admin', 'marketing_manager', 'country_manager', 'regional_director');
 
 /* GET /campaigns */
 router.get('/', requireAuth, requireAdmin, async (req, res) => {

@@ -9,6 +9,7 @@ const router  = express.Router();
 const prisma  = require('../config/prisma');
 const { success, error, triggerWebhook } = require('../helpers/response');
 const { requireAuth } = require('../middleware/auth');
+const { PUBLIC_ROLES } = require('../config/roles');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'innovaafric_secret_2026';
 
@@ -35,14 +36,17 @@ router.post('/token', async (req, res) => {
       return error(res, 'Email o contraseña incorrectos', 401);
     }
     const token = jwt.sign(
-      { sub: user.id, email: user.email, role: user.role, country: user.country },
+      { sub: user.id, email: user.email, role: user.role, country: user.country,
+        scope: user.scope || null, city: user.city || null, department: user.department || null },
       JWT_SECRET, { expiresIn: '8h' }
     );
     const refresh = jwt.sign({ sub: user.id, type: 'refresh' }, JWT_SECRET, { expiresIn: '30d' });
     return success(res, {
       access_token: token, refresh_token: refresh,
       token_type: 'Bearer', expires_in: 28800,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, kyc_status: user.kycStatus }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role,
+              country: user.country, scope: user.scope, city: user.city,
+              department: user.department, kyc_status: user.kycStatus }
     });
   }
 
@@ -58,7 +62,8 @@ router.post('/refresh', async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user) return error(res, 'Usuario no encontrado', 404);
     const newToken = jwt.sign(
-      { sub: user.id, email: user.email, role: user.role, country: user.country },
+      { sub: user.id, email: user.email, role: user.role, country: user.country,
+        scope: user.scope || null, city: user.city || null, department: user.department || null },
       JWT_SECRET, { expiresIn: '8h' }
     );
     return success(res, { access_token: newToken, token_type: 'Bearer', expires_in: 28800 });
@@ -76,8 +81,7 @@ router.post('/register', async (req, res) => {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return error(res, 'El email ya está registrado', 409);
 
-  const validRoles = ['customer', 'circular_autorizada', 'rider', 'supplier'];
-  if (!validRoles.includes(role)) return error(res, `Rol inválido. Opciones: ${validRoles.join(', ')}`, 400);
+  if (!PUBLIC_ROLES.includes(role)) return error(res, `Rol inválido. Opciones: ${PUBLIC_ROLES.join(', ')}`, 400);
 
   const userId = `usr_${uuidv4().slice(0, 8)}`;
   const [user] = await prisma.$transaction([

@@ -3,6 +3,7 @@
 const jwt    = require('jsonwebtoken');
 const prisma = require('../config/prisma');
 const { error } = require('../helpers/response');
+const { DASHBOARD_ROLES, getRoleLevel } = require('../config/roles');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'innovaafric_secret_2026';
 
@@ -18,11 +19,26 @@ function requireAuth(req, res, next) {
   }
 }
 
+/** Accept one or more roles: requireRole('admin', 'finance_officer') */
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.user?.role)) return error(res, 'Permisos insuficientes', 403);
     next();
   };
+}
+
+/** Accept any role with level >= minLevel */
+function requireLevel(minLevel) {
+  return (req, res, next) => {
+    if (getRoleLevel(req.user?.role) < minLevel) return error(res, 'Permisos insuficientes', 403);
+    next();
+  };
+}
+
+/** Any staff role that has dashboard access */
+function requireDashboard(req, res, next) {
+  if (!DASHBOARD_ROLES.includes(req.user?.role)) return error(res, 'Acceso al dashboard no autorizado', 403);
+  next();
 }
 
 function requireKYC(req, res, next) {
@@ -36,4 +52,4 @@ function requireKYC(req, res, next) {
     .catch(() => error(res, 'Error verificando KYC', 500));
 }
 
-module.exports = { requireAuth, requireRole, requireKYC };
+module.exports = { requireAuth, requireRole, requireLevel, requireDashboard, requireKYC };

@@ -7,14 +7,14 @@ const { v4: uuidv4 } = require('uuid');
 
 const prisma  = require('../config/prisma');
 const { success, error, paginate } = require('../helpers/response');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, requireLevel } = require('../middleware/auth');
 
 const CF = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
 
 // ══════════════════════════════════════════════════════
 //  ESTADÍSTICAS GLOBALES
 // ══════════════════════════════════════════════════════
-router.get('/stats', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/stats', requireAuth, requireLevel(2), async (req, res) => {
   const now     = new Date();
   const last24h = new Date(now - 86400000);
   const last30d = new Date(now - 30 * 86400000);
@@ -84,7 +84,7 @@ router.get('/stats', requireAuth, requireRole('admin'), async (req, res) => {
 // ══════════════════════════════════════════════════════
 
 // GET /v1/admin/users — Listar
-router.get('/users', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/users', requireAuth, requireLevel(2), async (req, res) => {
   const { page = 1, limit = 50, role, kyc_status, country } = req.query;
   const where = {};
   if (role)       where.role = role;
@@ -99,7 +99,7 @@ router.get('/users', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // GET /v1/admin/users/:id — Detalle con wallet
-router.get('/users/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/users/:id', requireAuth, requireLevel(2), async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.params.id },
     include: { wallet: true }
@@ -109,14 +109,16 @@ router.get('/users/:id', requireAuth, requireRole('admin'), async (req, res) => 
   return success(res, safe);
 });
 
-// POST /v1/admin/users — Crear
-router.post('/users', requireAuth, requireRole('admin'), async (req, res) => {
-  const { name, email, phone, password, country, role = 'customer' } = req.body;
+// POST /v1/admin/users — Crear (soporta todos los roles incluyendo staff)
+router.post('/users', requireAuth, requireLevel(2), async (req, res) => {
+  const { name, email, phone, password, country, role = 'customer', scope, city, department } = req.body;
   if (!name || !email || !phone || !password || !country)
     return error(res, 'Campos requeridos: name, email, phone, password, country', 400);
 
-  const validRoles = ['customer', 'admin', 'circular_autorizada', 'rider'];
-  if (!validRoles.includes(role)) return error(res, `Rol inválido: ${validRoles.join(', ')}`, 400);
+  const { ROLES, getRoleLevel } = require('../config/roles');
+  const allRoles = Object.keys(ROLES);
+  if (!allRoles.includes(role)) return error(res, `Rol inválido. Opciones: ${allRoles.join(', ')}`, 400);
+  if (getRoleLevel(role) >= getRoleLevel(req.user.role)) return error(res, 'No puede asignar un rol igual o superior al suyo', 403);
 
   if (await prisma.user.findUnique({ where: { email } }))
     return error(res, 'Email ya registrado', 409);
@@ -126,8 +128,9 @@ router.post('/users', requireAuth, requireRole('admin'), async (req, res) => {
       id: `usr_${uuidv4().slice(0, 8)}`,
       name, email, phone,
       country: country.toUpperCase(), role,
+      scope: scope || null, city: city || null, department: department || null,
       passwordHash: await bcrypt.hash(password, 10),
-      kycStatus: 'pending'
+      kycStatus: 'verified'
     }
   });
   await prisma.wallet.create({
@@ -138,21 +141,27 @@ router.post('/users', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // PUT /v1/admin/users/:id — Editar
-router.put('/users/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.put('/users/:id', requireAuth, requireLevel(2), async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.params.id } });
   if (!user) return error(res, 'Usuario no encontrado', 404);
 
-  const { name, phone, country, role, kycStatus, password } = req.body;
-  const validRoles = ['customer', 'admin', 'circular_autorizada', 'rider'];
-  if (role && !validRoles.includes(role)) return error(res, 'Rol inválido', 400);
+  const { name, phone, country, role, kycStatus, password, scope, city, department } = req.body;
+  if (role) {
+    const { ROLES, getRoleLevel } = require('../config/roles');
+    if (!Object.keys(ROLES).includes(role)) return error(res, 'Rol inválido', 400);
+    if (getRoleLevel(role) >= getRoleLevel(req.user.role)) return error(res, 'No puede asignar un rol igual o superior al suyo', 403);
+  }
 
   const data = {};
-  if (name)      data.name = name;
-  if (phone)     data.phone = phone;
-  if (country)   data.country = country.toUpperCase();
-  if (role)      data.role = role;
-  if (kycStatus) data.kycStatus = kycStatus;
-  if (password)  data.passwordHash = await bcrypt.hash(password, 10);
+  if (name)            data.name = name;
+  if (phone)           data.phone = phone;
+  if (country)         data.country = country.toUpperCase();
+  if (role)            data.role = role;
+  if (kycStatus)       data.kycStatus = kycStatus;
+  if (password)        data.passwordHash = await bcrypt.hash(password, 10);
+  if (scope !== undefined)      data.scope = scope || null;
+  if (city !== undefined)       data.city  = city  || null;
+  if (department !== undefined) data.department = department || null;
 
   const updated = await prisma.user.update({ where: { id: req.params.id }, data });
   const { passwordHash, ...safe } = updated;
@@ -160,7 +169,7 @@ router.put('/users/:id', requireAuth, requireRole('admin'), async (req, res) => 
 });
 
 // DELETE /v1/admin/users/:id — Eliminar
-router.delete('/users/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.delete('/users/:id', requireAuth, requireLevel(2), async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.params.id } });
   if (!user) return error(res, 'Usuario no encontrado', 404);
   if (user.role === 'admin') return error(res, 'No puedes eliminar un administrador', 403);
@@ -179,7 +188,7 @@ router.delete('/users/:id', requireAuth, requireRole('admin'), async (req, res) 
 });
 
 // PATCH /v1/admin/users/:id/kyc — Cambiar KYC
-router.patch('/users/:id/kyc', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/users/:id/kyc', requireAuth, requireLevel(2), async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.params.id } });
   if (!user) return error(res, 'Usuario no encontrado', 404);
 
@@ -196,7 +205,7 @@ router.patch('/users/:id/kyc', requireAuth, requireRole('admin'), async (req, re
 // ══════════════════════════════════════════════════════
 
 // POST /v1/admin/wallet/topup — Recargar wallet de cualquier usuario
-router.post('/wallet/topup', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/wallet/topup', requireAuth, requireLevel(2), async (req, res) => {
   const { user_id, amount, currency = 'XAF', note } = req.body;
   if (!user_id || !amount) return error(res, 'Campos requeridos: user_id, amount', 400);
   if (Number(amount) <= 0) return error(res, 'El importe debe ser mayor que 0', 400);
@@ -230,7 +239,7 @@ router.post('/wallet/topup', requireAuth, requireRole('admin'), async (req, res)
 });
 
 // POST /v1/admin/wallet/adjust — Ajuste manual (positivo o negativo)
-router.post('/wallet/adjust', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/wallet/adjust', requireAuth, requireLevel(2), async (req, res) => {
   const { user_id, amount, currency = 'XAF', note } = req.body;
   if (!user_id || amount === undefined) return error(res, 'Campos requeridos: user_id, amount', 400);
 
@@ -255,7 +264,7 @@ router.post('/wallet/adjust', requireAuth, requireRole('admin'), async (req, res
 // ══════════════════════════════════════════════════════
 //  TRANSACCIONES — LISTAR (ADMIN)
 // ══════════════════════════════════════════════════════
-router.get('/transactions', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/transactions', requireAuth, requireLevel(2), async (req, res) => {
   const { page = 1, limit = 50, type, currency, from, to } = req.query;
   const where = {};
   if (type)     where.type = type;
@@ -272,7 +281,7 @@ router.get('/transactions', requireAuth, requireRole('admin'), async (req, res) 
 // ══════════════════════════════════════════════════════
 //  RIDERS — CRUD COMPLETO (ADMIN)
 // ══════════════════════════════════════════════════════
-router.get('/riders', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/riders', requireAuth, requireLevel(2), async (req, res) => {
   const { zone, status } = req.query;
   const where = {};
   if (status) where.status = status;
@@ -281,7 +290,7 @@ router.get('/riders', requireAuth, requireRole('admin'), async (req, res) => {
   return success(res, { riders, total: riders.length });
 });
 
-router.post('/riders', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/riders', requireAuth, requireLevel(2), async (req, res) => {
   const { name, phone, zone, vehicle } = req.body;
   if (!name || !phone || !zone || !vehicle)
     return error(res, 'Campos requeridos: name, phone, zone, vehicle', 400);
@@ -295,7 +304,7 @@ router.post('/riders', requireAuth, requireRole('admin'), async (req, res) => {
   return success(res, rider, 201);
 });
 
-router.put('/riders/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.put('/riders/:id', requireAuth, requireLevel(2), async (req, res) => {
   const rider = await prisma.rider.findUnique({ where: { id: req.params.id } });
   if (!rider) return error(res, 'Rider no encontrado', 404);
 
@@ -311,7 +320,7 @@ router.put('/riders/:id', requireAuth, requireRole('admin'), async (req, res) =>
   return success(res, await prisma.rider.update({ where: { id: req.params.id }, data }));
 });
 
-router.delete('/riders/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.delete('/riders/:id', requireAuth, requireLevel(2), async (req, res) => {
   if (!await prisma.rider.findUnique({ where: { id: req.params.id } }))
     return error(res, 'Rider no encontrado', 404);
   await prisma.rider.delete({ where: { id: req.params.id } });
@@ -321,7 +330,7 @@ router.delete('/riders/:id', requireAuth, requireRole('admin'), async (req, res)
 // ══════════════════════════════════════════════════════
 //  PROVEEDORES DE FACTURAS — CRUD COMPLETO (ADMIN)
 // ══════════════════════════════════════════════════════
-router.get('/providers', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/providers', requireAuth, requireLevel(2), async (req, res) => {
   const { category, country } = req.query;
   const where = {};
   if (category) where.category = category;
@@ -330,7 +339,7 @@ router.get('/providers', requireAuth, requireRole('admin'), async (req, res) => 
   return success(res, { providers, total: providers.length });
 });
 
-router.post('/providers', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/providers', requireAuth, requireLevel(2), async (req, res) => {
   const { name, category, country, field, minAmount = 100, maxAmount = 500000, currency = 'XAF' } = req.body;
   if (!name || !category || !country || !field)
     return error(res, 'Campos requeridos: name, category, country, field', 400);
@@ -346,7 +355,7 @@ router.post('/providers', requireAuth, requireRole('admin'), async (req, res) =>
   return success(res, provider, 201);
 });
 
-router.put('/providers/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.put('/providers/:id', requireAuth, requireLevel(2), async (req, res) => {
   if (!await prisma.billProvider.findUnique({ where: { id: req.params.id } }))
     return error(res, 'Proveedor no encontrado', 404);
 
@@ -362,7 +371,7 @@ router.put('/providers/:id', requireAuth, requireRole('admin'), async (req, res)
   return success(res, await prisma.billProvider.update({ where: { id: req.params.id }, data }));
 });
 
-router.delete('/providers/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.delete('/providers/:id', requireAuth, requireLevel(2), async (req, res) => {
   if (!await prisma.billProvider.findUnique({ where: { id: req.params.id } }))
     return error(res, 'Proveedor no encontrado', 404);
   try {
@@ -376,7 +385,7 @@ router.delete('/providers/:id', requireAuth, requireRole('admin'), async (req, r
 // ══════════════════════════════════════════════════════
 //  TASAS DE CAMBIO
 // ══════════════════════════════════════════════════════
-router.put('/rates/:pair', requireAuth, requireRole('admin'), async (req, res) => {
+router.put('/rates/:pair', requireAuth, requireLevel(2), async (req, res) => {
   const { rate } = req.body;
   if (!rate || parseFloat(rate) <= 0) return error(res, 'Tasa inválida', 400);
 
@@ -391,7 +400,7 @@ router.put('/rates/:pair', requireAuth, requireRole('admin'), async (req, res) =
 // ══════════════════════════════════════════════════════
 //  INFORMES / REPORTS
 // ══════════════════════════════════════════════════════
-router.get('/reports/summary', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/reports/summary', requireAuth, requireLevel(2), async (req, res) => {
   const { from, to } = req.query;
   const dateFilter = {};
   if (from) dateFilter.gte = new Date(from);
@@ -433,7 +442,7 @@ router.get('/reports/summary', requireAuth, requireRole('admin'), async (req, re
 // ══════════════════════════════════════════════════════
 //  PAÍSES SOPORTADOS
 // ══════════════════════════════════════════════════════
-router.get('/countries', requireAuth, requireRole('admin'), (_req, res) => {
+router.get('/countries', requireAuth, requireLevel(2), (_req, res) => {
   return success(res, {
     countries: [
       { code:'GQ', name:'Guinea Ecuatorial',   region:'África Central',    currency:'XAF', phone:'+240' },
@@ -477,7 +486,7 @@ router.get('/countries', requireAuth, requireRole('admin'), (_req, res) => {
 // ══════════════════════════════════════════════════════
 //  SISTEMA
 // ══════════════════════════════════════════════════════
-router.get('/system', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/system', requireAuth, requireLevel(2), async (req, res) => {
   const uptime = process.uptime();
   const mem    = process.memoryUsage();
 
@@ -509,7 +518,7 @@ router.get('/system', requireAuth, requireRole('admin'), async (req, res) => {
 // ══════════════════════════════════════════════════════
 //  PEDIDOS (Shop + Grocery)
 // ══════════════════════════════════════════════════════
-router.get('/orders', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/orders', requireAuth, requireLevel(2), async (req, res) => {
   const { status } = req.query;
   const where = status ? { status } : {};
   const [shopOrders, groceryOrders] = await Promise.all([
@@ -526,7 +535,7 @@ router.get('/orders', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // GET /v1/admin/products
-router.get('/products', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/products', requireAuth, requireLevel(2), async (_req, res) => {
   const [products, groceryProducts] = await Promise.all([
     prisma.product.findMany({ orderBy: { name: 'asc' } }),
     prisma.groceryProduct.findMany({ orderBy: { name: 'asc' } })
@@ -535,7 +544,7 @@ router.get('/products', requireAuth, requireRole('admin'), async (_req, res) => 
 });
 
 // POST /v1/admin/products — crear producto
-router.post('/products', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/products', requireAuth, requireLevel(2), async (req, res) => {
   try {
     const { type = 'shop', name, description, priceEur, priceXaf, category, stock, origin, imageUrl, store, available } = req.body;
     if (!name) return error(res, 'name es requerido', 400);
@@ -554,7 +563,7 @@ router.post('/products', requireAuth, requireRole('admin'), async (req, res) => 
 });
 
 // PUT /v1/admin/products/:id — actualizar producto
-router.put('/products/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.put('/products/:id', requireAuth, requireLevel(2), async (req, res) => {
   try {
     const { type = 'shop', name, description, priceEur, priceXaf, category, stock, origin, imageUrl, store, available } = req.body;
     if (type === 'grocery') {
@@ -589,7 +598,7 @@ router.put('/products/:id', requireAuth, requireRole('admin'), async (req, res) 
 });
 
 // DELETE /v1/admin/products/:id — eliminar producto
-router.delete('/products/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.delete('/products/:id', requireAuth, requireLevel(2), async (req, res) => {
   try {
     const { type = 'shop' } = req.query;
     if (type === 'grocery') {
@@ -604,7 +613,7 @@ router.delete('/products/:id', requireAuth, requireRole('admin'), async (req, re
 // ══════════════════════════════════════════════════════
 //  TONTINAS
 // ══════════════════════════════════════════════════════
-router.get('/tontines', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/tontines', requireAuth, requireLevel(2), async (req, res) => {
   const tontines = await prisma.tontine.findMany({
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { members: true, contributions: true } } }
@@ -621,7 +630,7 @@ router.get('/tontines', requireAuth, requireRole('admin'), async (req, res) => {
 // ══════════════════════════════════════════════════════
 //  TARJETAS VIRTUALES
 // ══════════════════════════════════════════════════════
-router.get('/cards', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/cards', requireAuth, requireLevel(2), async (_req, res) => {
   const cards = await prisma.virtualCard.findMany({
     orderBy: { createdAt: 'desc' },
     include: { user: { select: { name: true, email: true } } }
@@ -638,7 +647,7 @@ router.get('/cards', requireAuth, requireRole('admin'), async (_req, res) => {
 // ══════════════════════════════════════════════════════
 //  NOTIFICACIONES (todas)
 // ══════════════════════════════════════════════════════
-router.get('/notifications', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/notifications', requireAuth, requireLevel(2), async (req, res) => {
   const { limit = 100 } = req.query;
   const notifications = await prisma.notification.findMany({
     orderBy: { createdAt: 'desc' }, take: parseInt(limit),
@@ -651,7 +660,7 @@ router.get('/notifications', requireAuth, requireRole('admin'), async (req, res)
 // ══════════════════════════════════════════════════════
 //  RESEÑAS
 // ══════════════════════════════════════════════════════
-router.get('/reviews', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/reviews', requireAuth, requireLevel(2), async (_req, res) => {
   const reviews = await prisma.review.findMany({
     orderBy: { createdAt: 'desc' }, take: 200,
     include: { user: { select: { name: true, email: true } } }
@@ -663,7 +672,7 @@ router.get('/reviews', requireAuth, requireRole('admin'), async (_req, res) => {
 // ══════════════════════════════════════════════════════
 //  FIDELIDAD (Loyalty)
 // ══════════════════════════════════════════════════════
-router.get('/loyalty', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/loyalty', requireAuth, requireLevel(2), async (_req, res) => {
   const accounts = await prisma.loyaltyAccount.findMany({
     orderBy: { points: 'desc' },
     include: { user: { select: { name: true, email: true } } }
@@ -676,7 +685,7 @@ router.get('/loyalty', requireAuth, requireRole('admin'), async (_req, res) => {
 // ══════════════════════════════════════════════════════
 //  REFERIDOS
 // ══════════════════════════════════════════════════════
-router.get('/referrals', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/referrals', requireAuth, requireLevel(2), async (_req, res) => {
   const referrals = await prisma.referral.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
@@ -691,7 +700,7 @@ router.get('/referrals', requireAuth, requireRole('admin'), async (_req, res) =>
 // ══════════════════════════════════════════════════════
 //  BUSINESS (cuentas + pagos masivos + facturas)
 // ══════════════════════════════════════════════════════
-router.get('/business', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/business', requireAuth, requireLevel(2), async (_req, res) => {
   const [accounts, bulkPayments, invoices] = await Promise.all([
     prisma.businessAccount.findMany({ orderBy: { createdAt: 'desc' },
       include: { owner: { select: { name: true, email: true } } } }),
@@ -708,7 +717,7 @@ router.get('/business', requireAuth, requireRole('admin'), async (_req, res) => 
 // ══════════════════════════════════════════════════════
 //  FACTURAS (BillPayments history)
 // ══════════════════════════════════════════════════════
-router.get('/bills', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/bills', requireAuth, requireLevel(2), async (req, res) => {
   const { limit = 100 } = req.query;
   const payments = await prisma.billPayment.findMany({
     orderBy: { createdAt: 'desc' }, take: parseInt(limit),
@@ -724,7 +733,7 @@ router.get('/bills', requireAuth, requireRole('admin'), async (req, res) => {
 // ══════════════════════════════════════════════════════
 //  SEGURIDAD Y FRAUDE
 // ══════════════════════════════════════════════════════
-router.get('/security', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/security', requireAuth, requireLevel(2), async (_req, res) => {
   try {
     const [blockedUsers, highValueTxns, recentUsers, suspiciousLoans] = await Promise.all([
       prisma.user.findMany({ where: { blocked: true }, select: { id: true, name: true, email: true, country: true, blockedReason: true, updatedAt: true }, orderBy: { updatedAt: 'desc' } }),
@@ -742,7 +751,7 @@ router.get('/security', requireAuth, requireRole('admin'), async (_req, res) => 
   } catch (e) { return error(res, e.message); }
 });
 
-router.patch('/users/:id/block', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/users/:id/block', requireAuth, requireLevel(2), async (req, res) => {
   try {
     const { reason } = req.body;
     const u = await prisma.user.update({
@@ -753,7 +762,7 @@ router.patch('/users/:id/block', requireAuth, requireRole('admin'), async (req, 
   } catch (e) { return error(res, e.message); }
 });
 
-router.patch('/users/:id/unblock', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/users/:id/unblock', requireAuth, requireLevel(2), async (req, res) => {
   try {
     const u = await prisma.user.update({
       where: { id: req.params.id },

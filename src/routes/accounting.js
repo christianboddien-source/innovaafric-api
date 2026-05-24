@@ -7,7 +7,7 @@ const { success, error, paginate } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 // GET /v1/accounting
-router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/', requireAuth, requireRole('admin', 'super_admin', 'finance_officer', 'auditor', 'country_manager', 'regional_director'), async (req, res) => {
   const { type, category, from, to, page = 1, limit = 50 } = req.query;
   const where = {};
   if (type)     where.type = type;
@@ -22,7 +22,7 @@ router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // GET /v1/accounting/summary — Resumen P&L
-router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/summary', requireAuth, requireRole('admin', 'super_admin', 'finance_officer', 'auditor', 'country_manager', 'regional_director'), async (req, res) => {
   const { from, to } = req.query;
   const where = {};
   if (from || to) {
@@ -57,7 +57,7 @@ router.get('/summary', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // POST /v1/accounting
-router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/', requireAuth, requireRole('admin', 'super_admin', 'finance_officer', 'auditor', 'country_manager', 'regional_director'), async (req, res) => {
   const { type, category, amount, currency = 'XAF', description, reference, date } = req.body;
   if (!type || !category || !amount || !description)
     return error(res, 'Campos requeridos: type, category, amount, description', 400);
@@ -74,7 +74,7 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // PUT /v1/accounting/:id
-router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.put('/:id', requireAuth, requireRole('admin', 'super_admin', 'finance_officer', 'auditor', 'country_manager', 'regional_director'), async (req, res) => {
   if (!await prisma.accountingEntry.findUnique({ where: { id: req.params.id } }))
     return error(res, 'Asiento no encontrado', 404);
   const { type, category, amount, currency, description, reference, date } = req.body;
@@ -90,7 +90,7 @@ router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // DELETE /v1/accounting/:id
-router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('admin', 'super_admin', 'finance_officer', 'auditor', 'country_manager', 'regional_director'), async (req, res) => {
   if (!await prisma.accountingEntry.findUnique({ where: { id: req.params.id } }))
     return error(res, 'Asiento no encontrado', 404);
   await prisma.accountingEntry.delete({ where: { id: req.params.id } });

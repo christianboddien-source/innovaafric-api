@@ -20,6 +20,9 @@ model User {
   referralCode  String?
   blocked       Boolean  @default(false)
   blockedReason String?
+  scope         String?
+  city          String?
+  department    String?
   createdAt     DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -201,6 +204,31 @@ model Rider {
   updatedAt       DateTime @updatedAt
 
   groceryOrders GroceryOrder[]
+}
+
+model PayrollRun {
+  id          String        @id @default(cuid())
+  period      String
+  totalAmount Float         @default(0)
+  currency    String        @default("XAF")
+  status      String        @default("draft")
+  notes       String?
+  createdBy   String
+  executedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  items       PayrollItem[]
+}
+
+model PayrollItem {
+  id          String     @id @default(cuid())
+  payrollId   String
+  riderId     String
+  riderName   String
+  deliveries  Int        @default(0)
+  ratePerDelivery Float  @default(0)
+  amount      Float      @default(0)
+  status      String     @default("pending")
+  payroll     PayrollRun @relation(fields: [payrollId], references: [id])
 }
 
 model Merchant {

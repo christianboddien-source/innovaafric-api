@@ -9,7 +9,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const CF = { EUR:'balanceEur', USD:'balanceUsd', XAF:'balanceXaf', XOF:'balanceXof' };
 
 // GET /v1/loans — todos (admin)
-router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/', requireAuth, requireRole('admin', 'super_admin', 'loan_officer', 'finance_officer', 'risk_officer', 'compliance_officer', 'country_manager', 'regional_director'), async (req, res) => {
   const { status } = req.query;
   const loans = await prisma.loan.findMany({
     where: status ? { status } : {},
@@ -58,7 +58,7 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 // PATCH /v1/loans/:id/approve
-router.patch('/:id/approve', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/approve', requireAuth, requireRole('admin', 'super_admin', 'loan_officer', 'finance_officer', 'risk_officer', 'compliance_officer', 'country_manager', 'regional_director'), async (req, res) => {
   const loan = await prisma.loan.findUnique({ where: { id: req.params.id } });
   if (!loan) return error(res, 'Préstamo no encontrado', 404);
   if (loan.status !== 'pending') return error(res, 'Solo se pueden aprobar préstamos pendientes', 400);
@@ -76,7 +76,7 @@ router.patch('/:id/approve', requireAuth, requireRole('admin'), async (req, res)
 });
 
 // PATCH /v1/loans/:id/reject
-router.patch('/:id/reject', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/reject', requireAuth, requireRole('admin', 'super_admin', 'loan_officer', 'finance_officer', 'risk_officer', 'compliance_officer', 'country_manager', 'regional_director'), async (req, res) => {
   const loan = await prisma.loan.findUnique({ where: { id: req.params.id } });
   if (!loan) return error(res, 'Préstamo no encontrado', 404);
   if (!['pending','approved'].includes(loan.status)) return error(res, 'No se puede rechazar en este estado', 400);
@@ -87,7 +87,7 @@ router.patch('/:id/reject', requireAuth, requireRole('admin'), async (req, res) 
 });
 
 // PATCH /v1/loans/:id/disburse — desembolsar
-router.patch('/:id/disburse', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/disburse', requireAuth, requireRole('admin', 'super_admin', 'loan_officer', 'finance_officer', 'risk_officer', 'compliance_officer', 'country_manager', 'regional_director'), async (req, res) => {
   const loan = await prisma.loan.findUnique({ where: { id: req.params.id } });
   if (!loan) return error(res, 'Préstamo no encontrado', 404);
   if (loan.status !== 'approved') return error(res, 'Solo se pueden desembolsar préstamos aprobados', 400);
@@ -111,7 +111,7 @@ router.patch('/:id/disburse', requireAuth, requireRole('admin'), async (req, res
 });
 
 // PATCH /v1/loans/:id/repay — registrar pago
-router.patch('/:id/repay', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/:id/repay', requireAuth, requireRole('admin', 'super_admin', 'loan_officer', 'finance_officer', 'risk_officer', 'compliance_officer', 'country_manager', 'regional_director'), async (req, res) => {
   const loan = await prisma.loan.findUnique({ where: { id: req.params.id } });
   if (!loan) return error(res, 'Préstamo no encontrado', 404);
   const newRepaid = loan.repaidAmount + parseFloat(req.body.amount || 0);

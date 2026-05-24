@@ -872,7 +872,7 @@ html.light .email-preview{background:#f1f5f9}
   <div class="sb-foot">
     <div class="av-row">
       <div class="av" id="av-init">A</div>
-      <div class="av-d"><div class="nm" id="av-name">Admin</div><div class="rl" data-i18n="role_admin">Administrador</div></div>
+      <div class="av-d"><div class="nm" id="av-name">Admin</div><div class="rl" id="av-role">Administrador</div></div>
     </div>
     <button class="btn-lo" onclick="doLogout()">🚪 <span data-i18n="logout">Cerrar sesión</span></button>
   </div>
@@ -1019,20 +1019,27 @@ html.light .email-preview{background:#f1f5f9}
 
   <!-- ── ROLES ── -->
   <div class="page" id="page-roles">
-    <div class="sec-hd" data-i18n="roles_title">Gestión de Roles</div>
-    <div class="info-card" style="max-width:600px">
-      <h4 data-i18n="roles_desc">Roles del Sistema</h4>
-      <div style="display:grid;gap:10px">
-        <div class="syr"><span class="k"><span class="b bc">customer</span></span><span class="v" style="font-size:11px;color:#94a3b8">Usuario estándar — acceso a wallet, shop, delivery</span></div>
-        <div class="syr"><span class="k"><span class="b bca">circular_autorizada</span></span><span class="v" style="font-size:11px;color:#94a3b8">Representante regional — puede gestionar riders y pagos QR</span></div>
-        <div class="syr"><span class="k"><span class="b bri">rider</span></span><span class="v" style="font-size:11px;color:#94a3b8">Mensajero de entrega — gestiona órdenes asignadas</span></div>
-        <div class="syr"><span class="k"><span class="b ba">admin</span></span><span class="v" style="font-size:11px;color:#94a3b8">Administrador — acceso total al panel y la API</span></div>
+    <div class="sec-hd">
+      Gestión de Roles &amp; Staff
+      <button class="btn btn-cyan btn-sm" onclick="openModal('staff-create',{})">+ Crear Usuario Staff</button>
+    </div>
+
+    <!-- Role cards grid -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:24px" id="roles-grid"></div>
+
+    <!-- Staff users table -->
+    <div class="sec-hd" style="margin-top:8px">
+      Usuarios Staff Activos
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="search-bar" id="staff-role-filter" style="width:200px" onchange="renderStaffTable()">
+          <option value="">Todos los roles staff</option>
+        </select>
+        <input class="search-bar" id="staff-search" placeholder="Buscar nombre/email..." oninput="renderStaffTable()" style="width:200px">
       </div>
     </div>
-    <div class="sec-hd" data-i18n="roles_change">Cambiar Rol de Usuario</div>
     <div class="tw"><table>
-      <thead><tr><th>Nombre</th><th>Email</th><th>Rol Actual</th><th>Nuevo Rol</th><th>Acción</th></tr></thead>
-      <tbody id="tb-roles"><tr><td colspan="5" class="loading">Cargando...</td></tr></tbody>
+      <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>País / Scope</th><th>Ciudad</th><th>Dept.</th><th>KYC</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-staff"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
     </table></div>
   </div>
 
@@ -2801,6 +2808,63 @@ html.light .email-preview{background:#f1f5f9}
 const BASE = '/v1';
 let TOKEN = localStorage.getItem('inn_token');
 let LANG  = localStorage.getItem('inn_lang') || 'es';
+let CURRENT_USER = null;
+
+/* ── Role definitions (mirrors src/config/roles.js) ── */
+const ROLE_LABELS = {
+  customer:'Cliente', rider:'Rider', supplier:'Proveedor',
+  circular_autorizada:'Circular Autorizada', api_partner:'API Partner',
+  city_coordinator:'Coordinador de Ciudad', rider_coordinator:'Coordinador de Riders',
+  business_developer:'Business Developer',
+  kyc_officer:'Oficial KYC', loan_officer:'Oficial de Préstamos',
+  support_agent:'Agente de Soporte', marketing_manager:'Manager de Marketing',
+  tax_officer:'Oficial Fiscal', payroll_manager:'Manager de Nóminas',
+  support_supervisor:'Supervisor de Soporte', compliance_officer:'Oficial de Cumplimiento',
+  finance_officer:'Oficial Financiero', risk_officer:'Oficial de Riesgos', auditor:'Auditor',
+  country_manager:'Director de País', regional_director:'Director Regional',
+  super_admin:'Super Admin', admin:'Admin'
+};
+const ROLE_LEVELS = {
+  customer:0, rider:0, supplier:0, circular_autorizada:0, api_partner:0,
+  city_coordinator:1, rider_coordinator:1, business_developer:1,
+  kyc_officer:2, loan_officer:2, support_agent:2, marketing_manager:2, tax_officer:2, payroll_manager:2,
+  support_supervisor:3, compliance_officer:3, finance_officer:3, risk_officer:3, auditor:3,
+  country_manager:4, regional_director:5, super_admin:9, admin:9
+};
+const ROLE_MODULES = {
+  customer:[], rider:[], supplier:[], circular_autorizada:[], api_partner:['apikeys'],
+  city_coordinator:['overview','users','riders','delivery','ranking'],
+  rider_coordinator:['overview','riders','delivery','payroll'],
+  business_developer:['overview','users','business','campaigns'],
+  kyc_officer:['overview','kyc','users'],
+  loan_officer:['overview','loans','users'],
+  support_agent:['overview','tickets','users','chat'],
+  marketing_manager:['overview','campaigns','users','emails','notifications'],
+  tax_officer:['overview','taxes','accounting'],
+  payroll_manager:['overview','payroll','riders'],
+  support_supervisor:['overview','tickets','users','chat','notifications'],
+  compliance_officer:['overview','kyc','users','audit','loans','reports'],
+  finance_officer:['overview','txns','accounting','taxes','payroll','loans','transfers','reports'],
+  risk_officer:['overview','txns','loans','users','audit','reports'],
+  auditor:['overview','txns','users','audit','reports','accounting'],
+  country_manager:['overview','users','txns','kyc','loans','delivery','riders','payroll','campaigns','tickets','emails','reports','audit','ranking','countryconfig'],
+  regional_director:['overview','users','txns','kyc','loans','delivery','riders','payroll','campaigns','tickets','emails','reports','audit','ranking','countryconfig','accounting','taxes','transfers'],
+  super_admin:['*'], admin:['*']
+};
+/* Maps page name → module key required */
+const PAGE_MODULE = {
+  overview:'overview', charts:'overview', users:'users', kyc:'kyc', reps:'users', roles:'users',
+  txns:'txns', topup:'txns', withdraw:'txns', loans:'loans', tontines:'overview', cards:'overview',
+  accounting:'accounting', payroll:'payroll', fees:'accounting', banktransfer:'transfers',
+  riders:'riders', map:'delivery', calendar:'overview', providers:'overview', rates:'overview',
+  bills:'overview', coupons:'overview', products:'overview', shop:'overview', delivery:'delivery',
+  business:'business', notifications:'notifications', campaigns:'campaigns', tickets:'tickets',
+  email:'emails', chat:'chat', reviews:'overview', loyalty:'overview', referrals:'overview',
+  audit:'audit', taxes:'taxes', banks:'overview', categories:'overview', countries:'countryconfig',
+  reports:'reports', security:'audit', apikeys:'apikeys', countryconfig:'countryconfig',
+  analytics:'reports', alerts:'overview', ranking:'ranking', limits:'txns',
+  settings:'overview', system:'overview'
+};
 let ALL_USERS=[], ALL_RIDERS=[], ALL_PROV=[], ALL_TXNS=[], ALL_COUNTRIES=[];
 let ALL_LOANS=[], ALL_TONTINES=[], ALL_CARDS=[], ALL_ACCOUNTING=[];
 let ALL_BILLS=[], ALL_COUPONS=[], ALL_SHOP=[], ALL_DELIVERY=[];
@@ -2935,7 +2999,8 @@ async function doLogin(){
       body: JSON.stringify({grant_type:'password',email,password:pass})
     });
     const d = await r.json();
-    if(!d.success || d.data.user.role!=='admin'){
+    const userMods = ROLE_MODULES[d.data.user.role];
+    if(!d.success || !userMods || userMods.length===0){
       err.style.display='block'; btn.textContent='Entrar al Panel'; btn.disabled=false; return;
     }
     TOKEN = d.data.access_token;
@@ -2948,9 +3013,35 @@ async function doLogin(){
 }
 
 function setAdminInfo(u){
+  CURRENT_USER = u;
   const n = u.name||u.email;
   document.getElementById('av-name').textContent = n;
   document.getElementById('av-init').textContent = n[0].toUpperCase();
+  const label = ROLE_LABELS[u.role] || u.role || 'Staff';
+  const scopePart = u.scope && u.scope!=='all' ? ` · ${u.scope}` : '';
+  const cityPart  = u.city ? ` / ${u.city}` : '';
+  document.getElementById('av-role').textContent = label + scopePart + cityPart;
+}
+
+function canAccessPage(page){
+  if(!CURRENT_USER) return true;
+  const mods = ROLE_MODULES[CURRENT_USER.role];
+  if(!mods || mods.includes('*')) return true;
+  const mod = PAGE_MODULE[page] || 'overview';
+  return mods.includes(mod);
+}
+
+function applyRoleVisibility(){
+  if(!CURRENT_USER) return;
+  const mods = ROLE_MODULES[CURRENT_USER.role];
+  if(!mods || mods.includes('*')) return;
+  document.querySelectorAll('.ni[onclick]').forEach(el=>{
+    const m = el.getAttribute('onclick').match(/gp\('(\w+)'\)/);
+    if(!m) return;
+    const pg = m[1];
+    const mod = PAGE_MODULE[pg] || 'overview';
+    el.style.display = mods.includes(mod) ? '' : 'none';
+  });
 }
 
 function doLogout(){
@@ -2969,6 +3060,7 @@ function showApp(){
   initSidebar();
   initFavStars();
   applyCompact();
+  applyRoleVisibility();
   loadAll();
 }
 
@@ -3047,6 +3139,7 @@ function gp(name){
   if(name==='payroll') loadPayroll();
   if(name==='alerts') loadAlerts();
   if(name==='ranking') loadRanking();
+  if(name==='roles') loadRolesPage();
 }
 
 /* ═══ OVERVIEW ══════════════════════════════════════ */
@@ -3463,6 +3556,29 @@ function openModal(name, data){
     document.getElementById('al-threshold').value = data.threshold || '';
     document.getElementById('al-level').value     = data.level     || 'info';
   }
+  if(name==='staff-create'){
+    const editing = !!data.id;
+    document.getElementById('staff-modal-title').textContent = editing ? '✏️ Editar Usuario Staff' : '👤 Crear Usuario Staff';
+    document.getElementById('sc-id').value      = data.id       || '';
+    document.getElementById('sc-name').value    = data.name     || '';
+    document.getElementById('sc-email').value   = data.email    || '';
+    document.getElementById('sc-email').disabled= editing;
+    document.getElementById('sc-phone').value   = data.phone    || '';
+    document.getElementById('sc-pass').value    = '';
+    document.getElementById('sc-country').value = data.country  || '';
+    document.getElementById('sc-scope').value   = data.scope    || 'all';
+    document.getElementById('sc-city').value    = data.city     || '';
+    document.getElementById('sc-dept').value    = data.department || '';
+    // populate role select with staff roles
+    const sel = document.getElementById('sc-role');
+    const staffRoles = Object.entries(ROLE_LABELS).filter(([k])=>
+      !['customer','rider','supplier','circular_autorizada'].includes(k)
+    );
+    sel.innerHTML = '<option value="">— Seleccionar rol —</option>' +
+      staffRoles.map(([k,v])=>`<option value="${k}"${data.role===k?' selected':''}>${v}</option>`).join('');
+    document.getElementById('sc-role').value = data.role || '';
+    updateStaffRoleInfo();
+  }
   document.getElementById('modal-'+name).classList.add('open');
 }
 
@@ -3535,31 +3651,171 @@ function renderReps(){
 }
 
 /* ═══ ROLES ─────────────────────────────────────── */
-function renderRoles(){
-  if(!ALL_USERS.length){ document.getElementById('tb-roles').innerHTML='<tr><td colspan="5" class="loading">Cargando...</td></tr>'; return; }
-  document.getElementById('tb-roles').innerHTML = ALL_USERS.filter(u=>u.role!=='admin').map(u=>`
-    <tr>
-      <td style="font-weight:600">${u.name}</td>
-      <td style="color:#64748b;font-size:11px">${u.email}</td>
-      <td>${roleBadge(u.role)}</td>
-      <td>
-        <select id="role-sel-${u.id}" style="background:#0f172a;border:1px solid #334155;border-radius:5px;color:#e2e8f0;padding:4px 8px;font-size:11px">
-          <option value="customer" ${u.role==='customer'?'selected':''}>customer</option>
-          <option value="circular_autorizada" ${u.role==='circular_autorizada'?'selected':''}>circular_autorizada</option>
-          <option value="rider" ${u.role==='rider'?'selected':''}>rider</option>
-          <option value="admin" ${u.role==='admin'?'selected':''}>admin</option>
-        </select>
-      </td>
-      <td><button class="btn btn-cyan btn-sm" onclick="changeRole('${u.id}')">Cambiar</button></td>
-    </tr>`).join('');
+const ROLE_DESCRIPTIONS = {
+  api_partner:        'Acceso API externo con scopes limitados.',
+  city_coordinator:   'Coordina operaciones en una ciudad específica: usuarios, riders, entregas y ranking.',
+  rider_coordinator:  'Supervisa la flota de riders: asignaciones, nóminas y entregas.',
+  business_developer: 'Desarrollo comercial: usuarios B2B, campañas y negocio.',
+  kyc_officer:        'Verifica la identidad de usuarios. Accede a la cola KYC y expedientes.',
+  loan_officer:       'Gestiona solicitudes de préstamos: aprobación, desembolso y seguimiento.',
+  support_agent:      'Atiende tickets de soporte y chats de clientes.',
+  marketing_manager:  'Campañas de marketing, emails masivos y notificaciones segmentadas.',
+  tax_officer:        'Gestión fiscal: impuestos por país y registros contables.',
+  payroll_manager:    'Calcula y ejecuta nóminas de riders.',
+  support_supervisor: 'Supervisa el equipo de soporte. Acceso completo a tickets, chat y notificaciones.',
+  compliance_officer: 'Cumplimiento normativo: KYC, auditoría, préstamos y reportes regulatorios.',
+  finance_officer:    'Finanzas completas: transacciones, contabilidad, impuestos, nóminas, préstamos y transferencias.',
+  risk_officer:       'Gestión de riesgos: monitorea transacciones, préstamos y genera alertas de fraude.',
+  auditor:            'Solo lectura: auditoría de todas las transacciones, usuarios y contabilidad.',
+  country_manager:    'Director de un país: acceso completo a todas las operaciones de su territorio.',
+  regional_director:  'Director regional (multi-país): visibilidad amplia de operaciones continentales.',
+  super_admin:        'Acceso total al sistema. Sin restricciones de módulos ni scope.',
+  admin:              'Administrador del sistema. Acceso total al panel y la API.',
+};
+const ROLE_COLORS = {
+  customer:'#64748b', rider:'#f59e0b', supplier:'#a78bfa', circular_autorizada:'#60a5fa',
+  api_partner:'#34d399',
+  city_coordinator:'#06b6d4', rider_coordinator:'#f97316', business_developer:'#8b5cf6',
+  kyc_officer:'#10b981', loan_officer:'#3b82f6', support_agent:'#14b8a6',
+  marketing_manager:'#ec4899', tax_officer:'#f59e0b', payroll_manager:'#84cc16',
+  support_supervisor:'#0ea5e9', compliance_officer:'#6366f1', finance_officer:'#22c55e',
+  risk_officer:'#ef4444', auditor:'#a855f7',
+  country_manager:'#f97316', regional_director:'#e11d48',
+  super_admin:'#fbbf24', admin:'#fbbf24'
+};
+const STAFF_ROLE_KEYS = ['api_partner','city_coordinator','rider_coordinator','business_developer',
+  'kyc_officer','loan_officer','support_agent','marketing_manager','tax_officer','payroll_manager',
+  'support_supervisor','compliance_officer','finance_officer','risk_officer','auditor',
+  'country_manager','regional_director','super_admin','admin'];
+
+let ALL_STAFF = [];
+
+async function loadRolesPage(){
+  renderRolesGrid();
+  if(!ALL_USERS.length) await loadUsers();
+  ALL_STAFF = ALL_USERS.filter(u=>STAFF_ROLE_KEYS.includes(u.role));
+  // populate role filter
+  const sel = document.getElementById('staff-role-filter');
+  if(sel && sel.options.length===1){
+    STAFF_ROLE_KEYS.forEach(r=>{
+      const o = document.createElement('option');
+      o.value=r; o.textContent=ROLE_LABELS[r]||r;
+      sel.appendChild(o);
+    });
+  }
+  renderStaffTable();
 }
 
-async function changeRole(id){
-  const newRole = document.getElementById('role-sel-'+id).value;
-  const r = await api('/admin/users/'+id,{method:'PUT',body:JSON.stringify({role:newRole})});
-  if(r.success){ loadUsers(); toast('Rol actualizado a: '+newRole); }
-  else toast('Error al cambiar rol','err');
+function renderRolesGrid(){
+  const grid = document.getElementById('roles-grid');
+  if(!grid) return;
+  const groups = [
+    { title:'🌐 Campo', roles:['city_coordinator','rider_coordinator','business_developer','api_partner'] },
+    { title:'🔬 Especialistas', roles:['kyc_officer','loan_officer','support_agent','marketing_manager','tax_officer','payroll_manager'] },
+    { title:'📊 Managers', roles:['support_supervisor','compliance_officer','finance_officer','risk_officer','auditor'] },
+    { title:'🏆 Dirección', roles:['country_manager','regional_director','super_admin','admin'] },
+  ];
+  grid.innerHTML = groups.map(g=>`
+    <div style="grid-column:1/-1;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-top:4px">${g.title}</div>
+    ${g.roles.map(r=>{
+      const mods = ROLE_MODULES[r]||[];
+      const modList = mods.includes('*') ? 'Acceso total' : mods.slice(0,5).join(', ')+(mods.length>5?'…':'');
+      const col = ROLE_COLORS[r]||'#64748b';
+      const lvl = ROLE_LEVELS[r]||0;
+      const stars = '★'.repeat(Math.min(lvl,5))+'☆'.repeat(Math.max(0,5-Math.min(lvl,5)));
+      return `<div class="info-card" style="border-left:3px solid ${col};padding:14px 16px;cursor:default">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <span style="font-weight:700;font-size:13px;color:${col}">${ROLE_LABELS[r]||r}</span>
+          <span style="font-size:10px;color:var(--text2)" title="Nivel ${lvl}">${stars}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.5">${ROLE_DESCRIPTIONS[r]||''}</div>
+        <div style="font-size:10px;background:var(--surface2);padding:4px 8px;border-radius:5px;color:var(--text2)">📦 ${modList}</div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <span style="font-size:10px;background:${col}22;color:${col};padding:2px 7px;border-radius:4px;font-weight:600">nivel ${lvl}</span>
+          <span style="font-size:10px;color:var(--text2)">${ALL_STAFF.filter(u=>u.role===r).length} activos</span>
+        </div>
+      </div>`;
+    }).join('')}
+  `).join('');
 }
+
+function renderStaffTable(){
+  const roleF  = document.getElementById('staff-role-filter')?.value||'';
+  const searchF= (document.getElementById('staff-search')?.value||'').toLowerCase();
+  let staff = ALL_STAFF;
+  if(roleF)   staff = staff.filter(u=>u.role===roleF);
+  if(searchF) staff = staff.filter(u=>(u.name+u.email).toLowerCase().includes(searchF));
+  const col = r=>ROLE_COLORS[r]||'#64748b';
+  document.getElementById('tb-staff').innerHTML = staff.length ? staff.map(u=>`
+    <tr>
+      <td style="font-weight:600">${u.name}</td>
+      <td style="font-size:11px;color:var(--text2)">${u.email}</td>
+      <td><span style="font-size:11px;background:${col(u.role)}22;color:${col(u.role)};padding:2px 8px;border-radius:4px;font-weight:600">${ROLE_LABELS[u.role]||u.role}</span></td>
+      <td style="font-size:11px">${u.scope||u.country||'—'}</td>
+      <td style="font-size:11px">${u.city||'—'}</td>
+      <td style="font-size:11px">${u.department||'—'}</td>
+      <td>${kycBadge(u.kycStatus)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('staff-create',USER_MAP['${u.id}']||{})">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="color:#f87171" onclick="deleteStaffUser('${u.id}','${u.name}')">🗑</button>
+      </td>
+    </tr>`).join('') :
+    `<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:24px">Sin usuarios staff con estos filtros</td></tr>`;
+}
+
+function updateStaffRoleInfo(){
+  const role = document.getElementById('sc-role').value;
+  const desc = document.getElementById('sc-role-desc');
+  if(!role){ desc.style.display='none'; return; }
+  const mods = ROLE_MODULES[role]||[];
+  desc.style.display='block';
+  desc.innerHTML = `<strong style="color:${ROLE_COLORS[role]||'#64748b'}">${ROLE_LABELS[role]||role}</strong> · Nivel ${ROLE_LEVELS[role]||0}<br>
+    ${ROLE_DESCRIPTIONS[role]||''}<br>
+    <span style="color:var(--text2)">Módulos: ${mods.includes('*')?'Acceso total':mods.join(', ')}</span>`;
+}
+
+async function saveStaffUser(){
+  const id   = document.getElementById('sc-id').value;
+  const body = {
+    name:       document.getElementById('sc-name').value,
+    email:      document.getElementById('sc-email').value,
+    phone:      document.getElementById('sc-phone').value,
+    country:    document.getElementById('sc-country').value.toUpperCase()||'CM',
+    role:       document.getElementById('sc-role').value,
+    scope:      document.getElementById('sc-scope').value,
+    city:       document.getElementById('sc-city').value||null,
+    department: document.getElementById('sc-dept').value||null,
+  };
+  if(!body.name||!body.email||!body.phone||!body.role)
+    return toast('Completa los campos obligatorios (*)','err');
+  const pass = document.getElementById('sc-pass').value;
+  if(pass) body.password = pass;
+  if(!id) body.password = pass || 'Innova2026!';
+  const r = id
+    ? await api('/admin/users/'+id,{method:'PUT',body:JSON.stringify(body)})
+    : await api('/admin/users',    {method:'POST',body:JSON.stringify(body)});
+  if(r.success){
+    toast(id?'Usuario staff actualizado':'Usuario staff creado');
+    closeModal('staff-create');
+    await loadUsers();
+    ALL_STAFF = ALL_USERS.filter(u=>STAFF_ROLE_KEYS.includes(u.role));
+    renderRolesGrid();
+    renderStaffTable();
+  } else toast(r.message||'Error al guardar usuario','err');
+}
+
+async function deleteStaffUser(id, name){
+  if(!confirm(`¿Eliminar a "${name}" del sistema?`)) return;
+  const r = await api('/admin/users/'+id,{method:'DELETE'});
+  if(r.success){
+    toast('Usuario eliminado');
+    await loadUsers();
+    ALL_STAFF = ALL_USERS.filter(u=>STAFF_ROLE_KEYS.includes(u.role));
+    renderRolesGrid();
+    renderStaffTable();
+  } else toast('Error al eliminar','err');
+}
+
 
 /* ═══ TRANSACTIONS ──────────────────────────────── */
 async function loadTxns(){
@@ -5083,7 +5339,11 @@ async function deleteCategory(id){
 }
 
 /* ═══ HELPERS ───────────────────────────────────── */
-function roleBadge(r){ const m={customer:'bc',admin:'ba',circular_autorizada:'bca',rider:'bri'}; return `<span class="b ${m[r]||'bu'}">${r}</span>`; }
+function roleBadge(r){
+  const col = ROLE_COLORS[r]||'#64748b';
+  const lbl = ROLE_LABELS[r]||r;
+  return `<span style="font-size:11px;background:${col}22;color:${col};padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap">${lbl}</span>`;
+}
 function kycBadge(s){ const m={verified:'bv',pending:'bp',rejected:'br',under_review:'bu'}; return `<span class="b ${m[s]||'bu'}">${s}</span>`; }
 function catClass(c){ const m={electricity:'bel',water:'bwa',airtime:'bai',internet:'bin',tv:'btv'}; return m[c]||'bu'; }
 function fmtDate(d){ return d?new Date(d).toLocaleDateString('es'):'—'; }
@@ -5253,8 +5513,8 @@ if(TOKEN){
   try{
     const p = JSON.parse(atob(TOKEN.split('.')[1]));
     if(p.exp*1000 > Date.now()){
-      document.getElementById('av-name').textContent = p.email;
-      document.getElementById('av-init').textContent = p.email[0].toUpperCase();
+      setAdminInfo({ id:p.sub, email:p.email, name:p.email, role:p.role,
+                     country:p.country, scope:p.scope, city:p.city, department:p.department });
       showApp();
     } else { localStorage.removeItem('inn_token'); TOKEN=null; }
   }catch{ localStorage.removeItem('inn_token'); TOKEN=null; }
@@ -7166,6 +7426,62 @@ function buildTrendChart(){
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('import-csv')">Cancelar</button>
       <button class="btn btn-cyan" id="import-btn" onclick="runImportCSV()">⬆ Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Crear / Editar Usuario Staff ── -->
+<div class="modal-bg" id="modal-staff-create">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-hd"><span id="staff-modal-title">👤 Crear Usuario Staff</span><button class="modal-close" onclick="closeModal('staff-create')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="sc-id">
+      <div class="form-row">
+        <div class="fg"><label>Nombre completo *</label><input id="sc-name" placeholder="María García"></div>
+        <div class="fg"><label>Email *</label><input id="sc-email" type="email" placeholder="m.garcia@innovaafric.com"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Teléfono *</label><input id="sc-phone" placeholder="+237 6XX XXX XXX"></div>
+        <div class="fg"><label>Contraseña *</label><input id="sc-pass" type="password" placeholder="mínimo 8 caracteres"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Rol *</label>
+          <select id="sc-role" onchange="updateStaffRoleInfo()">
+            <option value="">— Seleccionar rol —</option>
+          </select>
+        </div>
+        <div class="fg"><label>País (código) *</label><input id="sc-country" placeholder="CM, FR, SN..." maxlength="3"></div>
+      </div>
+      <div class="fg" id="sc-role-desc" style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);margin-bottom:8px;display:none"></div>
+      <div class="form-row">
+        <div class="fg"><label>Scope geográfico</label>
+          <select id="sc-scope">
+            <option value="all">Global (todos los países)</option>
+            <option value="CM">Camerún</option><option value="SN">Senegal</option><option value="CI">Costa de Marfil</option>
+            <option value="NG">Nigeria</option><option value="GH">Ghana</option><option value="KE">Kenia</option>
+            <option value="TZ">Tanzania</option><option value="ZA">Sudáfrica</option><option value="ET">Etiopía</option>
+            <option value="RW">Rwanda</option><option value="MA">Marruecos</option><option value="TN">Túnez</option>
+            <option value="FR">Francia</option><option value="ES">España</option><option value="BE">Bélgica</option>
+            <option value="PT">Portugal</option><option value="CN">China</option><option value="IN">India</option>
+          </select>
+        </div>
+        <div class="fg"><label>Ciudad</label><input id="sc-city" placeholder="Yaoundé, París..."></div>
+      </div>
+      <div class="fg"><label>Departamento / Área</label>
+        <select id="sc-dept">
+          <option value="">— Sin departamento —</option>
+          <option value="operations">Operations</option><option value="finance">Finance</option>
+          <option value="compliance">Compliance & Risk</option><option value="kyc">KYC</option>
+          <option value="support">Customer Support</option><option value="marketing">Marketing</option>
+          <option value="technology">Technology</option><option value="hr">Human Resources</option>
+          <option value="legal">Legal</option><option value="business">Business Development</option>
+          <option value="logistics">Logistics & Delivery</option><option value="executive">Executive</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('staff-create')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="saveStaffUser()">💾 Guardar</button>
     </div>
   </div>
 </div>
