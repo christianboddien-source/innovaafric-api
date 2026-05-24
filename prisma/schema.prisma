@@ -40,6 +40,10 @@ model User {
   invoicesIssued  Invoice[]           @relation("Issuer")
   invoicesPaid    Invoice[]           @relation("Payer")
   cartItems       CartItem[]
+  bankAccounts    UserBankAccount[]
+  loans           Loan[]
+  chatMessages    ChatMessage[]       @relation("ChatSent")
+  bankTransfers   BankTransfer[]
 }
 
 model Wallet {
@@ -509,4 +513,146 @@ model ExchangeRate {
   pair      String   @unique
   rate      Float
   updatedAt DateTime @updatedAt
+}
+
+model ProviderCategory {
+  id          String   @id
+  name        String
+  slug        String   @unique
+  icon        String?
+  color       String?
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Tax {
+  id          String   @id
+  name        String
+  type        String
+  rate        Float
+  country     String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Bank {
+  id          String   @id
+  name        String
+  code        String?
+  country     String
+  currency    String
+  swiftCode   String?
+  ibanFormat  String?
+  logo        String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  userAccounts UserBankAccount[]
+}
+
+model UserBankAccount {
+  id            String   @id
+  userId        String
+  bankId        String
+  accountNumber String
+  accountName   String
+  iban          String?
+  verified      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  bank Bank @relation(fields: [bankId], references: [id])
+}
+
+model Loan {
+  id           String    @id
+  userId       String
+  amount       Float
+  currency     String    @default("XAF")
+  purpose      String
+  status       String    @default("pending")
+  interestRate Float     @default(5)
+  repaidAmount Float     @default(0)
+  dueDate      DateTime?
+  approvedBy   String?
+  approvedAt   DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ChatMessage {
+  id        String   @id
+  fromId    String
+  toId      String?
+  room      String   @default("support")
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  from User @relation("ChatSent", fields: [fromId], references: [id])
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        String    @default("announcement")
+  startDate   DateTime
+  endDate     DateTime?
+  allDay      Boolean   @default(true)
+  country     String?
+  city        String?
+  color       String    @default("#00AEEF")
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model BankTransfer {
+  id            String    @id @default(cuid())
+  userId        String
+  amount        Float
+  currency      String    @default("XAF")
+  bankName      String
+  accountName   String
+  accountNumber String
+  swiftCode     String?
+  ibanCode      String?
+  country       String
+  reference     String?
+  status        String    @default("pending")
+  notes         String?
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model EmailLog {
+  id         String   @id @default(cuid())
+  toFilter   String
+  subject    String
+  body       String
+  type       String   @default("info")
+  sentBy     String
+  recipients Int      @default(0)
+  status     String   @default("sent")
+  createdAt  DateTime @default(now())
+}
+
+model AccountingEntry {
+  id          String   @id
+  type        String
+  category    String
+  amount      Float
+  currency    String   @default("XAF")
+  description String
+  reference   String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
 }

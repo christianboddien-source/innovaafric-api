@@ -6,6 +6,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://unpkg.com/@fullcalendar/core@6.1.11/index.global.min.css" rel="stylesheet"/>
+<script src="https://unpkg.com/@fullcalendar/core@6.1.11/index.global.min.js"></script>
+<script src="https://unpkg.com/@fullcalendar/daygrid@6.1.11/index.global.min.js"></script>
+<script src="https://unpkg.com/@fullcalendar/interaction@6.1.11/index.global.min.js"></script>
+<script src="https://unpkg.com/@fullcalendar/list@6.1.11/index.global.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -541,6 +546,55 @@ html.light .audit-icon{background:#f1f5f9;border-color:#cbd5e1}
   padding:20px;margin-bottom:24px}
 .fee-summary h4{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
 
+/* ── CALENDAR ──────────────────────────────────── */
+.cal-wrap{background:var(--surface);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:24px}
+.cal-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+#cal-container{padding:16px}
+.fc{font-family:'Inter',system-ui,sans-serif!important;font-size:12px}
+.fc .fc-toolbar-title{font-size:14px;font-weight:700;color:var(--text)}
+.fc .fc-button{background:var(--surface2)!important;border:1px solid var(--border2)!important;color:var(--text2)!important;font-size:11px!important;padding:5px 10px!important;border-radius:6px!important;box-shadow:none!important}
+.fc .fc-button:hover{background:var(--primary)!important;color:#fff!important;border-color:var(--primary)!important}
+.fc .fc-button-active{background:var(--primary)!important;color:#fff!important;border-color:var(--primary)!important}
+.fc .fc-daygrid-day-number{color:var(--text2);font-size:11px}
+.fc .fc-col-header-cell-cushion{color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.fc .fc-daygrid-day.fc-day-today{background:rgba(0,174,239,.06)!important}
+.fc .fc-daygrid-day:hover{background:rgba(255,255,255,.03)}
+.fc th,.fc td{border-color:var(--border)!important}
+.fc .fc-scrollgrid{border-color:var(--border)!important}
+.fc .fc-event{border-radius:4px!important;font-size:11px!important;padding:1px 4px!important;border:none!important;cursor:pointer}
+.fc .fc-list-event:hover td{background:rgba(255,255,255,.04)!important}
+.fc .fc-list-day-cushion{background:var(--bg2)!important;color:var(--text2)!important;font-size:10px}
+.fc .fc-list-event-title{color:var(--text)!important}
+.fc-theme-standard .fc-list{border-color:var(--border)!important}
+html.light .fc .fc-toolbar-title{color:#0f172a}
+html.light .fc .fc-daygrid-day-number{color:#475569}
+html.light .fc .fc-col-header-cell-cushion{color:#64748b}
+html.light .fc th,.fc td{border-color:#e2e8f0!important}
+html.light .fc .fc-daygrid-day.fc-day-today{background:rgba(0,174,239,.05)!important}
+
+/* ── BANK TRANSFER ─────────────────────────────── */
+.bt-form{background:var(--surface);border-radius:12px;border:1px solid rgba(0,174,239,.25);padding:24px;margin-bottom:24px;max-width:640px;box-shadow:0 0 0 1px rgba(0,174,239,.05),0 8px 24px rgba(0,0,0,.2)}
+.bt-form h3{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.bt-status-bar{display:flex;align-items:center;gap:6px;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px}
+.bt-status-bar.pending{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);color:#fbbf24}
+.bt-status-bar.processing{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.2);color:#60a5fa}
+.bt-status-bar.completed{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:#10b981}
+.bt-status-bar.rejected{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:#f87171}
+html.light .bt-form{background:#fff}
+
+/* ── EMAIL ─────────────────────────────────────── */
+.email-compose{background:var(--surface);border-radius:12px;border:1px solid var(--border);padding:22px;margin-bottom:24px;max-width:700px}
+.email-compose h3{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.email-body-input{width:100%;min-height:140px;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;font-family:inherit;outline:none;resize:vertical;transition:border-color .2s}
+.email-body-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--glow)}
+.email-preview{background:var(--bg2);border-radius:8px;padding:14px;font-size:12px;color:var(--text2);margin-top:10px;line-height:1.6;border:1px solid var(--border)}
+.email-segment{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.seg-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:inherit;transition:all .15s}
+.seg-btn:hover{border-color:var(--primary);color:var(--primary)}
+.seg-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+html.light .email-compose{background:#fff}
+html.light .email-preview{background:#f1f5f9}
+
 /* ── PRINT STYLES ──────────────────────────────── */
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -664,6 +718,7 @@ html.light .audit-icon{background:#f1f5f9;border-color:#cbd5e1}
       <div class="ni" data-tip="Tarjetas" onclick="gp('cards')"><span class="ic">💳</span> <span data-i18n="nav_cards">Tarjetas</span></div>
       <div class="ni" data-tip="Contabilidad" onclick="gp('accounting')"><span class="ic">📒</span> <span data-i18n="nav_accounting">Contabilidad</span></div>
       <div class="ni" data-tip="Comisiones" onclick="gp('fees')"><span class="ic">⚙️</span> <span>Comisiones</span></div>
+      <div class="ni" data-tip="Transf. Bancaria" onclick="gp('banktransfer')"><span class="ic">🏦</span> <span>Transf. Bancaria</span><span class="ni-badge" id="badge-transfers" style="display:none"></span></div>
     </div>
 
     <!-- SERVICIOS -->
@@ -671,6 +726,7 @@ html.light .audit-icon{background:#f1f5f9;border-color:#cbd5e1}
     <div class="sb-group" id="sec-services">
       <div class="ni" data-tip="Riders" onclick="gp('riders')"><span class="ic">🚴</span> <span data-i18n="nav_riders">Riders</span></div>
       <div class="ni" data-tip="Mapa Operacional" onclick="gp('map')"><span class="ic">🗺️</span> <span>Mapa Operacional</span></div>
+      <div class="ni" data-tip="Calendario" onclick="gp('calendar')"><span class="ic">📅</span> <span>Calendario</span></div>
       <div class="ni" data-tip="Proveedores" onclick="gp('providers')"><span class="ic">📋</span> <span data-i18n="nav_providers">Proveedores</span></div>
       <div class="ni" data-tip="Tasas de cambio" onclick="gp('rates')"><span class="ic">💱</span> <span data-i18n="nav_rates">Tasas de cambio</span></div>
       <div class="ni" data-tip="Facturas" onclick="gp('bills')"><span class="ic">🧾</span> <span data-i18n="nav_bills">Facturas</span></div>
@@ -690,6 +746,7 @@ html.light .audit-icon{background:#f1f5f9;border-color:#cbd5e1}
     <div class="sb-sec" onclick="toggleSec('sec-community')"><span data-i18n="nav_community_sec">COMUNIDAD</span><span class="chv">▾</span></div>
     <div class="sb-group" id="sec-community">
       <div class="ni" data-tip="Notificaciones" onclick="gp('notifications')"><span class="ic">🔔</span> <span data-i18n="nav_notifications">Notificaciones</span><span class="ni-badge info" id="badge-notifs" style="display:none"></span></div>
+      <div class="ni" data-tip="Email" onclick="gp('email')"><span class="ic">✉️</span> <span>Email</span></div>
       <div class="ni" data-tip="Chat" onclick="gp('chat')"><span class="ic">💬</span> <span data-i18n="nav_chat">Chat</span></div>
       <div class="ni" data-tip="Reseñas" onclick="gp('reviews')"><span class="ic">⭐</span> <span data-i18n="nav_reviews">Reseñas</span></div>
       <div class="ni" data-tip="Fidelidad" onclick="gp('loyalty')"><span class="ic">🏆</span> <span data-i18n="nav_loyalty">Fidelidad</span></div>
@@ -1407,6 +1464,130 @@ html.light .audit-icon{background:#f1f5f9;border-color:#cbd5e1}
     </table></div>
   </div>
 
+  <!-- ── CALENDARIO ── -->
+  <div class="page" id="page-calendar">
+    <div class="sg" id="cal-stats" style="margin-bottom:16px"></div>
+    <div class="sec-hd">
+      <span>Eventos y Anuncios</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select class="search-bar" id="cal-country-filter" onchange="calFilterCountry()" style="min-width:130px">
+          <option value="">🌍 Todos los países</option>
+        </select>
+        <select class="search-bar" id="cal-type-filter" onchange="calFilterType()" style="min-width:130px">
+          <option value="">📋 Todos los tipos</option>
+          <option value="announcement">📢 Anuncio</option>
+          <option value="meeting">🤝 Reunión</option>
+          <option value="promotion">🎁 Promoción</option>
+          <option value="maintenance">🔧 Mantenimiento</option>
+          <option value="holiday">🎉 Festivo</option>
+        </select>
+        <button class="btn btn-cyan" onclick="openModal('event',{})">+ Nuevo Evento</button>
+      </div>
+    </div>
+    <div class="cal-wrap">
+      <div class="cal-head">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:6px">
+          <span style="width:3px;height:12px;background:var(--primary);border-radius:2px;display:inline-block"></span>
+          Calendario de Eventos
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="calView('dayGridMonth')">📅 Mes</button>
+          <button class="btn btn-ghost btn-sm" onclick="calView('listMonth')">📋 Lista</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadCalendar()">↻ Actualizar</button>
+        </div>
+      </div>
+      <div id="cal-container"></div>
+    </div>
+    <div class="sec-hd">Próximos eventos</div>
+    <div class="tw"><table>
+      <thead><tr><th>Título</th><th>Tipo</th><th>Inicio</th><th>País</th><th>Ciudad</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-events"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── TRANSFERENCIA BANCARIA ── -->
+  <div class="page" id="page-banktransfer">
+    <div class="sg" id="bt-stats"></div>
+    <div class="sec-hd">
+      <span>Solicitudes de Transferencia Wallet → Banco</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="exportBTCSV()">⬇ CSV</button>
+        <button class="btn btn-cyan" onclick="openModal('banktransfer',{})">+ Nueva Solicitud</button>
+      </div>
+    </div>
+    <div class="fb" id="bt-fb">
+      <button class="fb-btn active" onclick="filterBT(this,'')">Todas</button>
+      <button class="fb-btn" onclick="filterBT(this,'pending')">⏳ Pendientes</button>
+      <button class="fb-btn" onclick="filterBT(this,'processing')">🔄 En proceso</button>
+      <button class="fb-btn" onclick="filterBT(this,'completed')">✅ Completadas</button>
+      <button class="fb-btn" onclick="filterBT(this,'rejected')">❌ Rechazadas</button>
+    </div>
+    <div class="info-card" style="border-left:3px solid var(--primary);max-width:700px;margin-bottom:16px">
+      <h4>ℹ️ Proceso de transferencia bancaria</h4>
+      <p style="font-size:12px;color:var(--text3);line-height:1.7">El importe se descuenta del wallet en el momento de la solicitud. El admin procesa la transferencia real con el banco corresponsal. Si se rechaza, el importe se devuelve automáticamente al wallet. Plazo estimado: 1–3 días hábiles.</p>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>ID</th><th>Usuario</th><th>Importe</th><th>Banco</th><th>Cuenta</th><th>País</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-bt"><tr><td colspan="9" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── EMAIL ── -->
+  <div class="page" id="page-email">
+    <div class="sg" id="email-stats"></div>
+    <div class="sec-hd">Redactar y Enviar Email</div>
+    <div class="email-compose">
+      <h3>✉️ Nuevo Email</h3>
+      <div class="fg" style="margin-bottom:12px">
+        <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;font-weight:600;margin-bottom:8px;display:block">Destinatarios</label>
+        <div class="email-segment" id="seg-btns">
+          <button class="seg-btn active" onclick="setEmailSeg(this,'all')">🌍 Todos</button>
+          <button class="seg-btn" onclick="setEmailSeg(this,'role:customer')">👤 Clientes</button>
+          <button class="seg-btn" onclick="setEmailSeg(this,'role:rider')">🚴 Riders</button>
+          <button class="seg-btn" onclick="setEmailSeg(this,'role:circular_autorizada')">🏢 Representantes</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <select class="search-bar" id="email-country-seg" onchange="setEmailCountry()" style="flex:1">
+            <option value="">📍 O filtrar por país...</option>
+          </select>
+          <input class="search-bar" id="email-custom-to" placeholder="O email específico..." style="flex:1" oninput="setEmailCustom()">
+        </div>
+        <div id="email-to-preview" style="font-size:11px;color:var(--primary);margin-top:6px;font-weight:600"></div>
+      </div>
+      <div class="fg" style="margin-bottom:12px">
+        <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;font-weight:600;margin-bottom:6px;display:block">Tipo</label>
+        <select class="search-bar" id="email-type">
+          <option value="info">ℹ️ Información</option>
+          <option value="promo">🎁 Promoción</option>
+          <option value="alert">⚠️ Alerta</option>
+          <option value="kyc">🪪 KYC</option>
+          <option value="announcement">📢 Anuncio</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:12px">
+        <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;font-weight:600;margin-bottom:6px;display:block">Asunto *</label>
+        <input class="search-bar" id="email-subject" placeholder="Asunto del email..." style="width:100%;min-width:0">
+      </div>
+      <div class="fg" style="margin-bottom:12px">
+        <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;font-weight:600;margin-bottom:6px;display:block">Mensaje *</label>
+        <textarea class="email-body-input" id="email-body" placeholder="Escribe tu mensaje aquí...&#10;&#10;Puede usar varias líneas. El email incluirá el logo y branding de INNOVAAFRIC." oninput="previewEmail()"></textarea>
+      </div>
+      <div id="email-preview-box" style="display:none">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-weight:700">Vista previa</div>
+        <div class="email-preview" id="email-preview-content"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-ghost" onclick="previewEmail(true)" style="flex:1">👁 Vista previa</button>
+        <button class="btn btn-cyan" onclick="sendEmail()" style="flex:2">✉️ Enviar email</button>
+      </div>
+    </div>
+    <div class="sec-hd">Historial de Emails Enviados</div>
+    <div class="tw"><table>
+      <thead><tr><th>Asunto</th><th>Destinatarios filtro</th><th>Tipo</th><th>Enviados</th><th>Estado</th><th>Fecha</th></tr></thead>
+      <tbody id="tb-emails"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
   <!-- ── MAPA OPERACIONAL ── -->
   <div class="page" id="page-map">
     <div class="sg map-stats" id="map-rider-stats"></div>
@@ -1866,6 +2047,87 @@ html.light .audit-icon{background:#f1f5f9;border-color:#cbd5e1}
   </div>
 </div>
 
+<!-- Modal: Evento -->
+<div class="modal-bg" id="modal-event">
+  <div class="modal">
+    <h3 id="modal-event-title">📅 Nuevo Evento</h3>
+    <input type="hidden" id="ev-id">
+    <div class="fg"><label>Título *</label><input id="ev-title" placeholder="Ej: Reunión representantes África Oeste"></div>
+    <div class="form-row" style="margin-top:12px">
+      <div class="fg"><label>Tipo *</label>
+        <select id="ev-type">
+          <option value="announcement">📢 Anuncio</option>
+          <option value="meeting">🤝 Reunión</option>
+          <option value="promotion">🎁 Promoción</option>
+          <option value="maintenance">🔧 Mantenimiento</option>
+          <option value="holiday">🎉 Festivo</option>
+        </select>
+      </div>
+      <div class="fg"><label>Color</label><input type="color" id="ev-color" value="#00AEEF" style="height:38px;padding:2px 6px;width:100%"></div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div class="fg"><label>Fecha inicio *</label><input type="datetime-local" id="ev-start"></div>
+      <div class="fg"><label>Fecha fin</label><input type="datetime-local" id="ev-end"></div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div class="fg"><label>País (vacío = global)</label><input id="ev-country" placeholder="CM, SN, FR..." maxlength="2" style="text-transform:uppercase"></div>
+      <div class="fg"><label>Ciudad</label><input id="ev-city" placeholder="Yaoundé, Dakar..."></div>
+    </div>
+    <div class="fg" style="margin-top:12px"><label>Descripción</label><input id="ev-desc" placeholder="Detalles del evento..."></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('event')">Cancelar</button>
+      <button class="btn btn-red btn-sm" id="ev-del-btn" onclick="deleteEvent()" style="display:none">🗑 Eliminar</button>
+      <button class="btn btn-cyan" onclick="saveEvent()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Transferencia Bancaria (admin gestión) -->
+<div class="modal-bg" id="modal-bt">
+  <div class="modal">
+    <h3 id="modal-bt-title">🏦 Gestionar Transferencia</h3>
+    <input type="hidden" id="bt-id">
+    <div id="bt-modal-info" style="margin-bottom:14px"></div>
+    <div class="fg"><label>Notas / Referencia bancaria</label><input id="bt-notes" placeholder="Ej: SWIFT ref. ABC123..."></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('bt')">Cerrar</button>
+      <button class="btn btn-red" onclick="btAction('reject')">❌ Rechazar</button>
+      <button class="btn btn-ghost" onclick="btAction('process')" style="border-color:#60a5fa;color:#60a5fa">🔄 En proceso</button>
+      <button class="btn btn-green" onclick="btAction('complete')">✅ Completar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nueva solicitud bancaria (desde admin) -->
+<div class="modal-bg" id="modal-banktransfer">
+  <div class="modal wide">
+    <h3>🏦 Nueva Solicitud de Transferencia</h3>
+    <div class="form-row">
+      <div class="fg"><label>Usuario ID *</label><input id="nbt-user" placeholder="usr_001 o email" list="nbt-users-list"><datalist id="nbt-users-list"></datalist></div>
+      <div class="fg"><label>Importe *</label><input type="number" id="nbt-amount" placeholder="50000" min="1"></div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div class="fg"><label>Divisa</label>
+        <select id="nbt-currency"><option value="XAF">XAF</option><option value="XOF">XOF</option><option value="EUR">EUR</option><option value="USD">USD</option></select>
+      </div>
+      <div class="fg"><label>País destino *</label><input id="nbt-country" placeholder="CM" maxlength="2" style="text-transform:uppercase"></div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div class="fg"><label>Nombre del banco *</label><input id="nbt-bank" placeholder="Afriland First Bank"></div>
+      <div class="fg"><label>Nombre del titular *</label><input id="nbt-accname" placeholder="Jean Dupont"></div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div class="fg"><label>Número de cuenta *</label><input id="nbt-accnum" placeholder="00012345678"></div>
+      <div class="fg"><label>SWIFT / BIC</label><input id="nbt-swift" placeholder="AFLBCMCX"></div>
+    </div>
+    <div class="fg" style="margin-top:12px"><label>IBAN (si aplica)</label><input id="nbt-iban" placeholder="CM2100012345..."></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('banktransfer')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="createBankTransfer()">💾 Crear Solicitud</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Confirmar eliminación -->
 <div class="modal-bg" id="modal-confirm">
   <div class="modal" style="max-width:400px">
@@ -2068,7 +2330,8 @@ const PG_TITLES = {
   reviews:'Reseñas',loyalty:'Fidelidad',referrals:'Referidos',
   taxes:'Impuestos',banks:'Bancos',categories:'Categorías',
   kyc:'KYC / Verificación',products:'Catálogo de Productos',
-  map:'Mapa Operacional',fees:'Comisiones',audit:'Auditoría Admin'
+  map:'Mapa Operacional',fees:'Comisiones',audit:'Auditoría Admin',
+  calendar:'Calendario de Eventos',banktransfer:'Transferencia Bancaria',email:'Email'
 };
 
 function refresh(){
@@ -2110,6 +2373,9 @@ function gp(name){
   if(name==='map'){ loadMap(); setTimeout(()=>{ if(mapInst) mapInst.invalidateSize(); },250); }
   if(name==='fees') loadFees();
   if(name==='audit'){ renderAuditStats(); renderAudit(); }
+  if(name==='calendar'){ loadCalendar(); }
+  if(name==='banktransfer') loadBankTransfers();
+  if(name==='email') loadEmailHistory();
 }
 
 /* ═══ OVERVIEW ══════════════════════════════════════ */
@@ -2458,6 +2724,27 @@ function openModal(name, data){
     document.getElementById('pr-stock').value     = data.stock!=null?data.stock:'';
     document.getElementById('pr-type').value      = data.type||'shop';
     document.getElementById('pr-desc').value      = data.description||'';
+  }
+  if(name==='event'){
+    const editing = !!data.id;
+    document.getElementById('modal-event-title').textContent = editing?'✏️ Editar Evento':'📅 Nuevo Evento';
+    document.getElementById('ev-id').value      = data.id||'';
+    document.getElementById('ev-title').value   = data.title||'';
+    document.getElementById('ev-type').value    = data.type||'announcement';
+    document.getElementById('ev-color').value   = data.color||'#00AEEF';
+    document.getElementById('ev-start').value   = data.startDate?data.startDate.slice(0,16):'';
+    document.getElementById('ev-end').value     = data.endDate?data.endDate.slice(0,16):'';
+    document.getElementById('ev-country').value = data.country||'';
+    document.getElementById('ev-city').value    = data.city||'';
+    document.getElementById('ev-desc').value    = data.description||'';
+    document.getElementById('ev-del-btn').style.display = editing?'inline-flex':'none';
+  }
+  if(name==='banktransfer'){
+    const dl = document.getElementById('nbt-users-list');
+    if(dl) dl.innerHTML = ALL_USERS.map(u=>`<option value="${u.id}">${u.name} — ${u.email}</option>`).join('');
+    ['nbt-user','nbt-amount','nbt-country','nbt-bank','nbt-accname','nbt-accnum','nbt-swift','nbt-iban']
+      .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('nbt-currency').value='XAF';
   }
   document.getElementById('modal-'+name).classList.add('open');
 }
@@ -3596,7 +3883,10 @@ const MODULES = [
   {ic:'🖥️',nm:'Sistema',sc:'Sistema',pg:'system'},
   {ic:'🗺️',nm:'Mapa Operacional',sc:'Servicios',pg:'map'},
   {ic:'⚙️',nm:'Comisiones',sc:'Finanzas',pg:'fees'},
-  {ic:'📋',nm:'Auditoría',sc:'Sistema',pg:'audit'}
+  {ic:'📋',nm:'Auditoría',sc:'Sistema',pg:'audit'},
+  {ic:'📅',nm:'Calendario',sc:'Servicios',pg:'calendar'},
+  {ic:'🏦',nm:'Transferencia Bancaria',sc:'Finanzas',pg:'banktransfer'},
+  {ic:'✉️',nm:'Email',sc:'Comunidad',pg:'email'}
 ];
 function searchModules(){
   const q = document.getElementById('tb-search-input').value.trim().toLowerCase();
@@ -4430,6 +4720,375 @@ function renderFeesHistory(){
       <td style="color:#64748b">${h.admin}</td>
       <td style="color:#64748b">${new Date(h.ts).toLocaleString('es')}</td>
     </tr>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════
+   CALENDARIO DE EVENTOS (FullCalendar)
+═══════════════════════════════════════════════════ */
+let calInst = null, ALL_EVENTS = [], calCountryF = '', calTypeF = '';
+
+async function loadCalendar(){
+  const r = await api('/events');
+  if(!r.success) return;
+  ALL_EVENTS = r.data.events || [];
+  renderCalStats();
+  renderEventsTable();
+  fillCalCountrySelect();
+  initCalendar();
+}
+
+function initCalendar(){
+  if(typeof FullCalendar === 'undefined'){ toast('FullCalendar no cargado. Verifica conexión.','err'); return; }
+  const el = document.getElementById('cal-container');
+  if(!el) return;
+  if(calInst){ calInst.removeAllEvents(); calInst.addEventSource(buildCalEvents()); return; }
+  calInst = new FullCalendar.Calendar(el, {
+    initialView: 'dayGridMonth',
+    locale: 'es',
+    height: 520,
+    headerToolbar: { left:'prev,next today', center:'title', right:'' },
+    events: buildCalEvents(),
+    eventClick(info){
+      const ev = ALL_EVENTS.find(e=>e.id===info.event.id);
+      if(ev) openModal('event', ev);
+    },
+    dateClick(info){
+      openModal('event', { startDate: info.dateStr+'T09:00' });
+    },
+    eventDidMount(info){
+      info.el.title = info.event.extendedProps.description || info.event.title;
+    }
+  });
+  calInst.render();
+}
+
+function buildCalEvents(){
+  let evs = ALL_EVENTS;
+  if(calCountryF) evs = evs.filter(e=>!e.country||e.country===calCountryF);
+  if(calTypeF)    evs = evs.filter(e=>e.type===calTypeF);
+  return evs.map(e=>({
+    id:    e.id,
+    title: e.title + (e.country?` [${e.country}]`:''),
+    start: e.startDate,
+    end:   e.endDate||undefined,
+    allDay: e.allDay,
+    backgroundColor: e.color||'#00AEEF',
+    borderColor:     e.color||'#00AEEF',
+    extendedProps: { description: e.description, type: e.type }
+  }));
+}
+
+function renderCalStats(){
+  const el = document.getElementById('cal-stats'); if(!el) return;
+  const now = new Date();
+  const upcoming = ALL_EVENTS.filter(e=>new Date(e.startDate)>now).length;
+  const today    = ALL_EVENTS.filter(e=>new Date(e.startDate).toDateString()===now.toDateString()).length;
+  const types    = [...new Set(ALL_EVENTS.map(e=>e.type))].length;
+  const countries= [...new Set(ALL_EVENTS.map(e=>e.country).filter(Boolean))].length;
+  el.innerHTML=`
+    <div class="sc c-cyan"><div class="lbl">Total eventos</div><div class="val">${ALL_EVENTS.length}</div></div>
+    <div class="sc c-green"><div class="lbl">Próximos</div><div class="val">${upcoming}</div></div>
+    <div class="sc c-yellow"><div class="lbl">Hoy</div><div class="val">${today}</div></div>
+    <div class="sc c-blue"><div class="lbl">Tipos</div><div class="val">${types}</div></div>
+    <div class="sc c-purple"><div class="lbl">Países</div><div class="val">${countries}</div></div>`;
+}
+
+function renderEventsTable(){
+  const tb = document.getElementById('tb-events'); if(!tb) return;
+  let evs = [...ALL_EVENTS].sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
+  if(calCountryF) evs = evs.filter(e=>!e.country||e.country===calCountryF);
+  if(calTypeF)    evs = evs.filter(e=>e.type===calTypeF);
+  if(!evs.length){ tb.innerHTML='<tr><td colspan="6" class="misc">Sin eventos</td></tr>'; return; }
+  const typeIc = {announcement:'📢',meeting:'🤝',promotion:'🎁',maintenance:'🔧',holiday:'🎉'};
+  tb.innerHTML = evs.slice(0,30).map(e=>`
+    <tr>
+      <td style="font-weight:600">${e.title}</td>
+      <td><span class="b bc">${typeIc[e.type]||'📋'} ${e.type}</span></td>
+      <td style="color:#64748b">${fmtDate(e.startDate)}</td>
+      <td>${e.country?`<span class="tag-region">${e.country}</span>`:'<span style="color:#475569">Global</span>'}</td>
+      <td style="color:#64748b">${e.city||'—'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('event',${JSON.stringify(e).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-red btn-sm" onclick="deleteEventById('${e.id}')">🗑</button>
+      </td>
+    </tr>`).join('');
+}
+
+function fillCalCountrySelect(){
+  const sel = document.getElementById('cal-country-filter'); if(!sel) return;
+  const countries = [...new Set(ALL_EVENTS.map(e=>e.country).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">🌍 Todos los países</option>' +
+    countries.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value = calCountryF;
+}
+
+function calFilterCountry(){
+  calCountryF = document.getElementById('cal-country-filter').value;
+  if(calInst){ calInst.removeAllEvents(); calInst.addEventSource(buildCalEvents()); }
+  renderEventsTable();
+}
+function calFilterType(){
+  calTypeF = document.getElementById('cal-type-filter').value;
+  if(calInst){ calInst.removeAllEvents(); calInst.addEventSource(buildCalEvents()); }
+  renderEventsTable();
+}
+function calView(v){ if(calInst) calInst.changeView(v); }
+
+async function saveEvent(){
+  const id    = document.getElementById('ev-id').value;
+  const body  = {
+    title:       document.getElementById('ev-title').value.trim(),
+    type:        document.getElementById('ev-type').value,
+    color:       document.getElementById('ev-color').value,
+    startDate:   document.getElementById('ev-start').value,
+    endDate:     document.getElementById('ev-end').value||null,
+    country:     document.getElementById('ev-country').value.toUpperCase()||null,
+    city:        document.getElementById('ev-city').value||null,
+    description: document.getElementById('ev-desc').value||null,
+    allDay:      !document.getElementById('ev-start').value.includes('T')
+  };
+  if(!body.title||!body.startDate){ toast('Título y fecha son requeridos','err'); return; }
+  const r = id
+    ? await api('/events/'+id, {method:'PUT',  body:JSON.stringify(body)})
+    : await api('/events',     {method:'POST', body:JSON.stringify(body)});
+  if(r.success){
+    addAuditEntry('event','📅', id?'Evento actualizado':'Evento creado', body.title);
+    closeModal('event'); loadCalendar();
+    toast(id?'Evento actualizado':'Evento creado');
+  } else toast(r.error||r.message||'Error','err');
+}
+
+async function deleteEvent(){
+  const id = document.getElementById('ev-id').value; if(!id) return;
+  if(!confirm('¿Eliminar este evento?')) return;
+  const r = await api('/events/'+id, {method:'DELETE'});
+  if(r.success){
+    addAuditEntry('delete','🗑️','Evento eliminado', id);
+    closeModal('event'); loadCalendar(); toast('Evento eliminado');
+  } else toast(r.error||'Error','err');
+}
+
+async function deleteEventById(id){
+  if(!confirm('¿Eliminar este evento?')) return;
+  const r = await api('/events/'+id, {method:'DELETE'});
+  if(r.success){ loadCalendar(); toast('Evento eliminado'); }
+  else toast(r.error||'Error','err');
+}
+
+/* ═══════════════════════════════════════════════════
+   TRANSFERENCIA BANCARIA (Wallet → Banco)
+═══════════════════════════════════════════════════ */
+let ALL_BT = [], btFilter = '';
+
+async function loadBankTransfers(){
+  const r = await api('/transfers');
+  if(!r.success) return;
+  ALL_BT = r.data.transfers||[];
+  const s = r.data.stats||{};
+  const el = document.getElementById('bt-stats');
+  if(el) el.innerHTML=`
+    <div class="sc c-cyan"><div class="lbl">Total</div><div class="val">${s.total||0}</div></div>
+    <div class="sc c-yellow"><div class="lbl">Pendientes</div><div class="val">${s.pending||0}</div></div>
+    <div class="sc c-blue"><div class="lbl">En proceso</div><div class="val">${s.processing||0}</div></div>
+    <div class="sc c-green"><div class="lbl">Completadas</div><div class="val">${s.completed||0}</div></div>
+    <div class="sc c-red"><div class="lbl">Rechazadas</div><div class="val">${s.rejected||0}</div></div>`;
+  updateBadge('badge-transfers', s.pending||0);
+  renderBT();
+}
+
+function renderBT(){
+  let items = ALL_BT;
+  if(btFilter) items = items.filter(t=>t.status===btFilter);
+  const tb = document.getElementById('tb-bt'); if(!tb) return;
+  if(!items.length){ tb.innerHTML='<tr><td colspan="9" class="misc">Sin transferencias</td></tr>'; return; }
+  const stBadge = s=>({pending:'bp',processing:'bc',completed:'bco',rejected:'br'})[s]||'bu';
+  tb.innerHTML = items.map(t=>`
+    <tr>
+      <td style="font-size:10px;color:#475569">${t.id.slice(0,8)}…</td>
+      <td style="font-weight:600">${t.user?.name||t.userId}</td>
+      <td style="color:#fbbf24;font-weight:600">${(t.amount||0).toLocaleString()} ${t.currency}</td>
+      <td>${t.bankName}</td>
+      <td style="color:#64748b;font-size:11px">${t.accountNumber}</td>
+      <td><span class="tag-region">${t.country}</span></td>
+      <td><span class="b ${stBadge(t.status)}">${t.status}</span></td>
+      <td style="color:#64748b">${fmtDate(t.createdAt)}</td>
+      <td>
+        ${t.status==='pending'||t.status==='processing'?
+          `<button class="btn btn-ghost btn-sm" onclick="openBTModal('${t.id}')">⚙️ Gestionar</button>`:'—'}
+      </td>
+    </tr>`).join('');
+}
+
+function filterBT(btn,v){
+  document.querySelectorAll('#bt-fb .fb-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); btFilter=v; renderBT();
+}
+
+function openBTModal(id){
+  const t = ALL_BT.find(x=>x.id===id); if(!t) return;
+  document.getElementById('bt-id').value = id;
+  document.getElementById('bt-notes').value = '';
+  document.getElementById('bt-modal-info').innerHTML=`
+    <div class="bt-status-bar ${t.status}">
+      <strong>${t.status.toUpperCase()}</strong> · ${t.amount.toLocaleString()} ${t.currency} → ${t.bankName}
+    </div>
+    <div class="syc" style="margin-bottom:0">
+      <div class="syr"><span class="k">Usuario</span><span class="v">${t.user?.name||t.userId}</span></div>
+      <div class="syr"><span class="k">Banco</span><span class="v">${t.bankName}</span></div>
+      <div class="syr"><span class="k">Titular</span><span class="v">${t.accountName}</span></div>
+      <div class="syr"><span class="k">Cuenta</span><span class="v" style="font-family:monospace">${t.accountNumber}</span></div>
+      ${t.swiftCode?`<div class="syr"><span class="k">SWIFT</span><span class="v">${t.swiftCode}</span></div>`:''}
+      ${t.ibanCode?`<div class="syr"><span class="k">IBAN</span><span class="v">${t.ibanCode}</span></div>`:''}
+      <div class="syr"><span class="k">País destino</span><span class="v">${t.country}</span></div>
+      <div class="syr"><span class="k">Fecha solicitud</span><span class="v">${fmtDate(t.createdAt)}</span></div>
+    </div>`;
+  document.getElementById('modal-bt-title').textContent = `🏦 Transferencia ${t.amount.toLocaleString()} ${t.currency}`;
+  document.getElementById('modal-bt').classList.add('open');
+}
+
+async function btAction(action){
+  const id = document.getElementById('bt-id').value;
+  const notes = document.getElementById('bt-notes').value;
+  const r = await api('/transfers/'+id+'/'+action, {method:'PATCH', body:JSON.stringify({notes})});
+  if(r.success){
+    addAuditEntry('topup','🏦',`Transferencia bancaria ${action}: ${id.slice(0,8)}…`, notes||'—');
+    closeModal('bt'); loadBankTransfers(); toast('Transferencia: '+action);
+  } else toast(r.error||r.message||'Error','err');
+}
+
+async function createBankTransfer(){
+  const body = {
+    userId:        document.getElementById('nbt-user').value.trim(),
+    amount:        parseFloat(document.getElementById('nbt-amount').value),
+    currency:      document.getElementById('nbt-currency').value,
+    bankName:      document.getElementById('nbt-bank').value.trim(),
+    accountName:   document.getElementById('nbt-accname').value.trim(),
+    accountNumber: document.getElementById('nbt-accnum').value.trim(),
+    swiftCode:     document.getElementById('nbt-swift').value.trim()||null,
+    ibanCode:      document.getElementById('nbt-iban').value.trim()||null,
+    country:       document.getElementById('nbt-country').value.toUpperCase().trim()
+  };
+  if(!body.userId||!body.amount||!body.bankName||!body.accountName||!body.accountNumber||!body.country){
+    toast('Completa todos los campos requeridos','err'); return;
+  }
+  const r = await api('/transfers', {method:'POST', body:JSON.stringify(body)});
+  if(r.success){
+    addAuditEntry('topup','🏦','Solicitud transferencia bancaria creada',`${body.amount} ${body.currency} → ${body.bankName}`);
+    closeModal('banktransfer'); loadBankTransfers(); toast('Solicitud creada correctamente');
+  } else toast(r.error||r.message||'Error','err');
+}
+
+function exportBTCSV(){
+  if(!ALL_BT.length){ toast('Sin datos','err'); return; }
+  downloadCSV(ALL_BT.map(t=>({
+    id:t.id, usuario:t.user?.name||t.userId, importe:t.amount, divisa:t.currency,
+    banco:t.bankName, titular:t.accountName, cuenta:t.accountNumber,
+    swift:t.swiftCode||'', pais:t.country, estado:t.status, fecha:t.createdAt
+  })), 'transferencias_bancarias.csv');
+}
+
+/* ═══════════════════════════════════════════════════
+   EMAIL
+═══════════════════════════════════════════════════ */
+let emailSegment = 'all', ALL_EMAIL_LOGS = [];
+
+function setEmailSeg(btn, seg){
+  document.querySelectorAll('#seg-btns .seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  emailSegment = seg;
+  document.getElementById('email-country-seg').value = '';
+  document.getElementById('email-custom-to').value = '';
+  updateEmailToPreview();
+}
+function setEmailCountry(){
+  const v = document.getElementById('email-country-seg').value;
+  if(!v) return;
+  document.querySelectorAll('#seg-btns .seg-btn').forEach(b=>b.classList.remove('active'));
+  emailSegment = 'country:'+v;
+  document.getElementById('email-custom-to').value = '';
+  updateEmailToPreview();
+}
+function setEmailCustom(){
+  const v = document.getElementById('email-custom-to').value.trim();
+  if(!v) return;
+  document.querySelectorAll('#seg-btns .seg-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('email-country-seg').value = '';
+  emailSegment = v;
+  updateEmailToPreview();
+}
+function updateEmailToPreview(){
+  const el = document.getElementById('email-to-preview'); if(!el) return;
+  const labels = {
+    all:'🌍 Todos los usuarios',
+    'role:customer':'👤 Todos los clientes',
+    'role:rider':'🚴 Todos los riders',
+    'role:circular_autorizada':'🏢 Todos los representantes'
+  };
+  if(labels[emailSegment]){ el.textContent = '→ Destinatarios: '+labels[emailSegment]; return; }
+  if(emailSegment.startsWith('country:')){ el.textContent = '→ Destinatarios: País '+emailSegment.split(':')[1]; return; }
+  el.textContent = '→ Destinatario: '+emailSegment;
+}
+
+function previewEmail(show){
+  const body = document.getElementById('email-body')?.value||'';
+  const box  = document.getElementById('email-preview-box');
+  const cont = document.getElementById('email-preview-content');
+  if(!body){ if(show) toast('Escribe el mensaje primero','err'); return; }
+  if(box) box.style.display = 'block';
+  if(cont) cont.innerHTML = body.replace(/\n/g,'<br>');
+}
+
+async function sendEmail(){
+  const subject = document.getElementById('email-subject')?.value.trim();
+  const body    = document.getElementById('email-body')?.value.trim();
+  const type    = document.getElementById('email-type')?.value;
+  if(!subject||!body){ toast('Asunto y mensaje son requeridos','err'); return; }
+  if(!emailSegment){ toast('Selecciona destinatarios','err'); return; }
+  const r = await api('/emails/send', {method:'POST', body:JSON.stringify({to:emailSegment, subject, body, type})});
+  if(r.success){
+    addAuditEntry('email','✉️',`Email enviado: "${subject}"`,`→ ${emailSegment} · ${r.data.sent} enviados`);
+    toast(`✓ Email enviado a ${r.data.sent} destinatario(s)`);
+    document.getElementById('email-subject').value='';
+    document.getElementById('email-body').value='';
+    document.getElementById('email-preview-box').style.display='none';
+    loadEmailHistory();
+  } else toast(r.error||r.message||'Error al enviar','err');
+}
+
+async function loadEmailHistory(){
+  const r = await api('/emails');
+  if(!r.success) return;
+  ALL_EMAIL_LOGS = r.data.logs||[];
+  const s = r.data.stats||{};
+  const el = document.getElementById('email-stats');
+  if(el) el.innerHTML=`
+    <div class="sc c-cyan"><div class="lbl">Total enviados</div><div class="val">${s.total||0}</div></div>
+    <div class="sc c-green"><div class="lbl">Exitosos</div><div class="val">${s.sent||0}</div></div>
+    <div class="sc c-red"><div class="lbl">Fallidos</div><div class="val">${s.failed||0}</div></div>`;
+  fillEmailCountrySelect();
+  renderEmailTable();
+}
+
+function renderEmailTable(){
+  const tb = document.getElementById('tb-emails'); if(!tb) return;
+  if(!ALL_EMAIL_LOGS.length){ tb.innerHTML='<tr><td colspan="6" class="misc">Sin emails enviados</td></tr>'; return; }
+  const typeBadge = t=>({info:'bc',promo:'ba',alert:'br',kyc:'bav',announcement:'bp'})[t]||'bu';
+  tb.innerHTML = ALL_EMAIL_LOGS.map(e=>`
+    <tr>
+      <td style="font-weight:600">${e.subject}</td>
+      <td style="color:#64748b;font-size:11px">${e.toFilter}</td>
+      <td><span class="b ${typeBadge(e.type)}">${e.type}</span></td>
+      <td style="color:#10b981;font-weight:600">${e.recipients}</td>
+      <td><span class="b ${e.status==='sent'?'bco':'br'}">${e.status}</span></td>
+      <td style="color:#64748b">${fmtDate(e.createdAt)}</td>
+    </tr>`).join('');
+}
+
+function fillEmailCountrySelect(){
+  const sel = document.getElementById('email-country-seg'); if(!sel) return;
+  const countries = [...new Set((ALL_USERS||[]).map(u=>u.country).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">📍 O filtrar por país...</option>' +
+    countries.map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 
 /* ═══ TREND CHART (7 DÍAS) ══════════════════════════ */

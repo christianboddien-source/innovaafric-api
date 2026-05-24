@@ -26,6 +26,15 @@ const loyaltyRoutes       = require('./src/routes/loyalty');
 const referralsRoutes     = require('./src/routes/referrals');
 const businessRoutes      = require('./src/routes/business');
 const notificationsRoutes = require('./src/routes/notifications');
+const categoriesRoutes    = require('./src/routes/categories');
+const taxesRoutes         = require('./src/routes/taxes');
+const banksRoutes         = require('./src/routes/banks');
+const loansRoutes         = require('./src/routes/loans');
+const chatRoutes          = require('./src/routes/chat');
+const accountingRoutes    = require('./src/routes/accounting');
+const eventsRoutes        = require('./src/routes/events');
+const transfersRoutes     = require('./src/routes/transfers');
+const emailsRoutes        = require('./src/routes/emails');
 const { error }      = require('./src/helpers/response');
 
 const app = express();
@@ -35,11 +44,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:  ["'self'"],
-      scriptSrc:   ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-      styleSrc:    ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-      connectSrc:  ["'self'"],
+      scriptSrc:   ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
+      styleSrc:    ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com", "https://fonts.googleapis.com"],
+      connectSrc:  ["'self'", "https://*.tile.openstreetmap.org"],
       imgSrc:      ["'self'", "data:", "https:"],
-      fontSrc:     ["'self'", "https://cdn.jsdelivr.net"]
+      fontSrc:     ["'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"]
     }
   }
 }));
@@ -91,6 +100,15 @@ app.use('/v1/loyalty',       loyaltyRoutes);
 app.use('/v1/referrals',     referralsRoutes);
 app.use('/v1/business',      businessRoutes);
 app.use('/v1/notifications', notificationsRoutes);
+app.use('/v1/categories',    categoriesRoutes);
+app.use('/v1/taxes',         taxesRoutes);
+app.use('/v1/banks',         banksRoutes);
+app.use('/v1/loans',         loansRoutes);
+app.use('/v1/chat',          chatRoutes);
+app.use('/v1/accounting',    accountingRoutes);
+app.use('/v1/events',        eventsRoutes);
+app.use('/v1/transfers',     transfersRoutes);
+app.use('/v1/emails',        emailsRoutes);
 
 // ── 404 ─────────────────────────────────────────────────
 app.use((_req, res) => {

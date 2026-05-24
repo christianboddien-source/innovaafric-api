@@ -506,4 +506,152 @@ router.get('/system', requireAuth, requireRole('admin'), async (req, res) => {
   });
 });
 
+// ══════════════════════════════════════════════════════
+//  PEDIDOS (Shop + Grocery)
+// ══════════════════════════════════════════════════════
+router.get('/orders', requireAuth, requireRole('admin'), async (req, res) => {
+  const { status } = req.query;
+  const where = status ? { status } : {};
+  const [shopOrders, groceryOrders] = await Promise.all([
+    prisma.order.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100,
+      include: { user: { select: { name: true, email: true } } } }),
+    prisma.groceryOrder.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100,
+      include: { user: { select: { name: true, email: true } } } })
+  ]);
+  const all = [
+    ...shopOrders.map(o => ({ ...o, orderType: 'shop' })),
+    ...groceryOrders.map(o => ({ ...o, orderType: 'grocery' }))
+  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return success(res, { orders: all, total: all.length, shop: shopOrders.length, grocery: groceryOrders.length });
+});
+
+// GET /v1/admin/products
+router.get('/products', requireAuth, requireRole('admin'), async (_req, res) => {
+  const [products, groceryProducts] = await Promise.all([
+    prisma.product.findMany({ orderBy: { name: 'asc' } }),
+    prisma.groceryProduct.findMany({ orderBy: { name: 'asc' } })
+  ]);
+  return success(res, { products, grocery_products: groceryProducts, total: products.length + groceryProducts.length });
+});
+
+// ══════════════════════════════════════════════════════
+//  TONTINAS
+// ══════════════════════════════════════════════════════
+router.get('/tontines', requireAuth, requireRole('admin'), async (req, res) => {
+  const tontines = await prisma.tontine.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { _count: { select: { members: true, contributions: true } } }
+  });
+  const stats = {
+    total: tontines.length,
+    open:   tontines.filter(t => t.status === 'open').length,
+    active: tontines.filter(t => t.status === 'active').length,
+    closed: tontines.filter(t => t.status === 'closed').length
+  };
+  return success(res, { tontines, stats });
+});
+
+// ══════════════════════════════════════════════════════
+//  TARJETAS VIRTUALES
+// ══════════════════════════════════════════════════════
+router.get('/cards', requireAuth, requireRole('admin'), async (_req, res) => {
+  const cards = await prisma.virtualCard.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { user: { select: { name: true, email: true } } }
+  });
+  const stats = {
+    total:  cards.length,
+    active: cards.filter(c => c.status === 'active' && !c.frozen).length,
+    frozen: cards.filter(c => c.frozen).length,
+    cancelled: cards.filter(c => c.status === 'cancelled').length
+  };
+  return success(res, { cards, stats });
+});
+
+// ══════════════════════════════════════════════════════
+//  NOTIFICACIONES (todas)
+// ══════════════════════════════════════════════════════
+router.get('/notifications', requireAuth, requireRole('admin'), async (req, res) => {
+  const { limit = 100 } = req.query;
+  const notifications = await prisma.notification.findMany({
+    orderBy: { createdAt: 'desc' }, take: parseInt(limit),
+    include: { user: { select: { name: true, email: true } } }
+  });
+  const unread = notifications.filter(n => !n.read).length;
+  return success(res, { notifications, total: notifications.length, unread });
+});
+
+// ══════════════════════════════════════════════════════
+//  RESEÑAS
+// ══════════════════════════════════════════════════════
+router.get('/reviews', requireAuth, requireRole('admin'), async (_req, res) => {
+  const reviews = await prisma.review.findMany({
+    orderBy: { createdAt: 'desc' }, take: 200,
+    include: { user: { select: { name: true, email: true } } }
+  });
+  const avg = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : 0;
+  return success(res, { reviews, total: reviews.length, average_rating: parseFloat(avg) });
+});
+
+// ══════════════════════════════════════════════════════
+//  FIDELIDAD (Loyalty)
+// ══════════════════════════════════════════════════════
+router.get('/loyalty', requireAuth, requireRole('admin'), async (_req, res) => {
+  const accounts = await prisma.loyaltyAccount.findMany({
+    orderBy: { points: 'desc' },
+    include: { user: { select: { name: true, email: true } } }
+  });
+  const total_points = accounts.reduce((s, a) => s + a.points, 0);
+  const total_earned = accounts.reduce((s, a) => s + a.totalEarned, 0);
+  return success(res, { accounts, total: accounts.length, total_points, total_earned });
+});
+
+// ══════════════════════════════════════════════════════
+//  REFERIDOS
+// ══════════════════════════════════════════════════════
+router.get('/referrals', requireAuth, requireRole('admin'), async (_req, res) => {
+  const referrals = await prisma.referral.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      referrer: { select: { name: true, email: true } },
+      referred: { select: { name: true, email: true } }
+    }
+  });
+  const total_bonus = referrals.reduce((s, r) => s + r.bonusAwarded, 0);
+  return success(res, { referrals, total: referrals.length, total_bonus });
+});
+
+// ══════════════════════════════════════════════════════
+//  BUSINESS (cuentas + pagos masivos + facturas)
+// ══════════════════════════════════════════════════════
+router.get('/business', requireAuth, requireRole('admin'), async (_req, res) => {
+  const [accounts, bulkPayments, invoices] = await Promise.all([
+    prisma.businessAccount.findMany({ orderBy: { createdAt: 'desc' },
+      include: { owner: { select: { name: true, email: true } } } }),
+    prisma.bulkPayment.findMany({ orderBy: { createdAt: 'desc' }, take: 50,
+      include: { owner: { select: { name: true, email: true } } } }),
+    prisma.invoice.findMany({ orderBy: { createdAt: 'desc' }, take: 50 })
+  ]);
+  return success(res, {
+    accounts, bulk_payments: bulkPayments, invoices,
+    total_accounts: accounts.length, total_bulk: bulkPayments.length, total_invoices: invoices.length
+  });
+});
+
+// ══════════════════════════════════════════════════════
+//  FACTURAS (BillPayments history)
+// ══════════════════════════════════════════════════════
+router.get('/bills', requireAuth, requireRole('admin'), async (req, res) => {
+  const { limit = 100 } = req.query;
+  const payments = await prisma.billPayment.findMany({
+    orderBy: { createdAt: 'desc' }, take: parseInt(limit),
+    include: {
+      user:     { select: { name: true, email: true } },
+      provider: { select: { name: true, category: true } }
+    }
+  });
+  const total_amount = payments.reduce((s, p) => s + p.amount, 0);
+  return success(res, { payments, total: payments.length, total_amount });
+});
+
 module.exports = router;
