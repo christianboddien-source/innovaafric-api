@@ -527,6 +527,26 @@ tbody tr:hover{background:rgba(255,255,255,.025)}
 .empty-state .em-ic{font-size:36px;margin-bottom:10px;opacity:.5}
 .empty-state .em-msg{font-size:13px}
 
+/* ── LOAN WORKFLOW ─────────────────────────────── */
+.loan-timeline{display:flex;gap:0;margin:14px 0;overflow-x:auto;padding-bottom:4px}
+.lt-step{display:flex;flex-direction:column;align-items:center;flex:1;min-width:70px}
+.lt-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;z-index:1;transition:all .2s}
+.lt-dot.done{border-color:#10b981;background:rgba(16,185,129,.15);color:#10b981}
+.lt-dot.cur{border-color:var(--primary);background:rgba(0,174,239,.15);color:var(--primary);box-shadow:0 0 0 3px rgba(0,174,239,.15)}
+.lt-dot.rej{border-color:#f87171;background:rgba(248,113,113,.15);color:#f87171}
+.lt-label{font-size:9px;color:var(--text3);margin-top:5px;text-align:center}
+.lt-line{flex:1;height:2px;background:var(--border);margin-top:14px;min-width:12px}
+.lt-line.done{background:#10b981}
+
+/* ── SHORTCUTS MODAL ───────────────────────────── */
+.shortcuts-modal{max-width:560px}
+.sc-section{margin-bottom:16px}
+.sc-section h4{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.sc-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.sc-row:last-child{border-bottom:none}
+.sc-row .sc-desc{color:var(--text2)}
+kbd{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:2px 7px;font-size:10px;font-family:monospace;color:var(--text);letter-spacing:.3px}
+
 /* ── LIGHT THEME ───────────────────────────────── */
 html.light{
   --bg:#f1f5f9;--bg2:#e2e8f0;--surface:#ffffff;--surface2:#f8fafc;
@@ -1798,10 +1818,16 @@ html.light .email-preview{background:#f1f5f9}
       <button class="fb-btn" onclick="filterKycPage(this,'verified')">✓ Verificados</button>
       <button class="fb-btn" onclick="filterKycPage(this,'rejected')">✗ Rechazados</button>
     </div>
+    <div class="bulk-bar" id="bulk-bar-kyc">
+      <span id="bulk-count-kyc">0 seleccionados</span>
+      <button class="btn btn-green btn-sm" onclick="bulkKyc('verified')">✓ Verificar todos</button>
+      <button class="btn btn-red btn-sm" onclick="bulkKyc('rejected')">✗ Rechazar todos</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearBulkKyc()">✕ Cancelar</button>
+    </div>
     <div class="tw"><table>
-      <thead><tr><th>Nombre</th><th>Email</th><th>País</th><th>Rol</th><th>Estado KYC</th><th>Registro</th><th>Acciones</th></tr></thead>
+      <thead><tr><th style="width:32px"><input type="checkbox" id="chk-all-kyc" onchange="toggleAllKyc(this.checked)"></th><th>Nombre</th><th>Email</th><th>País</th><th>Rol</th><th>Estado KYC</th><th>Registro</th><th>Acciones</th></tr></thead>
       <tbody id="tb-kyc">
-        <tr class="skel-row"><td><span class="skel" style="width:120px"></span></td><td><span class="skel" style="width:160px"></span></td><td><span class="skel" style="width:40px"></span></td><td><span class="skel" style="width:70px"></span></td><td><span class="skel" style="width:80px"></span></td><td><span class="skel" style="width:80px"></span></td><td><span class="skel" style="width:140px"></span></td></tr>
+        <tr class="skel-row"><td></td><td><span class="skel" style="width:120px"></span></td><td><span class="skel" style="width:160px"></span></td><td><span class="skel" style="width:40px"></span></td><td><span class="skel" style="width:70px"></span></td><td><span class="skel" style="width:80px"></span></td><td><span class="skel" style="width:80px"></span></td><td><span class="skel" style="width:140px"></span></td></tr>
       </tbody>
     </table></div>
   </div>
@@ -2218,22 +2244,75 @@ html.light .email-preview{background:#f1f5f9}
   </div>
 </div>
 
-<!-- Modal: Préstamo — aprobar/rechazar -->
+<!-- Modal: Préstamo — workflow completo -->
 <div class="modal-bg" id="modal-loan">
-  <div class="modal">
-    <h3 id="modal-loan-title">Gestionar Préstamo</h3>
+  <div class="modal" style="max-width:580px">
+    <h3 id="modal-loan-title">🤝 Gestionar Préstamo</h3>
     <input type="hidden" id="ln-id">
-    <div class="fg"><label>Usuario</label><input id="ln-user" disabled style="opacity:.6"></div>
+    <input type="hidden" id="ln-status">
+
+    <!-- Timeline de estados -->
+    <div class="loan-timeline" id="ln-timeline"></div>
+
     <div class="form-row">
-      <div class="fg"><label>Importe</label><input id="ln-amount" disabled style="opacity:.6"></div>
-      <div class="fg"><label>Propósito</label><input id="ln-purpose" disabled style="opacity:.6"></div>
+      <div class="syc">
+        <div class="syr"><span class="k">Usuario</span><span class="v" id="ln-user-v">—</span></div>
+        <div class="syr"><span class="k">Importe</span><span class="v" id="ln-amount-v" style="color:#fbbf24;font-weight:700">—</span></div>
+        <div class="syr"><span class="k">Propósito</span><span class="v" id="ln-purpose-v">—</span></div>
+      </div>
+      <div class="syc">
+        <div class="syr"><span class="k">Tasa</span><span class="v" id="ln-rate-v">—</span></div>
+        <div class="syr"><span class="k">Plazo</span><span class="v" id="ln-term-v">—</span></div>
+        <div class="syr"><span class="k">Vencimiento</span><span class="v" id="ln-due-v">—</span></div>
+      </div>
     </div>
-    <div class="fg"><label>Notas del admin</label><input id="ln-notes" placeholder="Comentario de aprobación..."></div>
-    <div class="modal-foot">
+
+    <div class="fg" style="margin-top:12px">
+      <label>Notas del admin</label>
+      <input id="ln-notes" placeholder="Motivo de aprobación/rechazo...">
+    </div>
+    <div id="ln-notify-row" style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--text2)">
+      <input type="checkbox" id="ln-notify" checked style="accent-color:var(--primary)">
+      <label for="ln-notify">Notificar al usuario automáticamente</label>
+    </div>
+
+    <div class="modal-foot" id="ln-actions">
       <button class="btn btn-ghost" onclick="closeModal('loan')">Cancelar</button>
-      <button class="btn btn-red" onclick="loanAction('reject')">✗ Rechazar</button>
-      <button class="btn btn-green" onclick="loanAction('approve')">✓ Aprobar</button>
-      <button class="btn btn-cyan" onclick="loanAction('disburse')">💸 Desembolsar</button>
+      <button class="btn btn-red" id="ln-btn-reject" onclick="loanAction('reject')">✗ Rechazar</button>
+      <button class="btn btn-green" id="ln-btn-approve" onclick="loanAction('approve')">✓ Aprobar</button>
+      <button class="btn btn-cyan" id="ln-btn-disburse" onclick="loanAction('disburse')">💸 Desembolsar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Shortcuts de teclado -->
+<div class="modal-bg" id="modal-shortcuts">
+  <div class="modal shortcuts-modal">
+    <h3>⌨️ Atajos de teclado</h3>
+    <div class="sc-section">
+      <h4>Navegación</h4>
+      <div class="sc-row"><span class="sc-desc">Búsqueda global</span><div><kbd>Ctrl</kbd>+<kbd>K</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Ir al Dashboard</span><div><kbd>G</kbd> <kbd>D</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Ir a Usuarios</span><div><kbd>G</kbd> <kbd>U</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Ir a Transacciones</span><div><kbd>G</kbd> <kbd>T</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Ir a Riders</span><div><kbd>G</kbd> <kbd>R</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Ir a KYC</span><div><kbd>G</kbd> <kbd>K</kbd></div></div>
+    </div>
+    <div class="sc-section">
+      <h4>Acciones</h4>
+      <div class="sc-row"><span class="sc-desc">Actualizar datos</span><div><kbd>Shift</kbd>+<kbd>R</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Auto-refresh toggle</span><div><kbd>Shift</kbd>+<kbd>A</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Abrir/cerrar notas</span><div><kbd>Alt</kbd>+<kbd>N</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Modo compacto</span><div><kbd>Alt</kbd>+<kbd>C</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Cambiar tema</span><div><kbd>Alt</kbd>+<kbd>T</kbd></div></div>
+    </div>
+    <div class="sc-section">
+      <h4>General</h4>
+      <div class="sc-row"><span class="sc-desc">Mostrar atajos</span><div><kbd>?</kbd></div></div>
+      <div class="sc-row"><span class="sc-desc">Cerrar modal / panel</span><div><kbd>Esc</kbd></div></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-cyan" onclick="closeModal('shortcuts')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -4314,28 +4393,6 @@ function renderLoans(){
 }
 function filterLoans(btn,v){ document.querySelectorAll('#loan-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); loanFilter=v; renderLoans(); }
 function loanBadge(s){ const m={pending:'bp',approved:'bav',disbursed:'bc',repaid:'bco',rejected:'br'}; return `<span class="b ${m[s]||'bu'}">${s}</span>`; }
-function openLoanModal(id){
-  const l = ALL_LOANS.find(x=>x.id===id); if(!l) return;
-  document.getElementById('ln-id').value = l.id;
-  document.getElementById('ln-user').value = l.user?.name||l.userId;
-  document.getElementById('ln-amount').value = `${l.amount} ${l.currency}`;
-  document.getElementById('ln-purpose').value = l.purpose;
-  document.getElementById('ln-notes').value = '';
-  document.getElementById('modal-loan-title').textContent = `Préstamo — ${l.status.toUpperCase()}`;
-  document.getElementById('modal-loan').classList.add('open');
-}
-async function loanAction(action){
-  const id = document.getElementById('ln-id').value;
-  const notes = document.getElementById('ln-notes').value;
-  const endpoints = { approve:'/approve', reject:'/reject', disburse:'/disburse' };
-  const r = await api('/loans/'+id+endpoints[action],{method:'PATCH',body:JSON.stringify({notes})});
-  if(r.success){
-    const l = ALL_LOANS.find(x=>x.id===id);
-    addAuditEntry('loan','🤝',`Préstamo ${action}: ${l?.user?.name||id}`,`ID: ${id} · ${l?.amount||'?'} ${l?.currency||''} · notas: ${notes||'—'}`);
-    closeModal('loan'); loadLoans(); toast('Préstamo: '+action);
-  } else toast(r.error||r.message||'Error','err');
-}
-
 /* ═══ TONTINAS ──────────────────────────────────── */
 async function loadTontines(){
   const r = await api('/admin/tontines'); if(!r.success) return;
@@ -5312,9 +5369,10 @@ function renderKyc(){
   if(q) users = users.filter(u=>(u.name+u.email+u.country).toLowerCase().includes(q));
   const tb = document.getElementById('tb-kyc');
   if(!tb) return;
-  if(!users.length){ tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="em-ic">🪪</div><div class="em-msg">Sin usuarios con este filtro KYC</div></div></td></tr>'; return; }
+  if(!users.length){ tb.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="em-ic">🪪</div><div class="em-msg">Sin usuarios con este filtro KYC</div></div></td></tr>'; return; }
   tb.innerHTML = users.map(u=>`
     <tr>
+      <td><input type="checkbox" class="chk-kyc" data-id="${u.id}" ${selectedKyc.has(u.id)?'checked':''} onchange="toggleKycChk('${u.id}',this.checked)"></td>
       <td style="font-weight:600">${u.name}</td>
       <td style="color:#64748b;font-size:11px">${u.email}</td>
       <td>${u.country}</td>
@@ -6361,6 +6419,136 @@ function fillEmailCountrySelect(){
   const countries = [...new Set((ALL_USERS||[]).map(u=>u.country).filter(Boolean))].sort();
   sel.innerHTML = '<option value="">📍 O filtrar por país...</option>' +
     countries.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+/* ═══ SHORTCUTS ══════════════════════════════════════ */
+let gPressed = false, gTimer = null;
+document.addEventListener('keydown', e => {
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+  const k = e.key;
+  // ? → shortcuts modal
+  if(k==='?' && !e.ctrlKey && !e.altKey){ document.getElementById('modal-shortcuts').classList.add('open'); return; }
+  // Shift+R → refresh
+  if(k==='R' && e.shiftKey){ e.preventDefault(); refresh(); return; }
+  // Shift+A → auto-refresh toggle
+  if(k==='A' && e.shiftKey){ e.preventDefault(); toggleAutoRefresh(); return; }
+  // Alt+C → compact
+  if(k==='c' && e.altKey){ e.preventDefault(); toggleCompact(); return; }
+  // Alt+T → theme
+  if(k==='t' && e.altKey){ e.preventDefault(); toggleTheme(); return; }
+  // G + key → navigate
+  if(k==='g'||k==='G'){ gPressed=true; clearTimeout(gTimer); gTimer=setTimeout(()=>{ gPressed=false; },1000); return; }
+  if(gPressed){
+    const map = { d:'overview', u:'users', t:'txns', r:'riders', k:'kyc', l:'loans', s:'security', p:'payroll', c:'campaigns', a:'analytics' };
+    const pg = map[k.toLowerCase()];
+    if(pg){ e.preventDefault(); gp(pg); gPressed=false; clearTimeout(gTimer); }
+  }
+});
+
+/* ═══ BATCH KYC ══════════════════════════════════════ */
+let selectedKyc = new Set();
+
+function toggleAllKyc(checked){
+  document.querySelectorAll('.chk-kyc').forEach(c=>{ c.checked=checked; if(checked) selectedKyc.add(c.dataset.id); else selectedKyc.delete(c.dataset.id); });
+  updateKycBulkBar();
+}
+function toggleKycChk(id, checked){ if(checked) selectedKyc.add(id); else selectedKyc.delete(id); updateKycBulkBar(); }
+function updateKycBulkBar(){
+  const bar = document.getElementById('bulk-bar-kyc');
+  const n = selectedKyc.size;
+  if(bar) bar.classList.toggle('visible', n>0);
+  const lbl = document.getElementById('bulk-count-kyc');
+  if(lbl) lbl.textContent=`${n} usuario${n!==1?'s':''} seleccionado${n!==1?'s':''}`;
+}
+function clearBulkKyc(){ selectedKyc.clear(); document.querySelectorAll('.chk-kyc').forEach(c=>c.checked=false); const a=document.getElementById('chk-all-kyc'); if(a)a.checked=false; updateKycBulkBar(); }
+async function bulkKyc(status){
+  if(!selectedKyc.size) return;
+  const label = status==='verified'?'verificar':'rechazar';
+  if(!confirm(`¿${label.charAt(0).toUpperCase()+label.slice(1)} ${selectedKyc.size} usuario(s)?`)) return;
+  let ok=0, fail=0;
+  for(const id of selectedKyc){
+    const r = await api('/admin/users/'+id+'/kyc',{method:'PATCH',body:JSON.stringify({status})});
+    if(r.success) ok++; else fail++;
+  }
+  toast(`✅ ${ok} KYC ${status==='verified'?'verificados':'rechazados'}${fail?` · ❌ ${fail} error(es)`:''}`, ok?'':'err');
+  addAuditEntry('kyc','🪪',`Bulk KYC ${status}: ${ok} usuarios`,`${fail} errores`);
+  clearBulkKyc();
+  loadUsers();
+}
+
+/* ═══ LOAN WORKFLOW MEJORADO ═════════════════════════ */
+const LOAN_STEPS = [
+  {key:'pending',  label:'Solicitado', icon:'📋'},
+  {key:'approved', label:'Aprobado',   icon:'✓'},
+  {key:'disbursed',label:'Desembolsado',icon:'💸'},
+  {key:'repaid',   label:'Reembolsado',icon:'🏁'},
+];
+function buildLoanTimeline(status){
+  const isRejected = status==='rejected';
+  const steps = isRejected
+    ? [...LOAN_STEPS.slice(0,1), {key:'rejected',label:'Rechazado',icon:'✗'}]
+    : LOAN_STEPS;
+  const curIdx = steps.findIndex(s=>s.key===status);
+  return steps.map((s,i)=>{
+    const done = i<curIdx;
+    const cur  = i===curIdx;
+    const rej  = s.key==='rejected' && cur;
+    return `
+      ${i>0?`<div class="lt-line${done||cur?' done':''}"></div>`:''}
+      <div class="lt-step">
+        <div class="lt-dot${done?' done':cur?(rej?' rej':' cur'):''}">
+          ${done?'✓':s.icon}
+        </div>
+        <div class="lt-label">${s.label}</div>
+      </div>`;
+  }).join('');
+}
+function openLoanModal(id){
+  const l = ALL_LOANS.find(x=>x.id===id); if(!l) return;
+  document.getElementById('ln-id').value    = l.id;
+  document.getElementById('ln-status').value= l.status;
+  document.getElementById('modal-loan-title').textContent = `🤝 Préstamo — ${l.user?.name||l.userId}`;
+  document.getElementById('ln-user-v').textContent    = l.user?.name||l.userId;
+  document.getElementById('ln-amount-v').textContent  = `${(l.amount||0).toLocaleString()} ${l.currency}`;
+  document.getElementById('ln-purpose-v').textContent = l.purpose||'—';
+  document.getElementById('ln-rate-v').textContent    = l.interestRate!=null ? l.interestRate+'%' : '—';
+  document.getElementById('ln-term-v').textContent    = l.termMonths!=null   ? l.termMonths+' meses' : '—';
+  document.getElementById('ln-due-v').textContent     = l.dueDate ? fmtDate(l.dueDate) : '—';
+  document.getElementById('ln-notes').value = '';
+  document.getElementById('ln-timeline').innerHTML = buildLoanTimeline(l.status);
+  // Mostrar botones según estado
+  const s = l.status;
+  const elR = document.getElementById('ln-btn-reject');
+  const elA = document.getElementById('ln-btn-approve');
+  const elD = document.getElementById('ln-btn-disburse');
+  if(elR) elR.style.display   = (s==='pending'||s==='approved') ? 'inline-flex' : 'none';
+  if(elA) elA.style.display   = s==='pending'   ? 'inline-flex' : 'none';
+  if(elD) elD.style.display   = s==='approved'  ? 'inline-flex' : 'none';
+  document.getElementById('modal-loan').classList.add('open');
+}
+async function loanAction(action){
+  const id     = document.getElementById('ln-id').value;
+  const notes  = document.getElementById('ln-notes').value;
+  const notify = document.getElementById('ln-notify').checked;
+  const endpoints = { approve:'/approve', reject:'/reject', disburse:'/disburse' };
+  const r = await api('/loans/'+id+endpoints[action],{method:'PATCH',body:JSON.stringify({notes})});
+  if(!r.success){ toast(r.error||r.message||'Error','err'); return; }
+  const l = ALL_LOANS.find(x=>x.id===id);
+  const actionLabel = {approve:'aprobado',reject:'rechazado',disburse:'desembolsado'}[action]||action;
+  addAuditEntry('loan','🤝',`Préstamo ${actionLabel}: ${l?.user?.name||id}`,`${l?.amount||'?'} ${l?.currency||''} · ${notes||'sin notas'}`);
+  // Notificar al usuario si está marcado
+  if(notify && l?.userId){
+    const msgs = {
+      approve: { title:'✅ Préstamo aprobado', body:`Tu solicitud de ${l.amount} ${l.currency} ha sido aprobada. Procederemos al desembolso pronto.` },
+      reject:  { title:'❌ Préstamo no aprobado', body:'Tu solicitud de préstamo no pudo ser aprobada en este momento.'+(notes?' Motivo: '+notes:'') },
+      disburse:{ title:'💸 Dinero enviado', body:`Tu préstamo de ${l.amount} ${l.currency} ha sido desembolsado en tu wallet.` }
+    };
+    const msg = msgs[action];
+    if(msg) await api('/notifications',{method:'POST',body:JSON.stringify({userId:l.userId,...msg,type:'alert'})});
+  }
+  toast(`✅ Préstamo ${actionLabel}`);
+  closeModal('loan');
+  loadLoans();
 }
 
 /* ═══ COMPACT MODE ═══════════════════════════════════ */
