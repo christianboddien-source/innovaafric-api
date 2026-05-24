@@ -534,6 +534,73 @@ router.get('/products', requireAuth, requireRole('admin'), async (_req, res) => 
   return success(res, { products, grocery_products: groceryProducts, total: products.length + groceryProducts.length });
 });
 
+// POST /v1/admin/products — crear producto
+router.post('/products', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { type = 'shop', name, description, priceEur, priceXaf, category, stock, origin, imageUrl, store, available } = req.body;
+    if (!name) return error(res, 'name es requerido', 400);
+    if (type === 'grocery') {
+      const p = await prisma.groceryProduct.create({
+        data: { name, description: description || null, priceXaf: parseFloat(priceXaf) || 0, category: category || 'General', store: store || null, available: available !== false }
+      });
+      return success(res, p, 201);
+    }
+    if (!priceEur && !priceXaf) return error(res, 'Se requiere priceEur o priceXaf', 400);
+    const p = await prisma.product.create({
+      data: { name, description: description || null, priceEur: parseFloat(priceEur) || 0, priceXaf: parseFloat(priceXaf) || 0, category: category || 'General', stock: parseInt(stock) || 0, origin: origin || null, imageUrl: imageUrl || null }
+    });
+    return success(res, p, 201);
+  } catch (e) { return error(res, e.message); }
+});
+
+// PUT /v1/admin/products/:id — actualizar producto
+router.put('/products/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { type = 'shop', name, description, priceEur, priceXaf, category, stock, origin, imageUrl, store, available } = req.body;
+    if (type === 'grocery') {
+      const p = await prisma.groceryProduct.update({
+        where: { id: req.params.id },
+        data: {
+          ...(name        !== undefined && { name }),
+          ...(description !== undefined && { description }),
+          ...(priceXaf    !== undefined && { priceXaf: parseFloat(priceXaf) }),
+          ...(category    !== undefined && { category }),
+          ...(store       !== undefined && { store }),
+          ...(available   !== undefined && { available })
+        }
+      });
+      return success(res, p);
+    }
+    const p = await prisma.product.update({
+      where: { id: req.params.id },
+      data: {
+        ...(name        !== undefined && { name }),
+        ...(description !== undefined && { description }),
+        ...(priceEur    !== undefined && { priceEur: parseFloat(priceEur) }),
+        ...(priceXaf    !== undefined && { priceXaf: parseFloat(priceXaf) }),
+        ...(category    !== undefined && { category }),
+        ...(stock       !== undefined && { stock: parseInt(stock) }),
+        ...(origin      !== undefined && { origin }),
+        ...(imageUrl    !== undefined && { imageUrl })
+      }
+    });
+    return success(res, p);
+  } catch (e) { return error(res, e.message); }
+});
+
+// DELETE /v1/admin/products/:id — eliminar producto
+router.delete('/products/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { type = 'shop' } = req.query;
+    if (type === 'grocery') {
+      await prisma.groceryProduct.delete({ where: { id: req.params.id } });
+    } else {
+      await prisma.product.delete({ where: { id: req.params.id } });
+    }
+    return success(res, { message: 'Producto eliminado' });
+  } catch (e) { return error(res, e.message); }
+});
+
 // ══════════════════════════════════════════════════════
 //  TONTINAS
 // ══════════════════════════════════════════════════════

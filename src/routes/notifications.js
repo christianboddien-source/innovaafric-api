@@ -5,7 +5,8 @@ const router  = express.Router();
 
 const prisma  = require('../config/prisma');
 const { success, error, paginate } = require('../helpers/response');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
+const { v4: uuidv4 } = require('uuid');
 
 // GET /v1/notifications — Listar todas las notificaciones
 router.get('/', requireAuth, async (req, res) => {
@@ -60,6 +61,43 @@ router.delete('/:id', requireAuth, async (req, res) => {
 router.delete('/', requireAuth, async (req, res) => {
   const result = await prisma.notification.deleteMany({ where: { userId: req.user.sub, read: true } });
   return success(res, { deleted: result.count, message: 'Notificaciones leídas eliminadas.' });
+});
+
+// POST /v1/notifications/send-mass — Envío masivo (admin)
+router.post('/send-mass', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { title, body, type = 'info', channel = 'in_app', target } = req.body;
+    if (!title || !body) return error(res, 'title y body son requeridos', 400);
+
+    // Resolver destinatarios
+    let users = [];
+    if (!target || target === 'all') {
+      users = await prisma.user.findMany({ select: { id: true } });
+    } else if (target.startsWith('country:')) {
+      users = await prisma.user.findMany({ where: { country: target.split(':')[1] }, select: { id: true } });
+    } else if (target.startsWith('role:')) {
+      users = await prisma.user.findMany({ where: { role: target.split(':')[1] }, select: { id: true } });
+    } else if (target.startsWith('kyc:')) {
+      users = await prisma.user.findMany({ where: { kycStatus: target.split(':')[1] }, select: { id: true } });
+    }
+
+    if (!users.length) return error(res, 'No se encontraron destinatarios', 404);
+
+    // Crear notificaciones en batch
+    await prisma.notification.createMany({
+      data: users.map(u => ({
+        id: uuidv4(),
+        userId: u.id,
+        title,
+        body,
+        type,
+        channel,
+        read: false
+      }))
+    });
+
+    return success(res, { sent: users.length, target: target || 'all', title, type });
+  } catch (e) { return error(res, e.message); }
 });
 
 module.exports = router;

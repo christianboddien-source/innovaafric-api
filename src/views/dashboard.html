@@ -762,6 +762,7 @@ html.light .email-preview{background:#f1f5f9}
       <div class="ni" data-tip="Categorías" onclick="gp('categories')"><span class="ic">🏷️</span> <span data-i18n="nav_categories">Categorías</span></div>
       <div class="ni" data-tip="Países" onclick="gp('countries')"><span class="ic">🌍</span> <span data-i18n="nav_countries">Países</span></div>
       <div class="ni" data-tip="Informes" onclick="gp('reports')"><span class="ic">📊</span> <span data-i18n="nav_reports">Informes</span></div>
+      <div class="ni" data-tip="Límites" onclick="gp('limits')"><span class="ic">🚫</span> <span>Límites Transacción</span></div>
       <div class="ni" data-tip="Configuración" onclick="gp('settings')"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Configuración</span></div>
       <div class="ni" data-tip="Sistema" onclick="gp('system')"><span class="ic">🖥️</span> <span data-i18n="nav_system">Sistema</span></div>
     </div>
@@ -1156,6 +1157,37 @@ html.light .email-preview{background:#f1f5f9}
     <div class="footer-note">INNOVAAFRIC Admin © 2026 · We Simplify Life</div>
   </div>
 
+  <!-- ── LÍMITES DE TRANSACCIÓN ── -->
+  <div class="page" id="page-limits">
+    <div class="sec-hd">
+      <span>🚫 Límites de Transacción</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="resetLimits()">↺ Restablecer</button>
+        <button class="btn btn-cyan btn-sm" onclick="saveLimits()">💾 Guardar cambios</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:16px">
+      Define los límites máximos y mínimos por tipo de operación y divisa. Se aplican en tiempo real al validar transacciones.
+    </p>
+
+    <!-- Límites por tipo de operación -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:24px" id="limits-grid"></div>
+
+    <!-- Límites diarios por divisa -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+      <h3 style="margin:0 0 16px;font-size:14px;color:var(--primary)">📅 Límites Diarios por Divisa</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px" id="limits-daily-grid"></div>
+    </div>
+
+    <!-- Historial de cambios -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+      <h3 style="margin:0 0 12px;font-size:14px;color:var(--text2)">📋 Historial de Cambios</h3>
+      <div id="limits-history" style="max-height:200px;overflow-y:auto;font-size:12px;color:var(--text3)">
+        <p style="text-align:center;padding:20px">Sin cambios registrados</p>
+      </div>
+    </div>
+  </div>
+
   <!-- ── PRÉSTAMOS ── -->
   <div class="page" id="page-loans">
     <div class="sec-hd">
@@ -1325,6 +1357,64 @@ html.light .email-preview{background:#f1f5f9}
         <input class="search-bar" id="notif-search" placeholder="🔍 Buscar..." oninput="renderNotifications()">
       </div>
     </div>
+
+    <!-- Panel envío masivo -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+      <h3 style="margin:0 0 16px;font-size:15px;color:var(--primary)">📢 Envío Masivo de Notificaciones</h3>
+      <div class="form-row">
+        <div class="fg">
+          <label>Destinatarios</label>
+          <select id="mass-target" onchange="updateMassTargetDetail()">
+            <option value="all">👥 Todos los usuarios</option>
+            <option value="role:user">👤 Solo usuarios</option>
+            <option value="role:admin">🔑 Solo admins</option>
+            <option value="role:rider">🚴 Solo riders</option>
+            <option value="kyc:verified">✅ KYC verificado</option>
+            <option value="kyc:pending">⏳ KYC pendiente</option>
+            <option value="country:">🌍 Por país...</option>
+          </select>
+        </div>
+        <div class="fg" id="mass-country-wrap" style="display:none">
+          <label>País</label>
+          <select id="mass-country-sel">
+            <option value="">Seleccionar...</option>
+            <option value="CM">Camerún</option><option value="SN">Senegal</option><option value="CI">Costa de Marfil</option>
+            <option value="GH">Ghana</option><option value="NG">Nigeria</option><option value="KE">Kenia</option>
+            <option value="ZA">Sudáfrica</option><option value="MA">Marruecos</option><option value="ET">Etiopía</option>
+            <option value="TZ">Tanzania</option><option value="UG">Uganda</option><option value="RW">Ruanda</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Tipo</label>
+          <select id="mass-type">
+            <option value="info">ℹ️ Info</option>
+            <option value="success">✅ Éxito</option>
+            <option value="warning">⚠️ Aviso</option>
+            <option value="promo">🎁 Promoción</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Canal</label>
+          <select id="mass-channel">
+            <option value="in_app">📱 In-App</option>
+            <option value="push">🔔 Push</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg" style="margin-top:10px">
+        <label>Título *</label>
+        <input id="mass-title" placeholder="Ej: Nueva actualización disponible">
+      </div>
+      <div class="fg" style="margin-top:10px">
+        <label>Mensaje *</label>
+        <textarea id="mass-body" rows="3" style="width:100%;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:inherit;resize:vertical" placeholder="Escribe el contenido de la notificación..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;align-items:center">
+        <button class="btn btn-cyan" onclick="sendMassNotification()">📤 Enviar ahora</button>
+        <span id="mass-preview-text" style="font-size:12px;color:var(--text3)">Completa los campos para enviar</span>
+      </div>
+    </div>
+
     <div class="sg" id="notif-stats"></div>
     <div class="fb" id="notif-fb">
       <button class="fb-btn active" onclick="filterNotifs(this,'')">Todas</button>
@@ -2331,7 +2421,8 @@ const PG_TITLES = {
   taxes:'Impuestos',banks:'Bancos',categories:'Categorías',
   kyc:'KYC / Verificación',products:'Catálogo de Productos',
   map:'Mapa Operacional',fees:'Comisiones',audit:'Auditoría Admin',
-  calendar:'Calendario de Eventos',banktransfer:'Transferencia Bancaria',email:'Email'
+  calendar:'Calendario de Eventos',banktransfer:'Transferencia Bancaria',email:'Email',
+  limits:'Límites de Transacción',notifications:'Notificaciones del Sistema'
 };
 
 function refresh(){
@@ -2376,6 +2467,8 @@ function gp(name){
   if(name==='calendar'){ loadCalendar(); }
   if(name==='banktransfer') loadBankTransfers();
   if(name==='email') loadEmailHistory();
+  if(name==='limits') loadLimits();
+  if(name==='notifications') loadNotifications();
 }
 
 /* ═══ OVERVIEW ══════════════════════════════════════ */
@@ -3561,6 +3654,140 @@ function renderNotifications(){
 }
 function filterNotifs(btn,v){ document.querySelectorAll('#notif-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); notifFilter=v; renderNotifications(); }
 
+function updateMassTargetDetail(){
+  const val = document.getElementById('mass-target').value;
+  const wrap = document.getElementById('mass-country-wrap');
+  if(wrap) wrap.style.display = val === 'country:' ? 'block' : 'none';
+}
+
+async function sendMassNotification(){
+  let target = document.getElementById('mass-target').value;
+  if(target === 'country:'){
+    const c = document.getElementById('mass-country-sel').value;
+    if(!c) return toast('Selecciona un país','warning');
+    target = 'country:' + c;
+  }
+  const title   = document.getElementById('mass-title').value.trim();
+  const body    = document.getElementById('mass-body').value.trim();
+  const type    = document.getElementById('mass-type').value;
+  const channel = document.getElementById('mass-channel').value;
+  if(!title || !body) return toast('Título y mensaje son obligatorios','warning');
+  if(!confirm(`¿Enviar notificación a "${target}"?\n\n"${title}"`)) return;
+  const r = await api('/notifications/send-mass','POST',{ title, body, type, channel, target });
+  if(!r.success) return toast(r.message||'Error al enviar','error');
+  toast(`✅ Enviado a ${r.data.sent} usuarios`,'success');
+  addAuditEntry('notif','📢',`Notificación masiva: ${title}`,`Target: ${target} · ${r.data.sent} destinatarios`);
+  document.getElementById('mass-title').value = '';
+  document.getElementById('mass-body').value  = '';
+  loadNotifications();
+}
+
+/* ═══ LÍMITES DE TRANSACCIÓN ═══════════════════════ */
+const DEFAULT_LIMITS = {
+  send:     { label:'Envío P2P',        icon:'💸', minXaf:500,    maxXaf:5000000,  minEur:1,   maxEur:10000 },
+  withdraw: { label:'Reintegro',        icon:'🏧', minXaf:1000,   maxXaf:2000000,  minEur:2,   maxEur:4000  },
+  transfer: { label:'Transf. Bancaria', icon:'🏦', minXaf:5000,   maxXaf:10000000, minEur:10,  maxEur:20000 },
+  topup:    { label:'Recarga Wallet',   icon:'➕', minXaf:500,    maxXaf:5000000,  minEur:1,   maxEur:10000 },
+  payment:  { label:'Pago QR/Comercio', icon:'📲', minXaf:100,    maxXaf:1000000,  minEur:0.5, maxEur:2000  },
+  loan:     { label:'Préstamo',         icon:'🤝', minXaf:10000,  maxXaf:20000000, minEur:20,  maxEur:40000 }
+};
+const DEFAULT_DAILY_LIMITS = {
+  XAF:{ label:'Francos CFA (XAF)', daily:10000000 },
+  EUR:{ label:'Euro (EUR)',         daily:20000    },
+  USD:{ label:'Dólar (USD)',        daily:25000    },
+  GBP:{ label:'Libra (GBP)',        daily:18000    }
+};
+
+let LIMITS_CONFIG     = JSON.parse(localStorage.getItem('inn_limits')      || JSON.stringify(DEFAULT_LIMITS));
+let DAILY_LIMITS      = JSON.parse(localStorage.getItem('inn_daily_limits') || JSON.stringify(DEFAULT_DAILY_LIMITS));
+let LIMITS_HISTORY    = JSON.parse(localStorage.getItem('inn_limits_hist')  || '[]');
+
+function loadLimits(){
+  renderLimitsGrid();
+  renderDailyLimits();
+  renderLimitsHistory();
+}
+
+function renderLimitsGrid(){
+  const grid = document.getElementById('limits-grid');
+  if(!grid) return;
+  grid.innerHTML = Object.entries(LIMITS_CONFIG).map(([key, lim])=>`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <span style="font-size:20px">${lim.icon}</span>
+        <span style="font-weight:600;font-size:14px">${lim.label}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:11px;color:var(--text3)">Mín XAF</label>
+          <input type="number" value="${lim.minXaf}" min="0" style="width:100%;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px"
+            onchange="LIMITS_CONFIG['${key}'].minXaf=parseFloat(this.value)">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text3)">Máx XAF</label>
+          <input type="number" value="${lim.maxXaf}" min="0" style="width:100%;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px"
+            onchange="LIMITS_CONFIG['${key}'].maxXaf=parseFloat(this.value)">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text3)">Mín EUR</label>
+          <input type="number" value="${lim.minEur}" min="0" step="0.5" style="width:100%;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px"
+            onchange="LIMITS_CONFIG['${key}'].minEur=parseFloat(this.value)">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text3)">Máx EUR</label>
+          <input type="number" value="${lim.maxEur}" min="0" step="0.5" style="width:100%;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px"
+            onchange="LIMITS_CONFIG['${key}'].maxEur=parseFloat(this.value)">
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderDailyLimits(){
+  const grid = document.getElementById('limits-daily-grid');
+  if(!grid) return;
+  grid.innerHTML = Object.entries(DAILY_LIMITS).map(([cur, d])=>`
+    <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">${d.label}</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" value="${d.daily}" min="0" style="flex:1;background:var(--card);color:var(--text1);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px"
+          onchange="DAILY_LIMITS['${cur}'].daily=parseFloat(this.value)">
+        <span style="font-size:12px;color:var(--text3);white-space:nowrap">${cur}/día</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderLimitsHistory(){
+  const el = document.getElementById('limits-history');
+  if(!el) return;
+  if(!LIMITS_HISTORY.length){ el.innerHTML='<p style="text-align:center;padding:20px">Sin cambios registrados</p>'; return; }
+  el.innerHTML = LIMITS_HISTORY.slice(-20).reverse().map(h=>`
+    <div style="padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="color:var(--text2)">${h.ts}</span> — ${h.msg}
+    </div>`).join('');
+}
+
+function saveLimits(){
+  localStorage.setItem('inn_limits', JSON.stringify(LIMITS_CONFIG));
+  localStorage.setItem('inn_daily_limits', JSON.stringify(DAILY_LIMITS));
+  const entry = { ts: new Date().toLocaleString(), msg:'Límites de transacción actualizados por administrador' };
+  LIMITS_HISTORY.push(entry);
+  if(LIMITS_HISTORY.length > 100) LIMITS_HISTORY.shift();
+  localStorage.setItem('inn_limits_hist', JSON.stringify(LIMITS_HISTORY));
+  addAuditEntry('limits','💾','Límites de transacción guardados','Cambios persistidos en localStorage');
+  toast('Límites guardados correctamente','success');
+  renderLimitsHistory();
+}
+
+function resetLimits(){
+  if(!confirm('¿Restablecer todos los límites a los valores por defecto?')) return;
+  LIMITS_CONFIG = JSON.parse(JSON.stringify(DEFAULT_LIMITS));
+  DAILY_LIMITS  = JSON.parse(JSON.stringify(DEFAULT_DAILY_LIMITS));
+  saveLimits();
+  renderLimitsGrid();
+  renderDailyLimits();
+  toast('Límites restablecidos','info');
+}
+
 /* ═══ CHAT ──────────────────────────────────────── */
 async function loadChatRooms(){
   const r = await api('/chat/rooms'); if(!r.success) return;
@@ -3886,7 +4113,8 @@ const MODULES = [
   {ic:'📋',nm:'Auditoría',sc:'Sistema',pg:'audit'},
   {ic:'📅',nm:'Calendario',sc:'Servicios',pg:'calendar'},
   {ic:'🏦',nm:'Transferencia Bancaria',sc:'Finanzas',pg:'banktransfer'},
-  {ic:'✉️',nm:'Email',sc:'Comunidad',pg:'email'}
+  {ic:'✉️',nm:'Email',sc:'Comunidad',pg:'email'},
+  {ic:'🚫',nm:'Límites Transacción',sc:'Sistema',pg:'limits'}
 ];
 function searchModules(){
   const q = document.getElementById('tb-search-input').value.trim().toLowerCase();
@@ -4137,7 +4365,9 @@ function renderProducts(){
       <td style="color:#64748b;font-size:11px">${p.origin||p.store||'—'}</td>
       <td><span class="b ${p.type==='grocery'?'bco':'bc'}">${p.type}</span></td>
       <td style="white-space:nowrap">
-        ${p.ratingAvg!=null?`<span style="font-size:11px;color:#fbbf24">⭐${p.ratingAvg.toFixed(1)}</span>`:''}
+        ${p.ratingAvg!=null?`<span style="font-size:11px;color:#fbbf24;margin-right:6px">⭐${p.ratingAvg.toFixed(1)}</span>`:''}
+        <button class="btn btn-ghost btn-sm" onclick='openModal("product",${JSON.stringify({...p})})'>✏️</button>
+        <button class="btn btn-sm" style="background:#ef444420;color:#f87171;border:none" onclick="deleteProduct('${p.id}','${p.type}')">🗑️</button>
       </td>
     </tr>`).join('');
 }
@@ -4145,8 +4375,35 @@ function filterProducts(btn,v){
   document.querySelectorAll('#product-type-fb .fb-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); productTypeFilter=v; renderProducts();
 }
-async function saveProduct(){ toast('CRUD de productos próximamente','info'); closeModal('product'); }
-async function deleteProduct(id){ toast('CRUD de productos próximamente','info'); }
+async function saveProduct(){
+  const id       = document.getElementById('pr-id').value;
+  const type     = document.getElementById('pr-type').value;
+  const name     = document.getElementById('pr-name').value.trim();
+  const category = document.getElementById('pr-category').value.trim();
+  const priceEur = document.getElementById('pr-price-eur').value;
+  const priceXaf = document.getElementById('pr-price-xaf').value;
+  const stock    = document.getElementById('pr-stock').value;
+  const desc     = document.getElementById('pr-desc').value.trim();
+  if(!name) return toast('El nombre es obligatorio','warning');
+  const body = { type, name, category, priceEur, priceXaf, stock, description: desc };
+  const r = id
+    ? await api(`/admin/products/${id}`, 'PUT', body)
+    : await api('/admin/products', 'POST', body);
+  if(!r.success) return toast(r.message||'Error al guardar','error');
+  toast(id ? 'Producto actualizado' : 'Producto creado', 'success');
+  addAuditEntry('product', id ? '✏️' : '➕', `Producto ${id ? 'editado' : 'creado'}: ${name}`, `Tipo: ${type}`);
+  closeModal('product');
+  loadProducts();
+}
+
+async function deleteProduct(id, type='shop'){
+  if(!confirm('¿Eliminar este producto? Esta acción no se puede deshacer.')) return;
+  const r = await api(`/admin/products/${id}?type=${type}`, 'DELETE');
+  if(!r.success) return toast(r.message||'Error al eliminar','error');
+  toast('Producto eliminado','success');
+  addAuditEntry('product','🗑️','Producto eliminado',`ID: ${id}`);
+  loadProducts();
+}
 
 /* ═══ REPORTS AVANZADOS ══════════════════════════════ */
 let repType = 'general', repPeriod = 'month';
