@@ -157,6 +157,61 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .ar-btn:hover{border-color:var(--primary);color:var(--primary)}
 .ar-btn.active{border-color:#10b981;color:#10b981;background:rgba(16,185,129,.08)}
 
+/* ── COMPACT MODE ──────────────────────────────── */
+body.compact .tw table td,body.compact .tw table th{padding:5px 10px!important;font-size:11px}
+body.compact .sc{padding:12px 14px}
+body.compact .sc .val{font-size:22px}
+
+/* ── FAB ───────────────────────────────────────── */
+.fab{position:fixed;bottom:24px;right:24px;z-index:100;display:flex;flex-direction:column;align-items:flex-end}
+.fab-trigger{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary2));border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,174,239,.4);transition:all .2s;flex-shrink:0}
+.fab-trigger:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(0,174,239,.5)}
+.fab-menu{display:none;flex-direction:column;gap:6px;margin-bottom:10px;align-items:flex-end}
+.fab-menu.open{display:flex}
+.fab-item{display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text);transition:all .15s;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.fab-item:hover{border-color:var(--primary);color:var(--primary);transform:translateX(-2px)}
+
+/* ── NOTES PANEL ───────────────────────────────── */
+.notes-panel{position:fixed;bottom:78px;right:80px;width:270px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;z-index:99;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.notes-panel.open{display:block}
+.notes-head{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;display:flex;justify-content:space-between;align-items:center;color:var(--text2)}
+.notes-body textarea{width:100%;height:140px;background:transparent;border:none;color:var(--text);font-size:12px;padding:12px;resize:none;outline:none;font-family:inherit;line-height:1.5}
+.notes-foot{padding:6px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text3)}
+
+/* ── PAGINATION ────────────────────────────────── */
+.pg-ctrl{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+.pg-btn{padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;font-size:11px;font-family:inherit;transition:all .15s}
+.pg-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.pg-btn.cur{background:var(--primary);color:#fff;border-color:var(--primary)}
+.pg-btn:disabled{opacity:.3;cursor:not-allowed}
+.pg-info{font-size:11px;color:var(--text3);margin-right:4px}
+
+/* ── BULK ACTIONS ──────────────────────────────── */
+.bulk-bar{display:none;align-items:center;gap:10px;padding:8px 14px;background:rgba(0,174,239,.08);border:1px solid rgba(0,174,239,.2);border-radius:8px;margin-bottom:10px;font-size:12px;color:var(--primary)}
+.bulk-bar.visible{display:flex}
+.tw table input[type=checkbox]{accent-color:var(--primary);width:14px;height:14px;cursor:pointer}
+
+/* ── STATUS DOT ────────────────────────────────── */
+.sdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.sdot.ok{background:#10b981;box-shadow:0 0 6px rgba(16,185,129,.5)}
+.sdot.slow{background:#fbbf24;box-shadow:0 0 6px rgba(251,191,36,.5)}
+.sdot.err{background:#f87171;box-shadow:0 0 6px rgba(248,113,113,.5)}
+.status-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:16px}
+.status-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.status-card .ep{font-size:12px;font-weight:600}
+.status-card .lat{font-size:11px;color:var(--text3)}
+
+/* ── PRINT ─────────────────────────────────────── */
+@media print{
+  .sb,.topbar,.btn,.sec-hd button,#ar-btn,.fab,.notes-panel,.fb,.modal-bg{display:none!important}
+  .main{margin-left:0!important}
+  body{background:#fff!important;color:#000!important;font-size:12px}
+  .tw table{width:100%;border-collapse:collapse}
+  .tw table td,.tw table th{border:1px solid #ccc;padding:6px 8px;color:#000}
+  .page{display:block!important;padding:16px}
+  .sc{border:1px solid #ddd;break-inside:avoid}
+}
+
 /* ── PAGES ─────────────────────────────────────── */
 .page{display:none;padding:24px;animation:pgIn .25s ease}
 .page.active{display:block}
@@ -826,6 +881,8 @@ html.light .email-preview{background:#f1f5f9}
       </div>
       <span style="font-size:12px;color:var(--text2)"><span class="dot-online"></span><span data-i18n="online">En línea</span></span>
       <button class="ar-btn" id="ar-btn" onclick="toggleAutoRefresh()" title="Auto-refresh cada 30s">🔄 Auto</button>
+      <button class="ar-btn" id="compact-btn" onclick="toggleCompact()" title="Modo compacto">⊟ Compact</button>
+      <button class="ar-btn" id="notes-btn" onclick="toggleNotesPanel()" title="Notas de esta sección">📝 Notas</button>
       <button class="btn btn-cyan btn-sm" onclick="refresh()">↻ Actualizar</button>
     </div>
   </div>
@@ -897,6 +954,8 @@ html.light .email-preview{background:#f1f5f9}
       <span data-i18n="users_title">Usuarios Registrados</span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button class="btn btn-ghost btn-sm" onclick="exportCSV(ALL_USERS,['ID','Nombre','Email','Teléfono','País','Rol','KYC','Fecha'],'usuarios')">⬇ CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-import-input').click()">⬆ Importar CSV</button>
+        <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="importUsersCSV(this)">
         <input class="search-bar" id="user-search" placeholder="🔍 Buscar..." oninput="filterUsersSearch()">
         <button class="btn btn-cyan" onclick="openModal('user',{})">+ <span data-i18n="new_user">Nuevo Usuario</span></button>
       </div>
@@ -914,10 +973,16 @@ html.light .email-preview{background:#f1f5f9}
       <button class="fb-btn" onclick="filterKyc(this,'pending')">⏳ Pendientes</button>
       <button class="fb-btn" onclick="filterKyc(this,'rejected')">✗ Rechazados</button>
     </div>
+    <div class="bulk-bar" id="bulk-bar-users">
+      <span id="bulk-count-users">0 seleccionados</span>
+      <button class="btn btn-red btn-sm" onclick="bulkDeleteUsers()">🗑 Eliminar seleccionados</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearBulkUsers()">✕ Cancelar</button>
+    </div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>País</th><th>Rol</th><th>KYC</th><th>Registro</th><th>Acciones</th></tr></thead>
-      <tbody id="tb-users"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+      <thead><tr><th style="width:32px"><input type="checkbox" id="chk-all-users" onchange="toggleAllUsers(this.checked)"></th><th>ID</th><th>Nombre</th><th>Email</th><th>País</th><th>Rol</th><th>KYC</th><th>Registro</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-users"><tr><td colspan="9" class="loading">Cargando...</td></tr></tbody>
     </table></div>
+    <div class="pg-ctrl" id="users-pagination"></div>
   </div>
 
   <!-- ── REPRESENTANTES ── -->
@@ -974,6 +1039,7 @@ html.light .email-preview{background:#f1f5f9}
       <thead><tr><th>ID</th><th>Tipo</th><th>Usuario</th><th>Importe</th><th>Divisa</th><th>Estado</th><th>Fecha</th></tr></thead>
       <tbody id="tb-txns"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
     </table></div>
+    <div class="pg-ctrl" id="txns-pagination"></div>
   </div>
 
   <!-- ── RECARGAS ── -->
@@ -1184,9 +1250,16 @@ html.light .email-preview{background:#f1f5f9}
 
   <!-- ── SYSTEM ── -->
   <div class="page" id="page-system">
-    <div class="sec-hd" data-i18n="system_title">Estado del Sistema en Tiempo Real</div>
+    <div class="sec-hd">
+      <span data-i18n="system_title">Estado del Sistema en Tiempo Real</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadSystemStatus()">↻ Verificar endpoints</button>
+    </div>
     <div class="syg" id="sys-grid"></div>
-    <div class="footer-note">INNOVAAFRIC Admin © 2026 · We Simplify Life</div>
+    <div class="sec-hd" style="margin-top:20px">🔌 Estado de Endpoints</div>
+    <div class="status-grid" id="status-grid">
+      <div style="color:var(--text3);font-size:12px;padding:10px">Haz clic en "Verificar endpoints" para comprobar el estado.</div>
+    </div>
+    <div class="footer-note" style="margin-top:20px">INNOVAAFRIC Admin © 2026 · We Simplify Life</div>
   </div>
 
   <!-- ── LÍMITES DE TRANSACCIÓN ── -->
@@ -1226,6 +1299,7 @@ html.light .email-preview{background:#f1f5f9}
       <span>💼 Nómina de Riders</span>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost btn-sm" onclick="exportCSV(ALL_PAYROLL,['ID','Período','Total','Divisa','Estado','Riders','Ejecutada'],'nominas')">⬇ CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 Imprimir</button>
         <button class="btn btn-cyan" onclick="openModal('payroll',{})">+ Calcular Nómina</button>
       </div>
     </div>
@@ -2815,6 +2889,7 @@ function showApp(){
   loadCollapsed();
   initSidebar();
   initFavStars();
+  applyCompact();
   loadAll();
 }
 
@@ -2865,6 +2940,8 @@ function gp(name){
     if(n.getAttribute('onclick')?.includes("'"+name+"'")) n.classList.add('active');
   });
   document.getElementById('pg-title').textContent = t('nav_'+name) || PG_TITLES[name] || name;
+  currentNotePage = name;
+  if(document.getElementById('notes-panel')?.classList.contains('open')) loadNote();
   if(name==='charts' && !chartsBuilt) buildCharts();
   if(name==='countries' && !ALL_COUNTRIES.length) loadCountries();
   if(name==='accounting') loadAccounting();
@@ -2899,17 +2976,18 @@ async function loadOverview(){
   if(!r.success) return;
   const d = r.data;
   document.getElementById('sg').innerHTML=`
-    <div class="sc c-cyan"><div class="lbl">Usuarios</div><div class="val">${d.users.total}</div><div class="sub">KYC ✓ ${d.users.kyc_verified}</div>
+    <div class="sc c-cyan"><div class="lbl">Usuarios</div><div class="val">${d.users.total}${trendArrow(d.users.total,p.users?.total)}</div><div class="sub">KYC ✓ ${d.users.kyc_verified}</div>
       <div class="pb"><div class="pf" style="width:${d.users.total?d.users.kyc_verified/d.users.total*100:0}%;background:#00AEEF"></div></div></div>
-    <div class="sc c-blue"><div class="lbl">Txns 24h</div><div class="val">${d.transactions.last_24h}</div><div class="sub">Total: ${d.transactions.total}</div></div>
-    <div class="sc c-yellow"><div class="lbl">Volumen EUR</div><div class="val">€${d.transactions.volume_eur_total.toFixed(0)}</div><div class="sub">XAF: ${(d.transactions.volume_xaf_total/1000).toFixed(0)}k</div></div>
-    <div class="sc c-green"><div class="lbl">Riders</div><div class="val">${d.riders.total}</div><div class="sub">✓ ${d.riders.available} · ⏳ ${d.riders.busy}</div></div>
-    <div class="sc c-blue"><div class="lbl">Pedidos</div><div class="val">${d.orders.shop_total}</div><div class="sub">Grocery: ${d.orders.grocery_total}</div></div>
-    <div class="sc c-purple"><div class="lbl">Puntos fidelidad</div><div class="val">${d.loyalty.total_points_issued}</div><div class="sub">${d.loyalty.users_with_points} usuarios</div></div>
-    <div class="sc c-yellow"><div class="lbl">Tontinas</div><div class="val">${d.tontines.total}</div><div class="sub">Activas: ${d.tontines.active}</div></div>
+    <div class="sc c-blue"><div class="lbl">Txns 24h</div><div class="val">${d.transactions.last_24h}${trendArrow(d.transactions.last_24h,p.transactions?.last_24h)}</div><div class="sub">Total: ${d.transactions.total}</div></div>
+    <div class="sc c-yellow"><div class="lbl">Volumen EUR</div><div class="val">€${d.transactions.volume_eur_total.toFixed(0)}${trendArrow(d.transactions.volume_eur_total,p.transactions?.volume_eur_total)}</div><div class="sub">XAF: ${(d.transactions.volume_xaf_total/1000).toFixed(0)}k</div></div>
+    <div class="sc c-green"><div class="lbl">Riders</div><div class="val">${d.riders.total}${trendArrow(d.riders.total,p.riders?.total)}</div><div class="sub">✓ ${d.riders.available} · ⏳ ${d.riders.busy}</div></div>
+    <div class="sc c-blue"><div class="lbl">Pedidos</div><div class="val">${d.orders.shop_total}${trendArrow(d.orders.shop_total,p.orders?.shop_total)}</div><div class="sub">Grocery: ${d.orders.grocery_total}</div></div>
+    <div class="sc c-purple"><div class="lbl">Puntos fidelidad</div><div class="val">${d.loyalty.total_points_issued}${trendArrow(d.loyalty.total_points_issued,p.loyalty?.total_points_issued)}</div><div class="sub">${d.loyalty.users_with_points} usuarios</div></div>
+    <div class="sc c-yellow"><div class="lbl">Tontinas</div><div class="val">${d.tontines.total}${trendArrow(d.tontines.total,p.tontines?.total)}</div><div class="sub">Activas: ${d.tontines.active}</div></div>
     <div class="sc c-orange"><div class="lbl">Notificaciones</div><div class="val">${d.notifications.unread}</div><div class="sub">Sin leer / ${d.notifications.total} total</div></div>
   `;
   window._stats = d;
+  saveMonthlySnapshot(d);
 }
 
 /* ═══ CHARTS ════════════════════════════════════════ */
@@ -3068,25 +3146,34 @@ async function buildRatesChart(){
 }
 
 /* ═══ USERS ═════════════════════════════════════════ */
+let USER_MAP = {};
 async function loadUsers(){
-  const r = await api('/admin/users?limit=100');
+  const r = await api('/admin/users?limit=500');
   if(!r.success) return;
   ALL_USERS = r.data.items||[];
+  USER_MAP = {}; ALL_USERS.forEach(u=>{ USER_MAP[u.id]=u; });
+  userPage = 1;
   renderUsers(); renderReps(); renderRoles();
-  // fill datalist for topup
   const dl = document.getElementById('tp-users-list');
   if(dl) dl.innerHTML = ALL_USERS.map(u=>`<option value="${u.id}">${u.name} — ${u.email}</option>`).join('');
 }
 
+let userPage = 1; const usersPerPage = 20;
+function setUserPage(p){ userPage=p; renderUsers(); }
 function renderUsers(){
   let users = ALL_USERS;
   if(roleFilter) users = users.filter(u=>u.role===roleFilter);
   if(kycFilter)  users = users.filter(u=>u.kycStatus===kycFilter);
   const q = document.getElementById('user-search')?.value.toLowerCase();
   if(q) users = users.filter(u=>(u.name+u.email+u.id).toLowerCase().includes(q));
-  if(!users.length){ document.getElementById('tb-users').innerHTML='<tr><td colspan="8" class="misc">Sin resultados</td></tr>'; return; }
-  document.getElementById('tb-users').innerHTML = users.map(u=>`
+  const total = users.length;
+  const totalPages = Math.ceil(total/usersPerPage);
+  if(userPage>totalPages) userPage=1;
+  const slice = users.slice((userPage-1)*usersPerPage, userPage*usersPerPage);
+  if(!slice.length){ document.getElementById('tb-users').innerHTML='<tr><td colspan="9" class="misc">Sin resultados</td></tr>'; renderPagination('users-pagination',1,0,'setUserPage'); return; }
+  document.getElementById('tb-users').innerHTML = slice.map(u=>`
     <tr>
+      <td><input type="checkbox" class="chk-user" data-id="${u.id}" ${selectedUsers.has(u.id)?'checked':''} onchange="toggleUserChk('${u.id}',this.checked)"></td>
       <td style="font-size:10px;color:#475569">${u.id}</td>
       <td style="font-weight:600">${u.name}</td>
       <td style="color:#64748b;font-size:11px">${u.email}</td>
@@ -3096,13 +3183,14 @@ function renderUsers(){
       <td style="color:#64748b">${fmtDate(u.createdAt)}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-ghost btn-sm" onclick="viewUser('${u.id}')">👁</button>
-        <button class="btn btn-ghost btn-sm" onclick="openModal('user',${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('user',USER_MAP['${u.id}']||{})">✏️</button>
         <button class="btn btn-ghost btn-sm" onclick="quickTopupModal('${u.id}','${u.name}')">💰</button>
         ${u.kycStatus!=='verified'?`<button class="btn btn-green btn-sm" onclick="updateKyc('${u.id}','verified')">✓</button>`:''}
         ${u.kycStatus!=='rejected'?`<button class="btn btn-red btn-sm" onclick="updateKyc('${u.id}','rejected')">✗</button>`:''}
         <button class="btn btn-red btn-sm" onclick="confirmDelete('usuario','${u.id}','deleteUser')">🗑</button>
       </td>
     </tr>`).join('');
+  renderPagination('users-pagination', userPage, totalPages, 'setUserPage');
 }
 
 function filterRole(btn,v){ document.querySelectorAll('#user-role-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); roleFilter=v; renderUsers(); }
@@ -3407,11 +3495,17 @@ async function loadTxns(){
   renderTxns();
 }
 
+let txnPage = 1; const txnsPerPage = 30;
+function setTxnPage(p){ txnPage=p; renderTxns(); }
 function renderTxns(){
   let txns = ALL_TXNS;
   if(txnTypeFilter) txns = txns.filter(t=>t.type===txnTypeFilter);
-  if(!txns.length){ document.getElementById('tb-txns').innerHTML='<tr><td colspan="7" class="misc">Sin transacciones</td></tr>'; return; }
-  document.getElementById('tb-txns').innerHTML = txns.map(t=>`
+  const total = txns.length;
+  const totalPages = Math.ceil(total/txnsPerPage);
+  if(txnPage>totalPages) txnPage=1;
+  const slice = txns.slice((txnPage-1)*txnsPerPage, txnPage*txnsPerPage);
+  if(!slice.length){ document.getElementById('tb-txns').innerHTML='<tr><td colspan="7" class="misc">Sin transacciones</td></tr>'; renderPagination('txns-pagination',1,0,'setTxnPage'); return; }
+  document.getElementById('tb-txns').innerHTML = slice.map(t=>`
     <tr>
       <td style="font-size:10px;color:#475569">${t.id}</td>
       <td><span class="b bc">${t.type}</span></td>
@@ -3421,6 +3515,7 @@ function renderTxns(){
       <td><span class="b bco">${t.status||'completed'}</span></td>
       <td style="color:#64748b">${fmtDate(t.createdAt)}</td>
     </tr>`).join('');
+  renderPagination('txns-pagination', txnPage, totalPages, 'setTxnPage');
 }
 
 function filterTxnType(btn,v){ document.querySelectorAll('#txn-type-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); txnTypeFilter=v; renderTxns(); }
@@ -6268,6 +6363,205 @@ function fillEmailCountrySelect(){
     countries.map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 
+/* ═══ COMPACT MODE ═══════════════════════════════════ */
+function toggleCompact(){
+  document.body.classList.toggle('compact');
+  const btn = document.getElementById('compact-btn');
+  const on = document.body.classList.contains('compact');
+  if(btn) btn.classList.toggle('active', on);
+  localStorage.setItem('ia_compact', on?'1':'');
+  toast(on ? 'Modo compacto activado' : 'Modo normal activado', 'info');
+}
+function applyCompact(){ if(localStorage.getItem('ia_compact')) document.body.classList.add('compact'); }
+
+/* ═══ FAB ════════════════════════════════════════════ */
+let fabOpen = false;
+function toggleFAB(){
+  fabOpen = !fabOpen;
+  document.getElementById('fab-menu').classList.toggle('open', fabOpen);
+  document.getElementById('fab-trigger').textContent = fabOpen ? '✕' : '＋';
+}
+function closeFAB(){ fabOpen=false; document.getElementById('fab-menu').classList.remove('open'); document.getElementById('fab-trigger').textContent='＋'; }
+document.addEventListener('click', e=>{ if(fabOpen && !e.target.closest('.fab')) closeFAB(); });
+
+/* ═══ NOTES PANEL ════════════════════════════════════ */
+let currentNotePage = 'overview';
+function toggleNotesPanel(){
+  const panel = document.getElementById('notes-panel');
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open')) loadNote();
+}
+function loadNote(){
+  const key = 'ia_note_' + currentNotePage;
+  const ta = document.getElementById('notes-textarea');
+  const lbl = document.getElementById('notes-section-label');
+  if(ta) ta.value = localStorage.getItem(key)||'';
+  if(lbl) lbl.textContent = PG_TITLES[currentNotePage]||currentNotePage;
+  document.getElementById('notes-saved-label').textContent = '';
+}
+function saveNote(){
+  const key = 'ia_note_' + currentNotePage;
+  localStorage.setItem(key, document.getElementById('notes-textarea').value);
+  const lbl = document.getElementById('notes-saved-label');
+  if(lbl){ lbl.textContent = '✓ Guardado'; setTimeout(()=>{ lbl.textContent=''; },1500); }
+}
+document.addEventListener('keydown', e=>{
+  if(e.altKey && e.key==='n'){ e.preventDefault(); toggleNotesPanel(); }
+});
+
+/* ═══ SYSTEM STATUS ══════════════════════════════════ */
+async function loadSystemStatus(){
+  const endpoints = [
+    {label:'Auth', path:'/auth/token', method:'POST', body:{grant_type:'client_credentials'}},
+    {label:'Stats', path:'/admin/stats', method:'GET'},
+    {label:'Usuarios', path:'/admin/users', method:'GET'},
+    {label:'Riders', path:'/admin/riders', method:'GET'},
+    {label:'Txns', path:'/admin/transactions', method:'GET'},
+    {label:'Loans', path:'/loans', method:'GET'},
+    {label:'Tontines', path:'/tontines', method:'GET'},
+    {label:'Campañas', path:'/campaigns', method:'GET'},
+    {label:'Tickets', path:'/tickets', method:'GET'},
+    {label:'Payroll', path:'/payroll', method:'GET'},
+  ];
+  const grid = document.getElementById('status-grid');
+  if(grid) grid.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:10px">Verificando...</div>';
+  const results = await Promise.all(endpoints.map(async ep=>{
+    const t0 = performance.now();
+    try{
+      const r = await fetch('/v1'+ep.path,{
+        method: ep.method,
+        headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+        body: ep.method!=='GET' ? JSON.stringify(ep.body||{}) : undefined
+      });
+      const ms = Math.round(performance.now()-t0);
+      const ok = r.status < 500;
+      return {label:ep.label, ms, ok, slow: ms>500};
+    }catch(e){
+      return {label:ep.label, ms:null, ok:false, slow:false};
+    }
+  }));
+  if(!grid) return;
+  grid.innerHTML = results.map(r=>`
+    <div class="status-card">
+      <div class="ep"><span class="sdot ${r.ok?(r.slow?'slow':'ok'):'err'}"></span>${r.label}</div>
+      <div class="lat">${r.ms!==null ? r.ms+'ms' : 'Error'}</div>
+    </div>`).join('');
+  loadSystem();
+}
+
+/* ═══ PAGINATION HELPERS ═════════════════════════════ */
+function renderPagination(containerId, page, totalPages, setPageFn){
+  const el = document.getElementById(containerId); if(!el) return;
+  if(totalPages<=1){ el.innerHTML=''; return; }
+  const pages = [];
+  if(page>1) pages.push({t:'‹', v:page-1});
+  const start = Math.max(1, page-2), end = Math.min(totalPages, page+2);
+  if(start>1) pages.push({t:'1',v:1},{t:'…',v:null});
+  for(let i=start;i<=end;i++) pages.push({t:String(i),v:i});
+  if(end<totalPages) pages.push({t:'…',v:null},{t:String(totalPages),v:totalPages});
+  if(page<totalPages) pages.push({t:'›',v:page+1});
+  el.innerHTML = `<span class="pg-info">Pág ${page}/${totalPages}</span>` +
+    pages.map(p=>p.v===null
+      ? `<span class="pg-info">…</span>`
+      : `<button class="pg-btn${p.v===page?' cur':''}" onclick="${setPageFn}(${p.v})">${p.t}</button>`
+    ).join('');
+}
+
+/* ═══ BULK ACTIONS — USUARIOS ════════════════════════ */
+let selectedUsers = new Set();
+function toggleAllUsers(checked){
+  document.querySelectorAll('.chk-user').forEach(c=>{ c.checked=checked; if(checked) selectedUsers.add(c.dataset.id); else selectedUsers.delete(c.dataset.id); });
+  updateBulkBar();
+}
+function toggleUserChk(id, checked){ if(checked) selectedUsers.add(id); else selectedUsers.delete(id); updateBulkBar(); }
+function updateBulkBar(){
+  const bar = document.getElementById('bulk-bar-users');
+  const n = selectedUsers.size;
+  if(bar){ bar.classList.toggle('visible',n>0); }
+  const lbl = document.getElementById('bulk-count-users');
+  if(lbl) lbl.textContent = `${n} usuario${n!==1?'s':''} seleccionado${n!==1?'s':''}`;
+}
+function clearBulkUsers(){ selectedUsers.clear(); document.querySelectorAll('.chk-user').forEach(c=>c.checked=false); const a=document.getElementById('chk-all-users'); if(a)a.checked=false; updateBulkBar(); }
+async function bulkDeleteUsers(){
+  if(!selectedUsers.size) return;
+  if(!confirm(`¿Eliminar ${selectedUsers.size} usuario(s) seleccionado(s)? Esta acción no se puede deshacer.`)) return;
+  let ok=0, fail=0;
+  for(const id of selectedUsers){
+    const r = await api('/admin/users/'+id,{method:'DELETE'});
+    if(r.success) ok++; else fail++;
+  }
+  toast(`✅ ${ok} eliminado(s)${fail?` · ❌ ${fail} error(es)`:''}`, ok?'':'err');
+  clearBulkUsers();
+  loadUsers();
+}
+
+/* ═══ IMPORTAR CSV USUARIOS ══════════════════════════ */
+let csvImportRows = [];
+function importUsersCSV(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const lines = e.target.result.split(/\r?\n/).filter(l=>l.trim());
+    csvImportRows = lines.slice(1).map(l=>{
+      const [name,email,phone,country,password] = l.split(',').map(s=>s.trim().replace(/^"|"$/g,''));
+      return {name,email,phone,country,password};
+    }).filter(r=>r.name&&r.email);
+    const prev = document.getElementById('import-preview');
+    if(prev) prev.innerHTML = `
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Vista previa: ${csvImportRows.length} registros</div>
+      <div class="tw" style="max-height:160px;overflow-y:auto"><table style="font-size:11px">
+        <thead><tr><th>Nombre</th><th>Email</th><th>País</th></tr></thead>
+        <tbody>${csvImportRows.slice(0,10).map(r=>`<tr><td>${r.name}</td><td>${r.email}</td><td>${r.country||'—'}</td></tr>`).join('')}
+        ${csvImportRows.length>10?`<tr><td colspan="3" style="color:#64748b">...y ${csvImportRows.length-10} más</td></tr>`:''}</tbody>
+      </table></div>`;
+    document.getElementById('import-progress').style.display='none';
+    document.getElementById('modal-import-csv').classList.add('open');
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+async function runImportCSV(){
+  if(!csvImportRows.length) return;
+  const prog = document.getElementById('import-progress');
+  const bar  = document.getElementById('import-bar');
+  const stat = document.getElementById('import-status');
+  const btn  = document.getElementById('import-btn');
+  prog.style.display='block'; btn.disabled=true;
+  let ok=0, fail=0;
+  for(let i=0;i<csvImportRows.length;i++){
+    const row = csvImportRows[i];
+    const body = {...row, password: row.password||'Innova2026!', role:'customer'};
+    const r = await api('/admin/users',{method:'POST',body:JSON.stringify(body)});
+    if(r.success) ok++; else fail++;
+    const pct = Math.round((i+1)/csvImportRows.length*100);
+    if(bar) bar.style.width=pct+'%';
+    if(stat) stat.textContent=`Importando... ${i+1}/${csvImportRows.length} (✅${ok} ❌${fail})`;
+  }
+  if(stat) stat.textContent=`✅ Completado: ${ok} creados, ${fail} errores`;
+  btn.disabled=false;
+  addAuditEntry('import','⬆️',`CSV importado: ${ok} usuarios creados`,`${fail} errores`);
+  toast(`✅ ${ok} usuarios importados`);
+  loadUsers();
+}
+
+/* ═══ COMPARATIVA MENSUAL ════════════════════════════ */
+function saveMonthlySnapshot(stats){
+  const key = 'ia_snap_'+new Date().toISOString().slice(0,7);
+  if(!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(stats));
+}
+function getLastMonthSnapshot(){
+  const d = new Date(); d.setMonth(d.getMonth()-1);
+  return JSON.parse(localStorage.getItem('ia_snap_'+d.toISOString().slice(0,7))||'null');
+}
+function trendArrow(curr, prev){
+  if(prev===null||prev===undefined) return '';
+  const diff = curr-prev;
+  const pct  = prev>0 ? Math.abs(Math.round(diff/prev*100)) : 0;
+  if(diff>0) return `<span style="color:#10b981;font-size:10px;margin-left:4px">▲ ${pct}%</span>`;
+  if(diff<0) return `<span style="color:#f87171;font-size:10px;margin-left:4px">▼ ${pct}%</span>`;
+  return `<span style="color:#64748b;font-size:10px;margin-left:4px">→</span>`;
+}
+
 /* ═══ CSV EXPORT ═════════════════════════════════════ */
 function exportCSV(data, headers, filename){
   if(!data||!data.length){ toast('Sin datos para exportar','err'); return; }
@@ -6639,5 +6933,54 @@ function buildTrendChart(){
   });
 }
 </script>
+<!-- ── NOTES PANEL ── -->
+<div class="notes-panel" id="notes-panel">
+  <div class="notes-head">
+    <span>📝 Notas — <span id="notes-section-label">General</span></span>
+    <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" onclick="toggleNotesPanel()">✕</button>
+  </div>
+  <div class="notes-body">
+    <textarea id="notes-textarea" placeholder="Escribe notas para esta sección..." oninput="saveNote()"></textarea>
+  </div>
+  <div class="notes-foot">
+    <span id="notes-saved-label"></span>
+    <span>Alt+N para abrir/cerrar</span>
+  </div>
+</div>
+
+<!-- ── FAB ── -->
+<div class="fab" id="fab">
+  <div class="fab-menu" id="fab-menu">
+    <div class="fab-item" onclick="gp('users');openModal('user',{});closeFAB()">👤 Nuevo Usuario</div>
+    <div class="fab-item" onclick="gp('tickets');closeFAB()">🎫 Nuevo Ticket</div>
+    <div class="fab-item" onclick="gp('payroll');openModal('payroll',{});closeFAB()">💼 Nueva Nómina</div>
+    <div class="fab-item" onclick="gp('campaigns');openModal('campaign',{});closeFAB()">📣 Nueva Campaña</div>
+    <div class="fab-item" onclick="gp('topup');closeFAB()">💰 Recargar Wallet</div>
+    <div class="fab-item" onclick="gp('alerts');openModal('alert',{});closeFAB()">🔔 Nueva Alerta</div>
+  </div>
+  <button class="fab-trigger" id="fab-trigger" onclick="toggleFAB()" title="Acciones rápidas">＋</button>
+</div>
+
+<!-- Modal: Importar CSV Usuarios -->
+<div class="modal-bg" id="modal-import-csv">
+  <div class="modal" style="max-width:520px">
+    <h3>⬆ Importar Usuarios desde CSV</h3>
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+      El CSV debe tener estas columnas en orden:<br>
+      <code style="color:var(--primary)">name, email, phone, country, password</code><br>
+      La primera fila es el encabezado (se omite). El rol se asigna como <em>customer</em> por defecto.
+    </div>
+    <div id="import-preview" style="max-height:200px;overflow-y:auto;margin-bottom:14px"></div>
+    <div id="import-progress" style="display:none">
+      <div class="pb" style="margin-bottom:8px"><div class="pf" id="import-bar" style="width:0%;background:#10b981;transition:width .3s"></div></div>
+      <div style="font-size:12px;color:var(--text2)" id="import-status">Importando...</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('import-csv')">Cancelar</button>
+      <button class="btn btn-cyan" id="import-btn" onclick="runImportCSV()">⬆ Importar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
