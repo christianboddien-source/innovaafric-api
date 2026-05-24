@@ -747,6 +747,7 @@ html.light .email-preview{background:#f1f5f9}
     <div class="sb-group" id="sec-community">
       <div class="ni" data-tip="Notificaciones" onclick="gp('notifications')"><span class="ic">🔔</span> <span data-i18n="nav_notifications">Notificaciones</span><span class="ni-badge info" id="badge-notifs" style="display:none"></span></div>
       <div class="ni" data-tip="Campañas" onclick="gp('campaigns')"><span class="ic">📣</span> <span>Campañas</span></div>
+      <div class="ni" data-tip="Soporte" onclick="gp('tickets')"><span class="ic">🎫</span> <span>Tickets Soporte</span><span class="ni-badge br" id="badge-tickets" style="display:none"></span></div>
       <div class="ni" data-tip="Email" onclick="gp('email')"><span class="ic">✉️</span> <span>Email</span></div>
       <div class="ni" data-tip="Chat" onclick="gp('chat')"><span class="ic">💬</span> <span data-i18n="nav_chat">Chat</span></div>
       <div class="ni" data-tip="Reseñas" onclick="gp('reviews')"><span class="ic">⭐</span> <span data-i18n="nav_reviews">Reseñas</span></div>
@@ -765,6 +766,8 @@ html.light .email-preview{background:#f1f5f9}
       <div class="ni" data-tip="Informes" onclick="gp('reports')"><span class="ic">📊</span> <span data-i18n="nav_reports">Informes</span></div>
       <div class="ni" data-tip="Seguridad" onclick="gp('security')"><span class="ic">🔐</span> <span>Seguridad / Fraude</span></div>
       <div class="ni" data-tip="API Keys" onclick="gp('apikeys')"><span class="ic">🔑</span> <span>API Keys</span></div>
+      <div class="ni" data-tip="Países Config" onclick="gp('countryconfig')"><span class="ic">🌐</span> <span>Config. Países</span></div>
+      <div class="ni" data-tip="Analytics" onclick="gp('analytics')"><span class="ic">📊</span> <span>Analytics BI</span></div>
       <div class="ni" data-tip="Límites" onclick="gp('limits')"><span class="ic">🚫</span> <span>Límites Transacción</span></div>
       <div class="ni" data-tip="Configuración" onclick="gp('settings')"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Configuración</span></div>
       <div class="ni" data-tip="Sistema" onclick="gp('system')"><span class="ic">🖥️</span> <span data-i18n="nav_system">Sistema</span></div>
@@ -1188,6 +1191,66 @@ html.light .email-preview{background:#f1f5f9}
       <div id="limits-history" style="max-height:200px;overflow-y:auto;font-size:12px;color:var(--text3)">
         <p style="text-align:center;padding:20px">Sin cambios registrados</p>
       </div>
+    </div>
+  </div>
+
+  <!-- ── TICKETS DE SOPORTE ── -->
+  <div class="page" id="page-tickets">
+    <div class="sec-hd">
+      <span>🎫 Tickets de Soporte</span>
+      <input class="search-bar" id="ticket-search" placeholder="🔍 Buscar..." oninput="renderTickets()">
+    </div>
+    <div class="sg" id="tickets-stats"></div>
+    <div class="fb" id="ticket-fb">
+      <button class="fb-btn active" onclick="filterTickets(this,'')">Todos</button>
+      <button class="fb-btn" onclick="filterTickets(this,'open')">🔴 Abiertos</button>
+      <button class="fb-btn" onclick="filterTickets(this,'in_progress')">🟡 En proceso</button>
+      <button class="fb-btn" onclick="filterTickets(this,'resolved')">🟢 Resueltos</button>
+      <button class="fb-btn" onclick="filterTickets(this,'urgent')">🚨 Urgentes</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Nombre</th><th>Email</th><th>Asunto</th><th>Categoría</th><th>Prioridad</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-tickets"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── CONFIG. PAÍSES ── -->
+  <div class="page" id="page-countryconfig">
+    <div class="sec-hd"><span>🌐 Configuración por País</span></div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Activa o desactiva servicios por país y asigna representantes regionales.</p>
+    <div id="countryconfig-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px"></div>
+  </div>
+
+  <!-- ── ANALYTICS BI ── -->
+  <div class="page" id="page-analytics">
+    <div class="sec-hd"><span>📊 Analytics & Business Intelligence</span></div>
+    <div class="sg" id="analytics-kpis"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <h3 style="margin:0 0 14px;font-size:13px;color:var(--text2)">📈 Crecimiento de Usuarios (12 meses)</h3>
+        <canvas id="chart-user-growth" height="200"></canvas>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <h3 style="margin:0 0 14px;font-size:13px;color:var(--text2)">💰 Volumen de Transacciones</h3>
+        <canvas id="chart-txn-volume" height="200"></canvas>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <h3 style="margin:0 0 14px;font-size:13px;color:var(--text2)">🌍 Top Países por Usuarios</h3>
+        <canvas id="chart-countries" height="200"></canvas>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <h3 style="margin:0 0 14px;font-size:13px;color:var(--text2)">📋 Distribución por Estado KYC</h3>
+        <canvas id="chart-kyc-dist" height="200"></canvas>
+      </div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+      <h3 style="margin:0 0 14px;font-size:13px;color:var(--text2)">🏆 Top 10 Usuarios por Volumen</h3>
+      <div class="tw"><table>
+        <thead><tr><th>Usuario</th><th>País</th><th>Txns</th><th>Volumen EUR</th><th>KYC</th><th>Registro</th></tr></thead>
+        <tbody id="tb-top-users"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+      </table></div>
     </div>
   </div>
 
@@ -2362,6 +2425,49 @@ html.light .email-preview{background:#f1f5f9}
   </div>
 </div>
 
+<!-- Modal: Responder Ticket -->
+<div class="modal-bg" id="modal-ticket">
+  <div class="modal" style="max-width:560px">
+    <h3 id="modal-ticket-title">🎫 Ticket de Soporte</h3>
+    <input type="hidden" id="tk-id">
+    <div style="background:var(--input-bg);border-radius:8px;padding:14px;margin-bottom:14px;font-size:13px">
+      <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap">
+        <span><b>De:</b> <span id="tk-name"></span></span>
+        <span><b>Email:</b> <span id="tk-email" style="color:var(--primary)"></span></span>
+        <span><b>Categoría:</b> <span id="tk-cat"></span></span>
+        <span><b>Prioridad:</b> <span id="tk-pri"></span></span>
+      </div>
+      <div><b>Asunto:</b> <span id="tk-subject" style="color:var(--text2)"></span></div>
+      <div style="margin-top:8px;color:var(--text3);line-height:1.6" id="tk-message"></div>
+    </div>
+    <div class="fg">
+      <label>Respuesta *</label>
+      <textarea id="tk-response" rows="4" style="width:100%;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:inherit;resize:vertical" placeholder="Escribe la respuesta al usuario..."></textarea>
+    </div>
+    <div class="form-row" style="margin-top:10px">
+      <div class="fg"><label>Estado tras responder</label>
+        <select id="tk-new-status">
+          <option value="resolved">✅ Resuelto</option>
+          <option value="in_progress">🟡 En proceso</option>
+          <option value="closed">🔒 Cerrado</option>
+        </select>
+      </div>
+      <div class="fg"><label>Prioridad</label>
+        <select id="tk-priority">
+          <option value="low">🟢 Baja</option>
+          <option value="medium">🟡 Media</option>
+          <option value="high">🟠 Alta</option>
+          <option value="urgent">🔴 Urgente</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('ticket')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="respondTicket()">📤 Enviar Respuesta</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Confirmar eliminación -->
 <div class="modal-bg" id="modal-confirm">
   <div class="modal" style="max-width:400px">
@@ -2567,7 +2673,8 @@ const PG_TITLES = {
   map:'Mapa Operacional',fees:'Comisiones',audit:'Auditoría Admin',
   calendar:'Calendario de Eventos',banktransfer:'Transferencia Bancaria',email:'Email',
   limits:'Límites de Transacción',notifications:'Notificaciones del Sistema',
-  security:'Seguridad y Fraude',campaigns:'Campañas de Marketing',apikeys:'API Keys'
+  security:'Seguridad y Fraude',campaigns:'Campañas de Marketing',apikeys:'API Keys',
+  tickets:'Tickets de Soporte',countryconfig:'Configuración por País',analytics:'Analytics BI'
 };
 
 function refresh(){
@@ -2617,6 +2724,9 @@ function gp(name){
   if(name==='security') loadSecurity();
   if(name==='campaigns') loadCampaigns();
   if(name==='apikeys') loadApiKeys();
+  if(name==='tickets') loadTickets();
+  if(name==='countryconfig') loadCountryConfig();
+  if(name==='analytics') loadAnalytics();
 }
 
 /* ═══ OVERVIEW ══════════════════════════════════════ */
@@ -3374,6 +3484,251 @@ function fillCountrySelects(){
         sel.appendChild(o);
       });
     });
+  });
+}
+
+/* ═══ TICKETS DE SOPORTE ════════════════════════════ */
+let ALL_TICKETS = [], ticketFilter = '', TICKET_MAP = {};
+
+async function loadTickets(){
+  const r = await api('/tickets');
+  if(!r.success) return;
+  ALL_TICKETS = r.data.tickets || [];
+  TICKET_MAP  = {}; ALL_TICKETS.forEach(t=>{ TICKET_MAP[t.id]=t; });
+  const s = r.data.stats;
+  const sg = document.getElementById('tickets-stats');
+  if(sg) sg.innerHTML=`
+    <div class="sc c-red"><div class="lbl">Abiertos</div><div class="val">${s.open}</div></div>
+    <div class="sc c-yellow"><div class="lbl">En proceso</div><div class="val">${s.in_progress}</div></div>
+    <div class="sc c-green"><div class="lbl">Resueltos</div><div class="val">${s.resolved}</div></div>
+    <div class="sc c-orange"><div class="lbl">Urgentes</div><div class="val">${s.urgent}</div></div>`;
+  updateBadge('badge-tickets', s.open + s.in_progress);
+  renderTickets();
+}
+
+function renderTickets(){
+  const q = document.getElementById('ticket-search')?.value.toLowerCase();
+  let items = ticketFilter === 'urgent'
+    ? ALL_TICKETS.filter(t => t.priority === 'urgent')
+    : ticketFilter ? ALL_TICKETS.filter(t => t.status === ticketFilter) : ALL_TICKETS;
+  if(q) items = items.filter(t=>(t.name+t.email+t.subject).toLowerCase().includes(q));
+  const tb = document.getElementById('tb-tickets');
+  if(!tb) return;
+  if(!items.length){ tb.innerHTML='<tr><td colspan="8" class="misc">Sin tickets en este filtro</td></tr>'; return; }
+  const priColor = {low:'bv',medium:'bp',high:'bri',urgent:'br'};
+  const stColor  = {open:'br',in_progress:'bp',resolved:'bv',closed:'bca'};
+  tb.innerHTML = items.map(t=>`<tr>
+    <td style="font-weight:600">${t.name}</td>
+    <td style="color:#60a5fa;font-size:12px">${t.email}</td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.subject}</td>
+    <td><span class="b bu">${t.category}</span></td>
+    <td><span class="b ${priColor[t.priority]||'bu'}">${t.priority}</span></td>
+    <td><span class="b ${stColor[t.status]||'bu'}">${t.status}</span></td>
+    <td style="color:#64748b;font-size:11px">${fmtDate(t.createdAt)}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-cyan btn-sm" onclick="openTicket('${t.id}')">📤 Responder</button>
+      <button class="btn btn-sm" style="background:#ef444420;color:#f87171;border:none" onclick="deleteTicket('${t.id}')">🗑️</button>
+    </td></tr>`).join('');
+}
+
+function filterTickets(btn,v){
+  document.querySelectorAll('#ticket-fb .fb-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); ticketFilter=v; renderTickets();
+}
+
+function openTicket(id){
+  const t = TICKET_MAP[id];
+  if(!t) return;
+  document.getElementById('tk-id').value      = t.id;
+  document.getElementById('tk-name').textContent    = t.name;
+  document.getElementById('tk-email').textContent   = t.email;
+  document.getElementById('tk-cat').textContent     = t.category;
+  document.getElementById('tk-pri').textContent     = t.priority;
+  document.getElementById('tk-subject').textContent = t.subject;
+  document.getElementById('tk-message').textContent = t.message;
+  document.getElementById('tk-response').value      = t.response || '';
+  document.getElementById('tk-priority').value      = t.priority;
+  document.getElementById('tk-new-status').value    = t.status === 'resolved' ? 'closed' : 'resolved';
+  document.getElementById('modal-ticket-title').textContent = `🎫 Ticket — ${t.subject}`;
+  openModal('ticket', {});
+}
+
+async function respondTicket(){
+  const id       = document.getElementById('tk-id').value;
+  const response = document.getElementById('tk-response').value.trim();
+  const status   = document.getElementById('tk-new-status').value;
+  const priority = document.getElementById('tk-priority').value;
+  if(!response) return toast('Escribe una respuesta','warning');
+  const [r1, r2] = await Promise.all([
+    api(`/tickets/${id}/respond`,'PATCH',{ response, status }),
+    api(`/tickets/${id}/status`,'PATCH',{ priority })
+  ]);
+  if(!r1.success) return toast(r1.message||'Error','error');
+  toast('Respuesta enviada','success');
+  addAuditEntry('ticket','📤',`Ticket respondido`,`ID: ${id} → ${status}`);
+  closeModal('ticket'); loadTickets();
+}
+
+async function deleteTicket(id){
+  if(!confirm('¿Eliminar este ticket?')) return;
+  const r = await api(`/tickets/${id}`,'DELETE');
+  if(!r.success) return toast(r.message||'Error','error');
+  toast('Ticket eliminado','success'); loadTickets();
+}
+
+/* ═══ CONFIG. PAÍSES ════════════════════════════════ */
+let ALL_COUNTRY_CONFIGS = [];
+
+async function loadCountryConfig(){
+  const r = await api('/countryconfig');
+  if(!r.success) return;
+  ALL_COUNTRY_CONFIGS = r.data.configs || [];
+  renderCountryGrid();
+}
+
+function renderCountryGrid(){
+  const grid = document.getElementById('countryconfig-grid');
+  if(!grid) return;
+  grid.innerHTML = ALL_COUNTRY_CONFIGS.map(c=>`
+    <div style="background:var(--card);border:1px solid ${c.active?'var(--border)':'#f8717140'};border-radius:12px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-weight:700;font-size:14px">${c.name} <span style="font-size:11px;color:#64748b">(${c.country})</span></span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px">
+          <input type="checkbox" ${c.active?'checked':''} onchange="updateCountry('${c.country}','active',this.checked)"> Activo
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;font-size:12px">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="checkbox" ${c.p2pEnabled?'checked':''} onchange="updateCountry('${c.country}','p2pEnabled',this.checked)"> 💸 P2P
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="checkbox" ${c.loansEnabled?'checked':''} onchange="updateCountry('${c.country}','loansEnabled',this.checked)"> 🤝 Préstamos
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="checkbox" ${c.groceryEnabled?'checked':''} onchange="updateCountry('${c.country}','groceryEnabled',this.checked)"> 🥦 Grocery
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="checkbox" ${c.cardsEnabled?'checked':''} onchange="updateCountry('${c.country}','cardsEnabled',this.checked)"> 💳 Tarjetas
+        </label>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Representante</div>
+        <input placeholder="Nombre" value="${c.repName||''}" style="width:100%;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;margin-bottom:4px"
+          onchange="updateCountry('${c.country}','repName',this.value)">
+        <input placeholder="Email" value="${c.repEmail||''}" style="width:100%;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;margin-bottom:4px"
+          onchange="updateCountry('${c.country}','repEmail',this.value)">
+        <input placeholder="Teléfono" value="${c.repPhone||''}" style="width:100%;background:var(--input-bg);color:var(--text1);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px"
+          onchange="updateCountry('${c.country}','repPhone',this.value)">
+      </div>
+    </div>`).join('');
+}
+
+async function updateCountry(country, field, value){
+  const r = await api(`/countryconfig/${country}`,'PUT',{ [field]: value });
+  if(!r.success){ toast(r.message||'Error al guardar','error'); return; }
+  const idx = ALL_COUNTRY_CONFIGS.findIndex(c=>c.country===country);
+  if(idx>=0) ALL_COUNTRY_CONFIGS[idx][field] = value;
+  addAuditEntry('country','🌐',`Config ${country}: ${field}=${value}`,'');
+  toast(`${country} actualizado`,'success');
+}
+
+/* ═══ ANALYTICS BI ══════════════════════════════════ */
+let analyticsCharts = {};
+
+async function loadAnalytics(){
+  const [statsR, usersR, txnsR] = await Promise.all([
+    api('/admin/stats'),
+    api('/admin/users?limit=200'),
+    api('/admin/transactions?limit=500')
+  ]);
+
+  // KPIs
+  if(statsR.success){
+    const d = statsR.data;
+    const sg = document.getElementById('analytics-kpis');
+    if(sg) sg.innerHTML=`
+      <div class="sc c-cyan"><div class="lbl">Usuarios totales</div><div class="val">${d.users.total}</div><div class="sub">KYC ✓ ${d.users.kyc_verified}</div></div>
+      <div class="sc c-green"><div class="lbl">Tasa KYC</div><div class="val">${d.users.total?Math.round(d.users.kyc_verified/d.users.total*100):0}%</div><div class="sub">Conversión verificación</div></div>
+      <div class="sc c-blue"><div class="lbl">Txns totales</div><div class="val">${d.transactions.total.toLocaleString()}</div><div class="sub">Últimas 24h: ${d.transactions.last_24h}</div></div>
+      <div class="sc c-yellow"><div class="lbl">Riders activos</div><div class="val">${d.riders?.active||0}</div><div class="sub">de ${d.riders?.total||0} totales</div></div>`;
+  }
+
+  // Gráfico crecimiento usuarios por mes
+  if(usersR.success){
+    const users = usersR.data.users || [];
+    const monthMap = {};
+    users.forEach(u=>{
+      const m = new Date(u.createdAt).toLocaleString('es',{month:'short',year:'2-digit'});
+      monthMap[m] = (monthMap[m]||0)+1;
+    });
+    const labels = Object.keys(monthMap).slice(-12);
+    const vals   = labels.map(l=>monthMap[l]);
+    buildChart('chart-user-growth','line',labels,vals,'Nuevos usuarios','#00AEEF');
+
+    // KYC dist
+    const kyc = {verified:0,pending:0,rejected:0};
+    users.forEach(u=>{ if(kyc[u.kycStatus]!==undefined) kyc[u.kycStatus]++; });
+    buildChart('chart-kyc-dist','doughnut',
+      ['✅ Verificado','⏳ Pendiente','❌ Rechazado'],
+      [kyc.verified,kyc.pending,kyc.rejected],
+      'KYC',['#10b981','#fbbf24','#f87171']);
+
+    // Top países
+    const cMap = {};
+    users.forEach(u=>{ cMap[u.country]=(cMap[u.country]||0)+1; });
+    const top = Object.entries(cMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    buildChart('chart-countries','bar',top.map(x=>x[0]),top.map(x=>x[1]),'Usuarios','#a78bfa');
+
+    // Top 10 usuarios (por txns)
+    const tb = document.getElementById('tb-top-users');
+    if(tb) tb.innerHTML = users.slice(0,10).map(u=>`<tr>
+      <td style="font-weight:600">${u.name}</td>
+      <td>${u.country}</td>
+      <td style="text-align:center">—</td>
+      <td style="color:#fbbf24">—</td>
+      <td><span class="b ${u.kycStatus==='verified'?'bv':u.kycStatus==='pending'?'bp':'br'}">${u.kycStatus}</span></td>
+      <td style="font-size:11px;color:#64748b">${fmtDate(u.createdAt)}</td>
+    </tr>`).join('');
+  }
+
+  // Gráfico volumen txns por mes
+  if(txnsR.success){
+    const txns = txnsR.data.transactions || [];
+    const mMap = {};
+    txns.forEach(t=>{
+      const m = new Date(t.createdAt).toLocaleString('es',{month:'short',year:'2-digit'});
+      mMap[m] = (mMap[m]||0)+(t.amountEur||0);
+    });
+    const labels = Object.keys(mMap).slice(-12);
+    buildChart('chart-txn-volume','bar',labels,labels.map(l=>Math.round(mMap[l])),'EUR','#34d399');
+  }
+}
+
+function buildChart(id, type, labels, data, label, color){
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  if(analyticsCharts[id]){ analyticsCharts[id].destroy(); }
+  const colors = Array.isArray(color) ? color : Array(labels.length).fill(color||'#00AEEF');
+  analyticsCharts[id] = new Chart(ctx, {
+    type,
+    data: {
+      labels,
+      datasets:[{ label, data,
+        backgroundColor: type==='line' ? color+'22' : colors,
+        borderColor: type==='line' ? color : colors,
+        borderWidth: type==='line' ? 2 : 1,
+        fill: type==='line', tension: 0.4,
+        pointBackgroundColor: color
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display: type==='doughnut', labels:{ color:'#94a3b8', font:{size:11} } } },
+      scales: type!=='doughnut' ? {
+        x:{ ticks:{color:'#64748b',font:{size:10}}, grid:{color:'#1e293b'} },
+        y:{ ticks:{color:'#64748b',font:{size:10}}, grid:{color:'#1e293b'} }
+      } : {}
+    }
   });
 }
 
@@ -4486,7 +4841,10 @@ const MODULES = [
   {ic:'🚫',nm:'Límites Transacción',sc:'Sistema',pg:'limits'},
   {ic:'🔐',nm:'Seguridad / Fraude',sc:'Sistema',pg:'security'},
   {ic:'📣',nm:'Campañas Marketing',sc:'Comunidad',pg:'campaigns'},
-  {ic:'🔑',nm:'API Keys',sc:'Sistema',pg:'apikeys'}
+  {ic:'🔑',nm:'API Keys',sc:'Sistema',pg:'apikeys'},
+  {ic:'🎫',nm:'Tickets Soporte',sc:'Comunidad',pg:'tickets'},
+  {ic:'🌐',nm:'Config. Países',sc:'Sistema',pg:'countryconfig'},
+  {ic:'📊',nm:'Analytics BI',sc:'Sistema',pg:'analytics'}
 ];
 function searchModules(){
   const q = document.getElementById('tb-search-input').value.trim().toLowerCase();

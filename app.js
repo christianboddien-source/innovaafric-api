@@ -37,6 +37,8 @@ const transfersRoutes     = require('./src/routes/transfers');
 const emailsRoutes        = require('./src/routes/emails');
 const campaignsRoutes     = require('./src/routes/campaigns');
 const apikeysRoutes       = require('./src/routes/apikeys');
+const ticketsRoutes       = require('./src/routes/tickets');
+const countryconfigRoutes = require('./src/routes/countryconfig');
 const { error }      = require('./src/helpers/response');
 
 const app = express();
@@ -113,6 +115,8 @@ app.use('/v1/transfers',     transfersRoutes);
 app.use('/v1/emails',        emailsRoutes);
 app.use('/v1/campaigns',     campaignsRoutes);
 app.use('/v1/apikeys',       apikeysRoutes);
+app.use('/v1/tickets',       ticketsRoutes);
+app.use('/v1/countryconfig', countryconfigRoutes);
 
 // ── 404 ─────────────────────────────────────────────────
 app.use((_req, res) => {

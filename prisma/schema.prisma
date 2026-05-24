@@ -666,6 +666,38 @@ model Campaign {
   updatedAt   DateTime  @updatedAt
 }
 
+model SupportTicket {
+  id           String    @id @default(cuid())
+  userId       String?
+  name         String
+  email        String
+  subject      String
+  message      String
+  status       String    @default("open")
+  priority     String    @default("medium")
+  category     String    @default("general")
+  response     String?
+  respondedAt  DateTime?
+  respondedBy  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model CountryConfig {
+  id             String   @id
+  country        String   @unique
+  name           String
+  active         Boolean  @default(true)
+  p2pEnabled     Boolean  @default(true)
+  loansEnabled   Boolean  @default(true)
+  groceryEnabled Boolean  @default(true)
+  cardsEnabled   Boolean  @default(true)
+  repName        String?
+  repEmail       String?
+  repPhone       String?
+  updatedAt      DateTime @updatedAt
+}
+
 model AccountingEntry {
   id          String   @id
   type        String
