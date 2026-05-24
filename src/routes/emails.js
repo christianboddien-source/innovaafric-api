@@ -3,7 +3,8 @@
 const express    = require('express');
 const nodemailer = require('nodemailer');
 const { PrismaClient } = require('@prisma/client');
-const { verifyToken, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
+const requireAdmin = requireRole('admin');
 const { ok, error } = require('../helpers/response');
 
 const router = express.Router();
@@ -27,7 +28,7 @@ function buildTransporter() {
 }
 
 /* ── GET /emails — historial de envíos ────────────── */
-router.get('/', verifyToken, requireAdmin, async (req, res) => {
+router.get('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { limit = 50, offset = 0 } = req.query;
     const [logs, total] = await Promise.all([
@@ -50,7 +51,7 @@ router.get('/', verifyToken, requireAdmin, async (req, res) => {
 });
 
 /* ── POST /emails/send ────────────────────────────── */
-router.post('/send', verifyToken, requireAdmin, async (req, res) => {
+router.post('/send', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { to, subject, body, type } = req.body;
     if (!to || !subject || !body) return error(res, 'Faltan: to, subject, body', 400);

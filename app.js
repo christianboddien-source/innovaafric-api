@@ -35,6 +35,8 @@ const accountingRoutes    = require('./src/routes/accounting');
 const eventsRoutes        = require('./src/routes/events');
 const transfersRoutes     = require('./src/routes/transfers');
 const emailsRoutes        = require('./src/routes/emails');
+const campaignsRoutes     = require('./src/routes/campaigns');
+const apikeysRoutes       = require('./src/routes/apikeys');
 const { error }      = require('./src/helpers/response');
 
 const app = express();
@@ -109,6 +111,8 @@ app.use('/v1/accounting',    accountingRoutes);
 app.use('/v1/events',        eventsRoutes);
 app.use('/v1/transfers',     transfersRoutes);
 app.use('/v1/emails',        emailsRoutes);
+app.use('/v1/campaigns',     campaignsRoutes);
+app.use('/v1/apikeys',       apikeysRoutes);
 
 // ── 404 ─────────────────────────────────────────────────
 app.use((_req, res) => {

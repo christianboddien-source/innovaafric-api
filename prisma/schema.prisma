@@ -16,9 +16,11 @@ model User {
   role         String   @default("customer")
   passwordHash String
   kycStatus    String   @default("pending")
-  kycDocument  String?
-  referralCode String?
-  createdAt    DateTime @default(now())
+  kycDocument   String?
+  referralCode  String?
+  blocked       Boolean  @default(false)
+  blockedReason String?
+  createdAt     DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   wallet          Wallet?
@@ -210,11 +212,14 @@ model Merchant {
 }
 
 model ApiClient {
-  id           String @id @default(cuid())
-  clientId     String @unique
+  id           String   @id @default(cuid())
+  clientId     String   @unique
   clientSecret String
   name         String
   scopes       String
+  active       Boolean  @default(true)
+  description  String?
+  createdAt    DateTime @default(now())
 }
 
 model BillProvider {
@@ -643,6 +648,22 @@ model EmailLog {
   recipients Int      @default(0)
   status     String   @default("sent")
   createdAt  DateTime @default(now())
+}
+
+model Campaign {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        String    @default("promo")
+  status      String    @default("draft")
+  target      String    @default("all")
+  discount    Float?
+  code        String?   @unique
+  startDate   DateTime?
+  endDate     DateTime?
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model AccountingEntry {

@@ -2,7 +2,8 @@
 
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
-const { verifyToken, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
+const requireAdmin = requireRole('admin');
 const { ok, error } = require('../helpers/response');
 const { v4: uuidv4 } = require('uuid');
 
@@ -10,7 +11,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 /* ── GET /events ──────────────────────────────────── */
-router.get('/', verifyToken, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { country, type, from, to } = req.query;
     const where = {};
@@ -32,7 +33,7 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 /* ── GET /events/:id ──────────────────────────────── */
-router.get('/:id', verifyToken, async (req, res) => {
+router.get('/:id', requireAuth, async (req, res) => {
   try {
     const ev = await prisma.event.findUnique({ where: { id: req.params.id } });
     if (!ev) return error(res, 'Evento no encontrado', 404);
@@ -43,7 +44,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 });
 
 /* ── POST /events ─────────────────────────────────── */
-router.post('/', verifyToken, requireAdmin, async (req, res) => {
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { title, description, type, startDate, endDate, allDay, country, city, color } = req.body;
     if (!title || !startDate) return error(res, 'title y startDate son requeridos', 400);
@@ -67,7 +68,7 @@ router.post('/', verifyToken, requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /events/:id ──────────────────────────────── */
-router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { title, description, type, startDate, endDate, allDay, country, city, color } = req.body;
     const ev = await prisma.event.update({
@@ -91,7 +92,7 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
 });
 
 /* ── DELETE /events/:id ───────────────────────────── */
-router.delete('/:id', verifyToken, requireAdmin, async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     await prisma.event.delete({ where: { id: req.params.id } });
     ok(res, { message: 'Evento eliminado' });

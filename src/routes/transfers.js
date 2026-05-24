@@ -2,14 +2,15 @@
 
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
-const { verifyToken, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
+const requireAdmin = requireRole('admin');
 const { ok, error } = require('../helpers/response');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 /* ── GET /transfers — lista admin ─────────────────── */
-router.get('/', verifyToken, requireAdmin, async (req, res) => {
+router.get('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { status, limit = 50, offset = 0 } = req.query;
     const where = status ? { status } : {};
@@ -37,7 +38,7 @@ router.get('/', verifyToken, requireAdmin, async (req, res) => {
 });
 
 /* ── GET /transfers/my — transferencias del usuario ─ */
-router.get('/my', verifyToken, async (req, res) => {
+router.get('/my', requireAuth, async (req, res) => {
   try {
     const transfers = await prisma.bankTransfer.findMany({
       where: { userId: req.user.id },
@@ -50,7 +51,7 @@ router.get('/my', verifyToken, async (req, res) => {
 });
 
 /* ── POST /transfers — crear solicitud ────────────── */
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const { amount, currency, bankName, accountName, accountNumber, swiftCode, ibanCode, country, reference } = req.body;
     if (!amount || !bankName || !accountName || !accountNumber || !country) {
@@ -88,7 +89,7 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 /* ── PATCH /transfers/:id/process ─────────────────── */
-router.patch('/:id/process', verifyToken, requireAdmin, async (req, res) => {
+router.patch('/:id/process', requireAuth, requireAdmin, async (req, res) => {
   try {
     const t = await prisma.bankTransfer.update({
       where: { id: req.params.id },
@@ -101,7 +102,7 @@ router.patch('/:id/process', verifyToken, requireAdmin, async (req, res) => {
 });
 
 /* ── PATCH /transfers/:id/complete ────────────────── */
-router.patch('/:id/complete', verifyToken, requireAdmin, async (req, res) => {
+router.patch('/:id/complete', requireAuth, requireAdmin, async (req, res) => {
   try {
     const t = await prisma.bankTransfer.update({
       where: { id: req.params.id },
@@ -114,7 +115,7 @@ router.patch('/:id/complete', verifyToken, requireAdmin, async (req, res) => {
 });
 
 /* ── PATCH /transfers/:id/reject ──────────────────── */
-router.patch('/:id/reject', verifyToken, requireAdmin, async (req, res) => {
+router.patch('/:id/reject', requireAuth, requireAdmin, async (req, res) => {
   try {
     const transfer = await prisma.bankTransfer.findUnique({ where: { id: req.params.id } });
     if (!transfer) return error(res, 'Transferencia no encontrada', 404);

@@ -721,4 +721,46 @@ router.get('/bills', requireAuth, requireRole('admin'), async (req, res) => {
   return success(res, { payments, total: payments.length, total_amount });
 });
 
+// ══════════════════════════════════════════════════════
+//  SEGURIDAD Y FRAUDE
+// ══════════════════════════════════════════════════════
+router.get('/security', requireAuth, requireRole('admin'), async (_req, res) => {
+  try {
+    const [blockedUsers, highValueTxns, recentUsers, suspiciousLoans] = await Promise.all([
+      prisma.user.findMany({ where: { blocked: true }, select: { id: true, name: true, email: true, country: true, blockedReason: true, updatedAt: true }, orderBy: { updatedAt: 'desc' } }),
+      prisma.transaction.findMany({ where: { amountEur: { gte: 5000 } }, orderBy: { createdAt: 'desc' }, take: 20, include: { sender: { select: { name: true, email: true } }, receiver: { select: { name: true, email: true } } } }),
+      prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 5, select: { id: true, name: true, email: true, country: true, kycStatus: true, createdAt: true } }),
+      prisma.loan.findMany({ where: { status: 'active', amountEur: { gte: 2000 } }, orderBy: { createdAt: 'desc' }, take: 10, include: { user: { select: { name: true, email: true, kycStatus: true } } } })
+    ]);
+    const stats = {
+      blocked:     blockedUsers.length,
+      highValue:   highValueTxns.length,
+      totalUsers:  await prisma.user.count(),
+      kycPending:  await prisma.user.count({ where: { kycStatus: 'pending' } })
+    };
+    return success(res, { stats, blockedUsers, highValueTxns, recentUsers, suspiciousLoans });
+  } catch (e) { return error(res, e.message); }
+});
+
+router.patch('/users/:id/block', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const u = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { blocked: true, blockedReason: reason || 'Bloqueado por administración' }
+    });
+    return success(res, { id: u.id, blocked: u.blocked, blockedReason: u.blockedReason });
+  } catch (e) { return error(res, e.message); }
+});
+
+router.patch('/users/:id/unblock', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const u = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { blocked: false, blockedReason: null }
+    });
+    return success(res, { id: u.id, blocked: u.blocked });
+  } catch (e) { return error(res, e.message); }
+});
+
 module.exports = router;

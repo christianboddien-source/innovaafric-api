@@ -746,6 +746,7 @@ html.light .email-preview{background:#f1f5f9}
     <div class="sb-sec" onclick="toggleSec('sec-community')"><span data-i18n="nav_community_sec">COMUNIDAD</span><span class="chv">▾</span></div>
     <div class="sb-group" id="sec-community">
       <div class="ni" data-tip="Notificaciones" onclick="gp('notifications')"><span class="ic">🔔</span> <span data-i18n="nav_notifications">Notificaciones</span><span class="ni-badge info" id="badge-notifs" style="display:none"></span></div>
+      <div class="ni" data-tip="Campañas" onclick="gp('campaigns')"><span class="ic">📣</span> <span>Campañas</span></div>
       <div class="ni" data-tip="Email" onclick="gp('email')"><span class="ic">✉️</span> <span>Email</span></div>
       <div class="ni" data-tip="Chat" onclick="gp('chat')"><span class="ic">💬</span> <span data-i18n="nav_chat">Chat</span></div>
       <div class="ni" data-tip="Reseñas" onclick="gp('reviews')"><span class="ic">⭐</span> <span data-i18n="nav_reviews">Reseñas</span></div>
@@ -762,6 +763,8 @@ html.light .email-preview{background:#f1f5f9}
       <div class="ni" data-tip="Categorías" onclick="gp('categories')"><span class="ic">🏷️</span> <span data-i18n="nav_categories">Categorías</span></div>
       <div class="ni" data-tip="Países" onclick="gp('countries')"><span class="ic">🌍</span> <span data-i18n="nav_countries">Países</span></div>
       <div class="ni" data-tip="Informes" onclick="gp('reports')"><span class="ic">📊</span> <span data-i18n="nav_reports">Informes</span></div>
+      <div class="ni" data-tip="Seguridad" onclick="gp('security')"><span class="ic">🔐</span> <span>Seguridad / Fraude</span></div>
+      <div class="ni" data-tip="API Keys" onclick="gp('apikeys')"><span class="ic">🔑</span> <span>API Keys</span></div>
       <div class="ni" data-tip="Límites" onclick="gp('limits')"><span class="ic">🚫</span> <span>Límites Transacción</span></div>
       <div class="ni" data-tip="Configuración" onclick="gp('settings')"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Configuración</span></div>
       <div class="ni" data-tip="Sistema" onclick="gp('system')"><span class="ic">🖥️</span> <span data-i18n="nav_system">Sistema</span></div>
@@ -1186,6 +1189,74 @@ html.light .email-preview{background:#f1f5f9}
         <p style="text-align:center;padding:20px">Sin cambios registrados</p>
       </div>
     </div>
+  </div>
+
+  <!-- ── SEGURIDAD / FRAUDE ── -->
+  <div class="page" id="page-security">
+    <div class="sec-hd"><span>🔐 Seguridad y Detección de Fraude</span></div>
+    <div class="sg" id="security-stats"></div>
+    <!-- Usuarios bloqueados -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="margin:0;font-size:14px;color:#f87171">🚫 Usuarios Bloqueados</h3>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Nombre</th><th>Email</th><th>País</th><th>Motivo</th><th>Fecha</th><th>Acción</th></tr></thead>
+        <tbody id="tb-blocked"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+      </table></div>
+    </div>
+    <!-- Bloquear usuario -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+      <h3 style="margin:0 0 14px;font-size:14px;color:var(--text2)">⛔ Bloquear Usuario</h3>
+      <div class="form-row">
+        <div class="fg"><label>ID o Email del usuario</label><input id="block-user-id" placeholder="usr_xxx o email@..."></div>
+        <div class="fg"><label>Motivo</label><input id="block-reason" placeholder="Ej: Actividad sospechosa detectada"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn btn-sm" style="background:#ef444420;color:#f87171;border:1px solid #f8717140" onclick="blockUser()">🚫 Bloquear</button>
+        <button class="btn btn-ghost btn-sm" onclick="unblockUser()">✅ Desbloquear ID</button>
+      </div>
+    </div>
+    <!-- Transacciones de alto valor -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px">
+      <h3 style="margin:0 0 14px;font-size:14px;color:#fbbf24">⚠️ Transacciones de Alto Valor (≥5.000 EUR)</h3>
+      <div class="tw"><table>
+        <thead><tr><th>Remitente</th><th>Destinatario</th><th>Importe EUR</th><th>Tipo</th><th>Estado</th><th>Fecha</th></tr></thead>
+        <tbody id="tb-hightxns"><tr><td colspan="6" class="loading">Cargando...</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ── CAMPAÑAS ── -->
+  <div class="page" id="page-campaigns">
+    <div class="sec-hd">
+      <span>📣 Campañas de Marketing</span>
+      <button class="btn btn-cyan" onclick="openModal('campaign',{})">+ Nueva Campaña</button>
+    </div>
+    <div class="sg" id="campaigns-stats"></div>
+    <div class="fb" id="campaign-status-fb">
+      <button class="fb-btn active" onclick="filterCampaigns(this,'')">Todas</button>
+      <button class="fb-btn" onclick="filterCampaigns(this,'active')">🟢 Activas</button>
+      <button class="fb-btn" onclick="filterCampaigns(this,'draft')">📝 Borrador</button>
+      <button class="fb-btn" onclick="filterCampaigns(this,'ended')">🔴 Terminadas</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Título</th><th>Tipo</th><th>Target</th><th>Descuento</th><th>Código</th><th>Inicio</th><th>Fin</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-campaigns"><tr><td colspan="9" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── API KEYS ── -->
+  <div class="page" id="page-apikeys">
+    <div class="sec-hd">
+      <span>🔑 API Keys e Integraciones</span>
+      <button class="btn btn-cyan" onclick="openModal('apikey',{})">+ Nueva API Key</button>
+    </div>
+    <div class="sg" id="apikeys-stats"></div>
+    <div class="tw"><table>
+      <thead><tr><th>Nombre</th><th>Client ID</th><th>Scopes</th><th>Descripción</th><th>Estado</th><th>Creada</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-apikeys"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
   </div>
 
   <!-- ── PRÉSTAMOS ── -->
@@ -2218,6 +2289,79 @@ html.light .email-preview{background:#f1f5f9}
   </div>
 </div>
 
+<!-- Modal: Campaña -->
+<div class="modal-bg" id="modal-campaign">
+  <div class="modal">
+    <h3 id="modal-campaign-title">📣 Nueva Campaña</h3>
+    <input type="hidden" id="camp-id">
+    <div class="form-row">
+      <div class="fg"><label>Título *</label><input id="camp-title" placeholder="Ej: Black Friday Africa 2026"></div>
+      <div class="fg"><label>Tipo</label>
+        <select id="camp-type">
+          <option value="promo">🎁 Promoción</option>
+          <option value="discount">💰 Descuento</option>
+          <option value="announcement">📢 Anuncio</option>
+          <option value="referral">👥 Referidos</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:10px">
+      <div class="fg"><label>Target</label>
+        <select id="camp-target">
+          <option value="all">👥 Todos</option>
+          <option value="role:user">👤 Usuarios</option>
+          <option value="role:rider">🚴 Riders</option>
+          <option value="kyc:verified">✅ KYC verificado</option>
+          <option value="country:CM">🇨🇲 Camerún</option>
+          <option value="country:SN">🇸🇳 Senegal</option>
+          <option value="country:CI">🇨🇮 Costa de Marfil</option>
+          <option value="country:GH">🇬🇭 Ghana</option>
+          <option value="country:NG">🇳🇬 Nigeria</option>
+        </select>
+      </div>
+      <div class="fg"><label>Descuento %</label><input type="number" id="camp-discount" placeholder="10" min="0" max="100" step="0.5"></div>
+      <div class="fg"><label>Código promo</label><input id="camp-code" placeholder="BLACKFRIDAY26" style="text-transform:uppercase"></div>
+    </div>
+    <div class="form-row" style="margin-top:10px">
+      <div class="fg"><label>Inicio</label><input type="datetime-local" id="camp-start"></div>
+      <div class="fg"><label>Fin</label><input type="datetime-local" id="camp-end"></div>
+    </div>
+    <div class="fg" style="margin-top:10px"><label>Descripción</label><input id="camp-desc" placeholder="Describe la campaña..."></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('campaign')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="saveCampaign()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: API Key -->
+<div class="modal-bg" id="modal-apikey">
+  <div class="modal" style="max-width:480px">
+    <h3>🔑 Nueva API Key</h3>
+    <div class="fg"><label>Nombre *</label><input id="ak-name" placeholder="Ej: Integración Partner XYZ"></div>
+    <div class="fg" style="margin-top:10px"><label>Descripción</label><input id="ak-desc" placeholder="Para qué se usará esta key..."></div>
+    <div class="fg" style="margin-top:10px"><label>Scopes (permisos)</label>
+      <select id="ak-scopes">
+        <option value="read">👁️ Solo lectura</option>
+        <option value="read,write">✏️ Lectura y escritura</option>
+        <option value="read,write,admin">🔑 Acceso completo</option>
+        <option value="payments">💳 Pagos únicamente</option>
+      </select>
+    </div>
+    <div id="ak-result" style="display:none;margin-top:16px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <p style="font-size:12px;color:#fbbf24;margin:0 0 8px">⚠️ Guarda estas credenciales — no se mostrarán de nuevo.</p>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Client ID</div>
+      <code id="ak-client-id" style="font-size:12px;color:var(--primary);word-break:break-all"></code>
+      <div style="font-size:11px;color:var(--text3);margin:8px 0 4px">Secret Key</div>
+      <code id="ak-secret" style="font-size:12px;color:#10b981;word-break:break-all"></code>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('apikey')">Cerrar</button>
+      <button class="btn btn-cyan" id="ak-save-btn" onclick="saveApiKey()">🔑 Generar Key</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Confirmar eliminación -->
 <div class="modal-bg" id="modal-confirm">
   <div class="modal" style="max-width:400px">
@@ -2422,7 +2566,8 @@ const PG_TITLES = {
   kyc:'KYC / Verificación',products:'Catálogo de Productos',
   map:'Mapa Operacional',fees:'Comisiones',audit:'Auditoría Admin',
   calendar:'Calendario de Eventos',banktransfer:'Transferencia Bancaria',email:'Email',
-  limits:'Límites de Transacción',notifications:'Notificaciones del Sistema'
+  limits:'Límites de Transacción',notifications:'Notificaciones del Sistema',
+  security:'Seguridad y Fraude',campaigns:'Campañas de Marketing',apikeys:'API Keys'
 };
 
 function refresh(){
@@ -2469,6 +2614,9 @@ function gp(name){
   if(name==='email') loadEmailHistory();
   if(name==='limits') loadLimits();
   if(name==='notifications') loadNotifications();
+  if(name==='security') loadSecurity();
+  if(name==='campaigns') loadCampaigns();
+  if(name==='apikeys') loadApiKeys();
 }
 
 /* ═══ OVERVIEW ══════════════════════════════════════ */
@@ -2839,6 +2987,25 @@ function openModal(name, data){
       .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('nbt-currency').value='XAF';
   }
+  if(name==='campaign'){
+    const editing = !!data.id;
+    document.getElementById('modal-campaign-title').textContent = editing ? '✏️ Editar Campaña' : '📣 Nueva Campaña';
+    document.getElementById('camp-id').value       = data.id          || '';
+    document.getElementById('camp-title').value    = data.title       || '';
+    document.getElementById('camp-type').value     = data.type        || 'promo';
+    document.getElementById('camp-target').value   = data.target      || 'all';
+    document.getElementById('camp-discount').value = data.discount    || '';
+    document.getElementById('camp-code').value     = data.code        || '';
+    document.getElementById('camp-desc').value     = data.description || '';
+    document.getElementById('camp-start').value    = data.startDate ? new Date(data.startDate).toISOString().slice(0,16) : '';
+    document.getElementById('camp-end').value      = data.endDate   ? new Date(data.endDate).toISOString().slice(0,16)   : '';
+  }
+  if(name==='apikey'){
+    ['ak-name','ak-desc'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('ak-scopes').value   = 'read';
+    document.getElementById('ak-result').style.display = 'none';
+    document.getElementById('ak-save-btn').style.display = 'inline-block';
+  }
   document.getElementById('modal-'+name).classList.add('open');
 }
 
@@ -3208,6 +3375,208 @@ function fillCountrySelects(){
       });
     });
   });
+}
+
+/* ═══ SEGURIDAD / FRAUDE ════════════════════════════ */
+async function loadSecurity(){
+  const r = await api('/admin/security');
+  if(!r.success) return;
+  const d = r.data;
+  const sg = document.getElementById('security-stats');
+  if(sg) sg.innerHTML=`
+    <div class="sc c-red"><div class="lbl">Usuarios bloqueados</div><div class="val">${d.stats.blocked}</div></div>
+    <div class="sc c-orange"><div class="lbl">Txns alto valor</div><div class="val">${d.stats.highValue}</div><div class="sub">≥ 5.000 EUR</div></div>
+    <div class="sc c-cyan"><div class="lbl">Total usuarios</div><div class="val">${d.stats.totalUsers}</div></div>
+    <div class="sc c-yellow"><div class="lbl">KYC pendiente</div><div class="val">${d.stats.kycPending}</div></div>`;
+  // Tabla bloqueados
+  const tb = document.getElementById('tb-blocked');
+  if(tb) tb.innerHTML = d.blockedUsers.length
+    ? d.blockedUsers.map(u=>`<tr>
+        <td style="font-weight:600">${u.name}</td>
+        <td style="color:#64748b">${u.email}</td>
+        <td>${u.country}</td>
+        <td style="color:#f87171;font-size:12px">${u.blockedReason||'—'}</td>
+        <td style="color:#64748b;font-size:11px">${fmtDate(u.updatedAt)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="doUnblock('${u.id}')">✅ Desbloquear</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" class="misc">✅ Sin usuarios bloqueados</td></tr>';
+  // Tabla txns alto valor
+  const th = document.getElementById('tb-hightxns');
+  if(th) th.innerHTML = d.highValueTxns.length
+    ? d.highValueTxns.map(t=>`<tr>
+        <td style="font-weight:600">${t.sender?.name||'—'}</td>
+        <td>${t.receiver?.name||'—'}</td>
+        <td style="color:#fbbf24;font-weight:700">€${(t.amountEur||0).toLocaleString()}</td>
+        <td><span class="b bu">${t.type||'—'}</span></td>
+        <td><span class="b ${t.status==='completed'?'bv':t.status==='pending'?'bp':'br'}">${t.status}</span></td>
+        <td style="color:#64748b;font-size:11px">${fmtDate(t.createdAt)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" class="misc">Sin transacciones de alto valor</td></tr>';
+}
+
+async function blockUser(){
+  const id     = document.getElementById('block-user-id').value.trim();
+  const reason = document.getElementById('block-reason').value.trim();
+  if(!id) return toast('Introduce un ID o email','warning');
+  if(!confirm(`¿Bloquear usuario "${id}"?`)) return;
+  const r = await api(`/admin/users/${id}/block`,'PATCH',{ reason });
+  if(!r.success) return toast(r.message||'Error','error');
+  toast('Usuario bloqueado','success');
+  addAuditEntry('security','🚫',`Usuario bloqueado: ${id}`,reason||'Sin motivo');
+  loadSecurity();
+}
+
+async function unblockUser(){
+  const id = document.getElementById('block-user-id').value.trim();
+  if(!id) return toast('Introduce el ID del usuario','warning');
+  await doUnblock(id);
+}
+
+async function doUnblock(id){
+  const r = await api(`/admin/users/${id}/unblock`,'PATCH');
+  if(!r.success) return toast(r.message||'Error','error');
+  toast('Usuario desbloqueado','success');
+  addAuditEntry('security','✅',`Usuario desbloqueado: ${id}`,'');
+  loadSecurity();
+}
+
+/* ═══ CAMPAÑAS ══════════════════════════════════════ */
+let ALL_CAMPAIGNS = [], campaignFilter = '', CAMPAIGN_MAP = {};
+
+async function loadCampaigns(){
+  const r = await api('/campaigns');
+  if(!r.success) return;
+  ALL_CAMPAIGNS = r.data.campaigns || [];
+  CAMPAIGN_MAP  = {}; ALL_CAMPAIGNS.forEach(c=>{ CAMPAIGN_MAP[c.id]=c; });
+  const sg = document.getElementById('campaigns-stats');
+  if(sg) sg.innerHTML=`
+    <div class="sc c-cyan"><div class="lbl">Total</div><div class="val">${r.data.stats.total}</div></div>
+    <div class="sc c-green"><div class="lbl">Activas</div><div class="val">${r.data.stats.active}</div></div>
+    <div class="sc c-blue"><div class="lbl">Borrador</div><div class="val">${r.data.stats.draft}</div></div>
+    <div class="sc c-red"><div class="lbl">Terminadas</div><div class="val">${r.data.stats.ended}</div></div>`;
+  renderCampaigns();
+}
+
+function renderCampaigns(){
+  const items = campaignFilter ? ALL_CAMPAIGNS.filter(c=>c.status===campaignFilter) : ALL_CAMPAIGNS;
+  const tb = document.getElementById('tb-campaigns');
+  if(!tb) return;
+  if(!items.length){ tb.innerHTML='<tr><td colspan="9" class="misc">Sin campañas en este filtro</td></tr>'; return; }
+  const statusColor = {active:'bv',draft:'bp',paused:'bca',ended:'br'};
+  tb.innerHTML = items.map(c=>`<tr>
+    <td style="font-weight:600">${c.title}</td>
+    <td><span class="b bu">${c.type}</span></td>
+    <td style="font-size:12px;color:#64748b">${c.target}</td>
+    <td style="color:#10b981">${c.discount!=null?c.discount+'%':'—'}</td>
+    <td style="font-family:monospace;font-size:11px">${c.code||'—'}</td>
+    <td style="font-size:11px;color:#64748b">${c.startDate?fmtDate(c.startDate):'—'}</td>
+    <td style="font-size:11px;color:#64748b">${c.endDate?fmtDate(c.endDate):'—'}</td>
+    <td><span class="b ${statusColor[c.status]||'bu'}">${c.status}</span></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-ghost btn-sm" onclick="editCampaign('${c.id}')">✏️</button>
+      ${c.status==='draft'?`<button class="btn btn-sm" style="background:#10b98120;color:#10b981;border:none" onclick="setCampaignStatus('${c.id}','active')">▶</button>`:''}
+      ${c.status==='active'?`<button class="btn btn-sm" style="background:#fbbf2420;color:#fbbf24;border:none" onclick="setCampaignStatus('${c.id}','paused')">⏸</button>`:''}
+      <button class="btn btn-sm" style="background:#ef444420;color:#f87171;border:none" onclick="deleteCampaign('${c.id}')">🗑️</button>
+    </td></tr>`).join('');
+}
+
+function filterCampaigns(btn,v){
+  document.querySelectorAll('#campaign-status-fb .fb-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); campaignFilter=v; renderCampaigns();
+}
+
+function editCampaign(id){ openModal('campaign', CAMPAIGN_MAP[id]||{}); }
+
+async function saveCampaign(){
+  const id = document.getElementById('camp-id').value;
+  const body = {
+    title:       document.getElementById('camp-title').value.trim(),
+    type:        document.getElementById('camp-type').value,
+    target:      document.getElementById('camp-target').value,
+    discount:    document.getElementById('camp-discount').value||null,
+    code:        document.getElementById('camp-code').value.trim().toUpperCase()||null,
+    description: document.getElementById('camp-desc').value.trim(),
+    startDate:   document.getElementById('camp-start').value||null,
+    endDate:     document.getElementById('camp-end').value||null
+  };
+  if(!body.title) return toast('El título es obligatorio','warning');
+  const r = id ? await api(`/campaigns/${id}`,'PUT',body) : await api('/campaigns','POST',body);
+  if(!r.success) return toast(r.message||'Error al guardar','error');
+  toast(id?'Campaña actualizada':'Campaña creada','success');
+  addAuditEntry('campaign',id?'✏️':'📣',`Campaña ${id?'editada':'creada'}: ${body.title}`,'');
+  closeModal('campaign'); loadCampaigns();
+}
+
+async function setCampaignStatus(id, status){
+  const r = await api(`/campaigns/${id}/status`,'PATCH',{ status });
+  if(!r.success) return toast(r.message||'Error','error');
+  toast(`Campaña ${status==='active'?'activada':'pausada'}`,'success');
+  loadCampaigns();
+}
+
+async function deleteCampaign(id){
+  if(!confirm('¿Eliminar esta campaña?')) return;
+  const r = await api(`/campaigns/${id}`,'DELETE');
+  if(!r.success) return toast(r.message||'Error','error');
+  toast('Campaña eliminada','success');
+  loadCampaigns();
+}
+
+/* ═══ API KEYS ══════════════════════════════════════ */
+async function loadApiKeys(){
+  const r = await api('/apikeys');
+  if(!r.success) return;
+  const keys = r.data.keys || [];
+  const sg = document.getElementById('apikeys-stats');
+  if(sg) sg.innerHTML=`
+    <div class="sc c-cyan"><div class="lbl">Total keys</div><div class="val">${r.data.total}</div></div>
+    <div class="sc c-green"><div class="lbl">Activas</div><div class="val">${r.data.active}</div></div>
+    <div class="sc c-red"><div class="lbl">Inactivas</div><div class="val">${r.data.total-r.data.active}</div></div>`;
+  const tb = document.getElementById('tb-apikeys');
+  if(!tb) return;
+  if(!keys.length){ tb.innerHTML='<tr><td colspan="7" class="misc">Sin API keys generadas</td></tr>'; return; }
+  tb.innerHTML = keys.map(k=>`<tr>
+    <td style="font-weight:600">${k.name}</td>
+    <td style="font-family:monospace;font-size:11px;color:var(--primary)">${k.clientId}</td>
+    <td><span class="b bu">${k.scopes}</span></td>
+    <td style="font-size:12px;color:#64748b">${k.description||'—'}</td>
+    <td><span class="b ${k.active?'bv':'br'}">${k.active?'Activa':'Inactiva'}</span></td>
+    <td style="font-size:11px;color:#64748b">${fmtDate(k.createdAt)}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-ghost btn-sm" onclick="toggleApiKey('${k.id}')">${k.active?'⏸ Desactivar':'▶ Activar'}</button>
+      <button class="btn btn-sm" style="background:#ef444420;color:#f87171;border:none" onclick="revokeApiKey('${k.id}')">🗑️</button>
+    </td></tr>`).join('');
+}
+
+async function saveApiKey(){
+  const name  = document.getElementById('ak-name').value.trim();
+  const desc  = document.getElementById('ak-desc').value.trim();
+  const scopes= document.getElementById('ak-scopes').value;
+  if(!name) return toast('El nombre es obligatorio','warning');
+  const r = await api('/apikeys','POST',{ name, description: desc, scopes });
+  if(!r.success) return toast(r.message||'Error','error');
+  document.getElementById('ak-client-id').textContent = r.data.clientId;
+  document.getElementById('ak-secret').textContent    = r.data.clientSecret;
+  document.getElementById('ak-result').style.display  = 'block';
+  document.getElementById('ak-save-btn').style.display= 'none';
+  addAuditEntry('apikey','🔑',`API Key creada: ${name}`,`Scopes: ${scopes}`);
+  loadApiKeys();
+}
+
+async function toggleApiKey(id){
+  const r = await api(`/apikeys/${id}/toggle`,'PATCH');
+  if(!r.success) return toast(r.message||'Error','error');
+  toast(r.data.active ? 'Key activada' : 'Key desactivada','success');
+  loadApiKeys();
+}
+
+async function revokeApiKey(id){
+  if(!confirm('¿Revocar esta API Key? Los sistemas que la usen dejarán de funcionar.')) return;
+  const r = await api(`/apikeys/${id}`,'DELETE');
+  if(!r.success) return toast(r.message||'Error','error');
+  toast('API Key revocada','success');
+  addAuditEntry('apikey','🗑️','API Key revocada',`ID: ${id}`);
+  loadApiKeys();
 }
 
 /* ═══ REPORTS ───────────────────────────────────── */
@@ -4114,7 +4483,10 @@ const MODULES = [
   {ic:'📅',nm:'Calendario',sc:'Servicios',pg:'calendar'},
   {ic:'🏦',nm:'Transferencia Bancaria',sc:'Finanzas',pg:'banktransfer'},
   {ic:'✉️',nm:'Email',sc:'Comunidad',pg:'email'},
-  {ic:'🚫',nm:'Límites Transacción',sc:'Sistema',pg:'limits'}
+  {ic:'🚫',nm:'Límites Transacción',sc:'Sistema',pg:'limits'},
+  {ic:'🔐',nm:'Seguridad / Fraude',sc:'Sistema',pg:'security'},
+  {ic:'📣',nm:'Campañas Marketing',sc:'Comunidad',pg:'campaigns'},
+  {ic:'🔑',nm:'API Keys',sc:'Sistema',pg:'apikeys'}
 ];
 function searchModules(){
   const q = document.getElementById('tb-search-input').value.trim().toLowerCase();

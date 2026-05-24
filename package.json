@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
-    "prisma": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -27,6 +26,8 @@
     "express-rate-limit": "^7.2.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^8.0.8",
+    "prisma": "^6.0.0",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^9.0.1"
   },
@@ -43,11 +44,19 @@
   "jest": {
     "testEnvironment": "node",
     "globalSetup": "./tests/globalSetup.js",
-    "setupFiles": ["./tests/setEnv.js"],
-    "setupFilesAfterFramework": ["./tests/setup.js"],
-    "testMatch": ["**/tests/**/*.test.js"],
+    "setupFiles": [
+      "./tests/setEnv.js"
+    ],
+    "setupFilesAfterFramework": [
+      "./tests/setup.js"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
     "coverageDirectory": "coverage",
-    "collectCoverageFrom": ["src/**/*.js"],
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
     "testTimeout": 30000
   }
 }
