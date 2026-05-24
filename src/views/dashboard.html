@@ -142,6 +142,20 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}
 .btn-ghost:hover{border-color:var(--primary);color:var(--primary);background:var(--glow)}
 .btn-sm{padding:4px 10px;font-size:11px;border-radius:6px}
+.btn-xs{padding:3px 8px;font-size:10px;border-radius:5px}
+
+/* ── FAVORITES STAR ────────────────────────────── */
+.ni-fav{display:none;margin-left:auto;font-size:12px;opacity:.35;flex-shrink:0;transition:opacity .15s;line-height:1;padding:2px}
+.ni:hover .ni-fav{display:inline}
+.ni-fav:hover{opacity:1!important}
+.ni-fav.starred{display:inline;opacity:1;color:#fbbf24}
+#fav-section{display:none}
+#fav-section .fav-hd{padding:10px 16px 2px;font-size:9px;color:#fbbf24;text-transform:uppercase;letter-spacing:1.2px;font-weight:700;display:flex;align-items:center;gap:6px}
+
+/* ── AUTO-REFRESH ──────────────────────────────── */
+.ar-btn{font-size:11px;color:var(--text3);padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap;background:transparent;font-family:inherit}
+.ar-btn:hover{border-color:var(--primary);color:var(--primary)}
+.ar-btn.active{border-color:#10b981;color:#10b981;background:rgba(16,185,129,.08)}
 
 /* ── PAGES ─────────────────────────────────────── */
 .page{display:none;padding:24px;animation:pgIn .25s ease}
@@ -691,6 +705,9 @@ html.light .email-preview{background:#f1f5f9}
   </div>
 
   <nav class="sb-nav">
+    <!-- FAVORITOS -->
+    <div id="fav-section"></div>
+
     <!-- PRINCIPAL -->
     <div class="sb-sec" onclick="toggleSec('sec-main')"><span data-i18n="nav_principal">PRINCIPAL</span><span class="chv">▾</span></div>
     <div class="sb-group" id="sec-main">
@@ -808,6 +825,7 @@ html.light .email-preview{background:#f1f5f9}
         </div>
       </div>
       <span style="font-size:12px;color:var(--text2)"><span class="dot-online"></span><span data-i18n="online">En línea</span></span>
+      <button class="ar-btn" id="ar-btn" onclick="toggleAutoRefresh()" title="Auto-refresh cada 30s">🔄 Auto</button>
       <button class="btn btn-cyan btn-sm" onclick="refresh()">↻ Actualizar</button>
     </div>
   </div>
@@ -877,7 +895,8 @@ html.light .email-preview{background:#f1f5f9}
   <div class="page" id="page-users">
     <div class="sec-hd">
       <span data-i18n="users_title">Usuarios Registrados</span>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV(ALL_USERS,['ID','Nombre','Email','Teléfono','País','Rol','KYC','Fecha'],'usuarios')">⬇ CSV</button>
         <input class="search-bar" id="user-search" placeholder="🔍 Buscar..." oninput="filterUsersSearch()">
         <button class="btn btn-cyan" onclick="openModal('user',{})">+ <span data-i18n="new_user">Nuevo Usuario</span></button>
       </div>
@@ -937,6 +956,7 @@ html.light .email-preview{background:#f1f5f9}
     <div class="sec-hd">
       <span data-i18n="txns_title">Transacciones</span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV(ALL_TXNS,['ID','Tipo','Monto','Divisa','Estado','Usuario','Fecha'],'transacciones')">⬇ CSV</button>
         <input type="date" class="search-bar" id="txn-from" style="width:140px">
         <input type="date" class="search-bar" id="txn-to" style="width:140px">
         <button class="btn btn-cyan" onclick="loadTxns()">Filtrar</button>
@@ -996,7 +1016,10 @@ html.light .email-preview{background:#f1f5f9}
   <div class="page" id="page-riders">
     <div class="sec-hd">
       <span data-i18n="riders_title">Gestión de Riders</span>
-      <button class="btn btn-cyan" onclick="openModal('rider',{})">+ <span data-i18n="new_rider">Nuevo Rider</span></button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV(ALL_RIDERS,['ID','Nombre','Teléfono','Zona','Vehículo','Estado','Entregas','Rating'],'riders')">⬇ CSV</button>
+        <button class="btn btn-cyan" onclick="openModal('rider',{})">+ <span data-i18n="new_rider">Nuevo Rider</span></button>
+      </div>
     </div>
     <div class="fb" id="rider-fb">
       <button class="fb-btn active" onclick="filterRider(this,'')">Todos</button>
@@ -1201,7 +1224,10 @@ html.light .email-preview{background:#f1f5f9}
   <div class="page" id="page-payroll">
     <div class="sec-hd">
       <span>💼 Nómina de Riders</span>
-      <button class="btn btn-cyan" onclick="openModal('payroll',{})">+ Calcular Nómina</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV(ALL_PAYROLL,['ID','Período','Total','Divisa','Estado','Riders','Ejecutada'],'nominas')">⬇ CSV</button>
+        <button class="btn btn-cyan" onclick="openModal('payroll',{})">+ Calcular Nómina</button>
+      </div>
     </div>
     <div class="sg" id="payroll-stats"></div>
     <div class="tw"><table>
@@ -1235,7 +1261,10 @@ html.light .email-preview{background:#f1f5f9}
   <div class="page" id="page-tickets">
     <div class="sec-hd">
       <span>🎫 Tickets de Soporte</span>
-      <input class="search-bar" id="ticket-search" placeholder="🔍 Buscar..." oninput="renderTickets()">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="search-bar" id="ticket-search" placeholder="🔍 Buscar..." oninput="renderTickets()">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV(ALL_TICKETS,['ID','Nombre','Email','Asunto','Categoría','Prioridad','Estado','Fecha'],'tickets')">⬇ CSV</button>
+      </div>
     </div>
     <div class="sg" id="tickets-stats"></div>
     <div class="fb" id="ticket-fb">
@@ -1363,7 +1392,8 @@ html.light .email-preview{background:#f1f5f9}
   <div class="page" id="page-loans">
     <div class="sec-hd">
       <span>Préstamos</span>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV(ALL_LOANS,['ID','Usuario','Monto','Divisa','Estado','Tasa','Fecha'],'prestamos')">⬇ CSV</button>
         <input class="search-bar" id="loan-search" placeholder="🔍 Buscar usuario..." oninput="renderLoans()">
       </div>
     </div>
@@ -2784,6 +2814,7 @@ function showApp(){
   document.getElementById('cfg-date').textContent = new Date().toLocaleDateString();
   loadCollapsed();
   initSidebar();
+  initFavStars();
   loadAll();
 }
 
@@ -6235,6 +6266,103 @@ function fillEmailCountrySelect(){
   const countries = [...new Set((ALL_USERS||[]).map(u=>u.country).filter(Boolean))].sort();
   sel.innerHTML = '<option value="">📍 O filtrar por país...</option>' +
     countries.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+/* ═══ CSV EXPORT ═════════════════════════════════════ */
+function exportCSV(data, headers, filename){
+  if(!data||!data.length){ toast('Sin datos para exportar','err'); return; }
+  const keys = Object.keys(data[0]);
+  const rows = [headers.join(',')].concat(
+    data.map(row=>keys.map(k=>{
+      const v = row[k]===null||row[k]===undefined ? '' : String(row[k]);
+      return v.includes(',') || v.includes('"') || v.includes('\n')
+        ? '"'+v.replace(/"/g,'""')+'"' : v;
+    }).join(','))
+  );
+  const blob = new Blob(['﻿'+rows.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast(`✅ ${data.length} registros exportados`);
+}
+
+/* ═══ AUTO-REFRESH ═══════════════════════════════════ */
+let arTimer = null, arSeconds = 0;
+
+function toggleAutoRefresh(){
+  const btn = document.getElementById('ar-btn');
+  if(arTimer){
+    clearInterval(arTimer); arTimer=null;
+    btn.textContent='🔄 Auto'; btn.classList.remove('active');
+    toast('Auto-refresh desactivado','info');
+  } else {
+    arSeconds = 30;
+    btn.classList.add('active');
+    btn.textContent=`🔄 ${arSeconds}s`;
+    arTimer = setInterval(()=>{
+      arSeconds--;
+      if(arSeconds<=0){
+        arSeconds=30;
+        const anyModal = document.querySelector('.modal-bg.open');
+        if(!anyModal){ loadAll(); toast('↻ Datos actualizados','info'); }
+      }
+      const b = document.getElementById('ar-btn');
+      if(b) b.textContent=`🔄 ${arSeconds}s`;
+    },1000);
+    toast('Auto-refresh activado (30s)','info');
+  }
+}
+
+/* ═══ FAVORITOS SIDEBAR ══════════════════════════════ */
+let FAVS = JSON.parse(localStorage.getItem('ia_favs')||'[]');
+
+function initFavStars(){
+  document.querySelectorAll('.ni[onclick]').forEach(el=>{
+    const m = el.getAttribute('onclick').match(/gp\('(\w+)'\)/);
+    if(!m) return;
+    const pg = m[1];
+    el.dataset.pg = pg;
+    const star = document.createElement('span');
+    star.className = 'ni-fav' + (FAVS.includes(pg) ? ' starred' : '');
+    star.textContent = FAVS.includes(pg) ? '★' : '☆';
+    star.title = FAVS.includes(pg) ? 'Quitar de favoritos' : 'Añadir a favoritos';
+    star.onclick = e=>{ e.stopPropagation(); toggleFav(pg); };
+    el.appendChild(star);
+  });
+  renderFavSection();
+}
+
+function toggleFav(pg){
+  const idx = FAVS.indexOf(pg);
+  if(idx>-1) FAVS.splice(idx,1); else FAVS.push(pg);
+  localStorage.setItem('ia_favs', JSON.stringify(FAVS));
+  document.querySelectorAll('.ni[data-pg]').forEach(el=>{
+    if(el.dataset.pg !== pg) return;
+    const star = el.querySelector('.ni-fav');
+    if(!star) return;
+    star.classList.toggle('starred', FAVS.includes(pg));
+    star.textContent = FAVS.includes(pg) ? '★' : '☆';
+    star.title = FAVS.includes(pg) ? 'Quitar de favoritos' : 'Añadir a favoritos';
+  });
+  renderFavSection();
+}
+
+function renderFavSection(){
+  const sec = document.getElementById('fav-section');
+  if(!sec) return;
+  if(!FAVS.length){ sec.style.display='none'; sec.innerHTML=''; return; }
+  sec.style.display='block';
+  sec.innerHTML = `<div class="fav-hd">⭐ Favoritos</div>` +
+    FAVS.map(pg=>{
+      const mod = MODULES.find(x=>x.pg===pg);
+      if(!mod) return '';
+      return `<div class="ni" onclick="gp('${pg}')" data-pg-fav="${pg}">
+        <span class="ic">${mod.ic}</span>
+        <span>${mod.nm}</span>
+        <span class="ni-fav starred" onclick="event.stopPropagation();toggleFav('${pg}')" title="Quitar de favoritos">★</span>
+      </div>`;
+    }).filter(Boolean).join('');
 }
 
 /* ═══ PAYROLL ════════════════════════════════════════ */
