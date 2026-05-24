@@ -717,6 +717,7 @@ html.light .email-preview{background:#f1f5f9}
       <div class="ni" data-tip="Tontinas" onclick="gp('tontines')"><span class="ic">🫂</span> <span data-i18n="nav_tontines">Tontinas</span></div>
       <div class="ni" data-tip="Tarjetas" onclick="gp('cards')"><span class="ic">💳</span> <span data-i18n="nav_cards">Tarjetas</span></div>
       <div class="ni" data-tip="Contabilidad" onclick="gp('accounting')"><span class="ic">📒</span> <span data-i18n="nav_accounting">Contabilidad</span></div>
+      <div class="ni" data-tip="Nómina" onclick="gp('payroll')"><span class="ic">💼</span> <span>Nómina Riders</span></div>
       <div class="ni" data-tip="Comisiones" onclick="gp('fees')"><span class="ic">⚙️</span> <span>Comisiones</span></div>
       <div class="ni" data-tip="Transf. Bancaria" onclick="gp('banktransfer')"><span class="ic">🏦</span> <span>Transf. Bancaria</span><span class="ni-badge" id="badge-transfers" style="display:none"></span></div>
     </div>
@@ -768,6 +769,8 @@ html.light .email-preview{background:#f1f5f9}
       <div class="ni" data-tip="API Keys" onclick="gp('apikeys')"><span class="ic">🔑</span> <span>API Keys</span></div>
       <div class="ni" data-tip="Países Config" onclick="gp('countryconfig')"><span class="ic">🌐</span> <span>Config. Países</span></div>
       <div class="ni" data-tip="Analytics" onclick="gp('analytics')"><span class="ic">📊</span> <span>Analytics BI</span></div>
+      <div class="ni" data-tip="Alertas" onclick="gp('alerts')"><span class="ic">🔔</span> <span>Alertas</span><span class="ni-badge br" id="badge-alerts" style="display:none"></span></div>
+      <div class="ni" data-tip="Ranking" onclick="gp('ranking')"><span class="ic">🏆</span> <span>Ranking Países</span></div>
       <div class="ni" data-tip="Límites" onclick="gp('limits')"><span class="ic">🚫</span> <span>Límites Transacción</span></div>
       <div class="ni" data-tip="Configuración" onclick="gp('settings')"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Configuración</span></div>
       <div class="ni" data-tip="Sistema" onclick="gp('system')"><span class="ic">🖥️</span> <span data-i18n="nav_system">Sistema</span></div>
@@ -1192,6 +1195,40 @@ html.light .email-preview{background:#f1f5f9}
         <p style="text-align:center;padding:20px">Sin cambios registrados</p>
       </div>
     </div>
+  </div>
+
+  <!-- ── NÓMINA DE RIDERS ── -->
+  <div class="page" id="page-payroll">
+    <div class="sec-hd">
+      <span>💼 Nómina de Riders</span>
+      <button class="btn btn-cyan" onclick="openModal('payroll',{})">+ Calcular Nómina</button>
+    </div>
+    <div class="sg" id="payroll-stats"></div>
+    <div class="tw"><table>
+      <thead><tr><th>Período</th><th>Riders</th><th>Total</th><th>Divisa</th><th>Estado</th><th>Ejecutada</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-payroll"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- ── ALERTAS CONFIGURABLES ── -->
+  <div class="page" id="page-alerts">
+    <div class="sec-hd">
+      <span>🔔 Alertas del Sistema</span>
+      <button class="btn btn-cyan" onclick="openModal('alert',{})">+ Nueva Alerta</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Las alertas se comprueban al cargar el dashboard y avisan cuando se supera el umbral configurado.</p>
+    <div id="alerts-active" style="margin-bottom:20px"></div>
+    <div id="alerts-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px"></div>
+  </div>
+
+  <!-- ── RANKING POR PAÍS ── -->
+  <div class="page" id="page-ranking">
+    <div class="sec-hd"><span>🏆 Ranking de Países</span></div>
+    <div class="sg" id="ranking-stats"></div>
+    <div class="tw" style="margin-bottom:20px"><table>
+      <thead><tr><th>Pos.</th><th>País</th><th>Usuarios</th><th>KYC ✓</th><th>Tasa KYC</th><th>Riders</th><th>Representante</th></tr></thead>
+      <tbody id="tb-ranking"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
   </div>
 
   <!-- ── TICKETS DE SOPORTE ── -->
@@ -2425,6 +2462,98 @@ html.light .email-preview{background:#f1f5f9}
   </div>
 </div>
 
+<!-- Modal: Nueva Nómina -->
+<div class="modal-bg" id="modal-payroll">
+  <div class="modal" style="max-width:480px">
+    <h3>💼 Calcular Nómina de Riders</h3>
+    <div class="form-row">
+      <div class="fg"><label>Período *</label><input id="pr-period" placeholder="2026-05" type="month"></div>
+      <div class="fg"><label>Divisa</label>
+        <select id="pr-currency">
+          <option value="XAF">XAF (Franco CFA)</option>
+          <option value="EUR">EUR (Euro)</option>
+          <option value="USD">USD (Dólar)</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg" style="margin-top:10px">
+      <label>Tarifa por entrega</label>
+      <input type="number" id="pr-rate" value="500" min="0" placeholder="500">
+    </div>
+    <div class="fg" style="margin-top:10px">
+      <label>Notas</label>
+      <input id="pr-notes" placeholder="Ej: Nómina mayo 2026 — bonificación incluida">
+    </div>
+    <div style="background:var(--input-bg);border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:var(--text3)">
+      ℹ️ El sistema calculará el pago de cada rider basándose en su total de entregas × tarifa por entrega.
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('payroll')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="createPayroll()">🧮 Calcular y Crear</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Detalle Nómina -->
+<div class="modal-bg" id="modal-payroll-detail">
+  <div class="modal" style="max-width:700px">
+    <h3 id="pd-title">💼 Detalle de Nómina</h3>
+    <div class="tw" style="max-height:400px;overflow-y:auto"><table>
+      <thead><tr><th>Rider</th><th>Entregas</th><th>Tarifa</th><th>Total</th><th>Estado</th></tr></thead>
+      <tbody id="tb-payroll-detail"></tbody>
+    </table></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <span style="font-weight:700;font-size:15px">Total: <span id="pd-total" style="color:var(--primary)"></span></span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="closeModal('payroll-detail')">Cerrar</button>
+        <button class="btn btn-cyan" id="pd-execute-btn" onclick="executePayroll()">▶ Ejecutar Nómina</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nueva Alerta -->
+<div class="modal-bg" id="modal-alert">
+  <div class="modal" style="max-width:480px">
+    <h3 id="modal-alert-title">🔔 Nueva Alerta</h3>
+    <input type="hidden" id="al-id">
+    <div class="fg"><label>Nombre *</label><input id="al-name" placeholder="Ej: Transacción masiva detectada"></div>
+    <div class="form-row" style="margin-top:10px">
+      <div class="fg"><label>Métrica</label>
+        <select id="al-metric">
+          <option value="users_total">👥 Total usuarios</option>
+          <option value="kyc_pending">⏳ KYC pendientes</option>
+          <option value="txns_24h">💸 Txns últimas 24h</option>
+          <option value="blocked_users">🚫 Usuarios bloqueados</option>
+          <option value="open_tickets">🎫 Tickets abiertos</option>
+          <option value="loans_active">🤝 Préstamos activos</option>
+        </select>
+      </div>
+      <div class="fg"><label>Condición</label>
+        <select id="al-condition">
+          <option value="gt">Mayor que (&gt;)</option>
+          <option value="lt">Menor que (&lt;)</option>
+          <option value="gte">Mayor o igual (≥)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:10px">
+      <div class="fg"><label>Umbral *</label><input type="number" id="al-threshold" placeholder="100"></div>
+      <div class="fg"><label>Nivel</label>
+        <select id="al-level">
+          <option value="info">ℹ️ Info</option>
+          <option value="warning">⚠️ Aviso</option>
+          <option value="critical">🔴 Crítico</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('alert')">Cancelar</button>
+      <button class="btn btn-cyan" onclick="saveAlert()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Responder Ticket -->
 <div class="modal-bg" id="modal-ticket">
   <div class="modal" style="max-width:560px">
@@ -2674,7 +2803,8 @@ const PG_TITLES = {
   calendar:'Calendario de Eventos',banktransfer:'Transferencia Bancaria',email:'Email',
   limits:'Límites de Transacción',notifications:'Notificaciones del Sistema',
   security:'Seguridad y Fraude',campaigns:'Campañas de Marketing',apikeys:'API Keys',
-  tickets:'Tickets de Soporte',countryconfig:'Configuración por País',analytics:'Analytics BI'
+  tickets:'Tickets de Soporte',countryconfig:'Configuración por País',analytics:'Analytics BI',
+  payroll:'Nómina de Riders',alerts:'Alertas del Sistema',ranking:'Ranking de Países'
 };
 
 function refresh(){
@@ -2727,6 +2857,9 @@ function gp(name){
   if(name==='tickets') loadTickets();
   if(name==='countryconfig') loadCountryConfig();
   if(name==='analytics') loadAnalytics();
+  if(name==='payroll') loadPayroll();
+  if(name==='alerts') loadAlerts();
+  if(name==='ranking') loadRanking();
 }
 
 /* ═══ OVERVIEW ══════════════════════════════════════ */
@@ -3115,6 +3248,22 @@ function openModal(name, data){
     document.getElementById('ak-scopes').value   = 'read';
     document.getElementById('ak-result').style.display = 'none';
     document.getElementById('ak-save-btn').style.display = 'inline-block';
+  }
+  if(name==='payroll'){
+    document.getElementById('pr-period').value   = new Date().toISOString().slice(0,7);
+    document.getElementById('pr-currency').value = 'XAF';
+    document.getElementById('pr-rate').value     = '500';
+    document.getElementById('pr-notes').value    = '';
+  }
+  if(name==='alert'){
+    const editing = !!data.id;
+    document.getElementById('modal-alert-title').textContent = editing ? '✏️ Editar Alerta' : '🔔 Nueva Alerta';
+    document.getElementById('al-id').value        = data.id        || '';
+    document.getElementById('al-name').value      = data.name      || '';
+    document.getElementById('al-metric').value    = data.metric    || 'users_total';
+    document.getElementById('al-condition').value = data.condition || 'gt';
+    document.getElementById('al-threshold').value = data.threshold || '';
+    document.getElementById('al-level').value     = data.level     || 'info';
   }
   document.getElementById('modal-'+name).classList.add('open');
 }
@@ -4844,7 +4993,10 @@ const MODULES = [
   {ic:'🔑',nm:'API Keys',sc:'Sistema',pg:'apikeys'},
   {ic:'🎫',nm:'Tickets Soporte',sc:'Comunidad',pg:'tickets'},
   {ic:'🌐',nm:'Config. Países',sc:'Sistema',pg:'countryconfig'},
-  {ic:'📊',nm:'Analytics BI',sc:'Sistema',pg:'analytics'}
+  {ic:'📊',nm:'Analytics BI',sc:'Sistema',pg:'analytics'},
+  {ic:'💼',nm:'Nómina Riders',sc:'Finanzas',pg:'payroll'},
+  {ic:'🔔',nm:'Alertas Sistema',sc:'Sistema',pg:'alerts'},
+  {ic:'🏆',nm:'Ranking Países',sc:'Sistema',pg:'ranking'}
 ];
 function searchModules(){
   const q = document.getElementById('tb-search-input').value.trim().toLowerCase();
@@ -6083,6 +6235,233 @@ function fillEmailCountrySelect(){
   const countries = [...new Set((ALL_USERS||[]).map(u=>u.country).filter(Boolean))].sort();
   sel.innerHTML = '<option value="">📍 O filtrar por país...</option>' +
     countries.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+/* ═══ PAYROLL ════════════════════════════════════════ */
+let ALL_PAYROLL = [], currentPayrollId = null;
+
+async function loadPayroll(){
+  const r = await api('/payroll');
+  if(!r.success) return;
+  ALL_PAYROLL = r.data.runs || [];
+  const s = r.data.stats || {};
+  const el = document.getElementById('payroll-stats');
+  if(el) el.innerHTML = `
+    <div class="sc c-cyan"><div class="lbl">Total nóminas</div><div class="val">${s.total||0}</div></div>
+    <div class="sc c-yellow"><div class="lbl">Borradores</div><div class="val">${s.draft||0}</div></div>
+    <div class="sc c-green"><div class="lbl">Ejecutadas</div><div class="val">${s.executed||0}</div></div>
+    <div class="sc c-blue"><div class="lbl">Total pagado</div><div class="val">${(s.totalPaid||0).toLocaleString()} XAF</div></div>`;
+  renderPayroll();
+}
+
+function renderPayroll(){
+  const tb = document.getElementById('tb-payroll'); if(!tb) return;
+  if(!ALL_PAYROLL.length){ tb.innerHTML='<tr><td colspan="7" class="misc">Sin nóminas creadas</td></tr>'; return; }
+  tb.innerHTML = ALL_PAYROLL.map(r=>`
+    <tr>
+      <td style="font-weight:600">${r.period}</td>
+      <td>${r._count?.items||0} riders</td>
+      <td style="color:#fbbf24;font-weight:700">${r.totalAmount.toLocaleString()}</td>
+      <td><span class="b bc">${r.currency}</span></td>
+      <td><span class="b ${r.status==='executed'?'bco':'ba'}">${r.status==='executed'?'Ejecutada':'Borrador'}</span></td>
+      <td style="color:#64748b;font-size:11px">${r.executedAt?fmtDate(r.executedAt):'—'}</td>
+      <td>
+        <button class="btn btn-xs btn-ghost" onclick="viewPayrollDetail('${r.id}')">🔍 Ver</button>
+        ${r.status!=='executed'?`<button class="btn btn-xs btn-red" onclick="deletePayroll('${r.id}')">🗑️</button>`:''}
+      </td>
+    </tr>`).join('');
+}
+
+async function createPayroll(){
+  const period = document.getElementById('pr-period').value;
+  if(!period){ toast('El período es requerido','err'); return; }
+  const body = {
+    period,
+    currency: document.getElementById('pr-currency').value,
+    ratePerDelivery: parseFloat(document.getElementById('pr-rate').value)||500,
+    notes: document.getElementById('pr-notes').value||undefined
+  };
+  const r = await api('/payroll', {method:'POST', body:JSON.stringify(body)});
+  if(!r.success){ toast(r.error||r.message||'Error al crear nómina','err'); return; }
+  toast(`✅ Nómina creada: ${r.data.items?.length||0} riders · ${r.data.totalAmount.toLocaleString()} ${r.data.currency}`);
+  closeModal('payroll');
+  loadPayroll();
+}
+
+async function viewPayrollDetail(id){
+  const r = await api('/payroll/'+id);
+  if(!r.success){ toast('Error al cargar detalle','err'); return; }
+  const run = r.data;
+  currentPayrollId = run.id;
+  document.getElementById('pd-title').textContent = `💼 Nómina ${run.period} — ${run.currency}`;
+  document.getElementById('pd-total').textContent = `${run.totalAmount.toLocaleString()} ${run.currency}`;
+  const btn = document.getElementById('pd-execute-btn');
+  if(btn) btn.style.display = run.status==='executed' ? 'none' : 'inline-flex';
+  const tb = document.getElementById('tb-payroll-detail');
+  if(tb) tb.innerHTML = (run.items||[]).map(i=>`
+    <tr>
+      <td style="font-weight:600">${i.riderName}</td>
+      <td>${i.deliveries}</td>
+      <td>${i.ratePerDelivery.toLocaleString()}</td>
+      <td style="color:#fbbf24;font-weight:700">${i.amount.toLocaleString()}</td>
+      <td><span class="b ${i.status==='paid'?'bco':'ba'}">${i.status==='paid'?'Pagado':'Pendiente'}</span></td>
+    </tr>`).join('');
+  document.getElementById('modal-payroll-detail').classList.add('open');
+}
+
+async function executePayroll(){
+  if(!currentPayrollId) return;
+  if(!confirm('¿Ejecutar esta nómina? Todos los riders serán marcados como pagados.')) return;
+  const r = await api('/payroll/'+currentPayrollId+'/execute', {method:'PATCH', body:JSON.stringify({})});
+  if(!r.success){ toast(r.error||r.message||'Error','err'); return; }
+  toast('✅ Nómina ejecutada correctamente');
+  closeModal('payroll-detail');
+  loadPayroll();
+}
+
+async function deletePayroll(id){
+  if(!confirm('¿Eliminar esta nómina borrador?')) return;
+  const r = await api('/payroll/'+id, {method:'DELETE'});
+  if(!r.success){ toast(r.error||r.message||'Error','err'); return; }
+  toast('Nómina eliminada');
+  loadPayroll();
+}
+
+/* ═══ ALERTS (localStorage) ═════════════════════════ */
+let ALL_ALERTS = [];
+
+function loadAlerts(){
+  ALL_ALERTS = JSON.parse(localStorage.getItem('ia_alerts')||'[]');
+  renderAlertsGrid();
+  checkAlerts();
+}
+
+function renderAlertsGrid(){
+  const grid = document.getElementById('alerts-grid'); if(!grid) return;
+  if(!ALL_ALERTS.length){
+    grid.innerHTML='<div style="color:var(--text3);font-size:13px;padding:20px">Sin alertas configuradas. Crea una para empezar.</div>';
+    return;
+  }
+  const levelBadge = l=>({info:'bc',warning:'ba',critical:'br'})[l]||'bu';
+  const levelIcon  = l=>({info:'ℹ️',warning:'⚠️',critical:'🔴'})[l]||'🔔';
+  const metricLabel = m=>({
+    users_total:'👥 Total usuarios', kyc_pending:'⏳ KYC pendientes',
+    txns_24h:'💸 Txns últimas 24h', blocked_users:'🚫 Usuarios bloqueados',
+    open_tickets:'🎫 Tickets abiertos', loans_active:'🤝 Préstamos activos'
+  })[m]||m;
+  const condLabel = c=>({gt:'>',lt:'<',gte:'≥'})[c]||c;
+  grid.innerHTML = ALL_ALERTS.map(a=>`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="font-weight:600;font-size:13px">${levelIcon(a.level)} ${a.name}</div>
+        <span class="b ${levelBadge(a.level)}">${a.level}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${metricLabel(a.metric)} ${condLabel(a.condition)} <strong>${a.threshold}</strong></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-xs btn-ghost" onclick="openModal('alert',ALL_ALERTS.find(x=>x.id==='${a.id}')||{})">✏️ Editar</button>
+        <button class="btn btn-xs btn-red" onclick="deleteAlert('${a.id}')">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function saveAlert(){
+  const id        = document.getElementById('al-id').value;
+  const name      = document.getElementById('al-name').value.trim();
+  const metric    = document.getElementById('al-metric').value;
+  const condition = document.getElementById('al-condition').value;
+  const threshold = parseFloat(document.getElementById('al-threshold').value);
+  const level     = document.getElementById('al-level').value;
+  if(!name||isNaN(threshold)){ toast('Nombre y umbral son requeridos','err'); return; }
+  if(id){
+    const idx = ALL_ALERTS.findIndex(a=>a.id===id);
+    if(idx>-1) ALL_ALERTS[idx] = {id,name,metric,condition,threshold,level};
+  } else {
+    ALL_ALERTS.push({id:'al_'+Date.now(),name,metric,condition,threshold,level});
+  }
+  localStorage.setItem('ia_alerts',JSON.stringify(ALL_ALERTS));
+  closeModal('alert');
+  renderAlertsGrid();
+  toast('Alerta guardada');
+}
+
+function deleteAlert(id){
+  if(!confirm('¿Eliminar esta alerta?')) return;
+  ALL_ALERTS = ALL_ALERTS.filter(a=>a.id!==id);
+  localStorage.setItem('ia_alerts',JSON.stringify(ALL_ALERTS));
+  renderAlertsGrid();
+  toast('Alerta eliminada');
+}
+
+function checkAlerts(){
+  if(!window._stats||!ALL_ALERTS.length) return;
+  const s = window._stats;
+  const getValue = metric=>{
+    if(metric==='users_total')   return s.users?.total||0;
+    if(metric==='kyc_pending')   return s.users?.kyc_pending||0;
+    if(metric==='txns_24h')      return s.transactions?.last_24h||0;
+    if(metric==='blocked_users') return s.users?.blocked||0;
+    if(metric==='loans_active')  return s.loans?.active||0;
+    return 0;
+  };
+  const evalCond = (val,cond,thr)=>{
+    if(cond==='gt') return val>thr;
+    if(cond==='lt') return val<thr;
+    if(cond==='gte') return val>=thr;
+    return false;
+  };
+  const triggered = ALL_ALERTS.filter(a=>evalCond(getValue(a.metric),a.condition,a.threshold));
+  const box = document.getElementById('alerts-active');
+  if(!box) return;
+  if(!triggered.length){ box.innerHTML=''; return; }
+  const levelColor = l=>({info:'#00AEEF',warning:'#fbbf24',critical:'#f87171'})[l]||'#94a3b8';
+  box.innerHTML = `
+    <div style="padding:12px 16px;border-radius:10px;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2);margin-bottom:16px">
+      <div style="font-weight:700;margin-bottom:8px;color:#f87171">⚠️ ${triggered.length} alerta(s) activa(s)</div>
+      ${triggered.map(a=>`<div style="font-size:12px;color:${levelColor(a.level)};margin-bottom:4px">• ${a.name}</div>`).join('')}
+    </div>`;
+}
+
+/* ═══ RANKING ════════════════════════════════════════ */
+async function loadRanking(){
+  if(!ALL_USERS.length) await loadUsers();
+  if(!ALL_RIDERS.length) await loadRiders();
+  renderRanking(ALL_USERS, ALL_RIDERS);
+}
+
+function renderRanking(usersArr, ridersArr){
+  const byCountry = {};
+  (usersArr||[]).forEach(u=>{
+    if(!u.country) return;
+    if(!byCountry[u.country]) byCountry[u.country]={country:u.country,users:0,kyc:0,riders:0};
+    byCountry[u.country].users++;
+    if(u.kycStatus==='verified') byCountry[u.country].kyc++;
+  });
+  (ridersArr||[]).forEach(r=>{
+    if(!r.zone) return;
+    if(byCountry[r.zone]) byCountry[r.zone].riders++;
+  });
+  const rows = Object.values(byCountry).sort((a,b)=>b.users-a.users);
+  const tb = document.getElementById('tb-ranking'); if(!tb) return;
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="7" class="misc">Sin datos de países</td></tr>'; return; }
+  const medals = ['🥇','🥈','🥉'];
+  tb.innerHTML = rows.map((c,i)=>`
+    <tr ${i<3?`style="background:rgba(0,174,239,${0.05*(3-i)})"`:''}>
+      <td style="font-weight:700;font-size:14px">${medals[i]||`#${i+1}`}</td>
+      <td style="font-weight:600">${c.country}</td>
+      <td>${c.users}</td>
+      <td>${c.kyc}</td>
+      <td><span style="color:${c.users&&Math.round(c.kyc/c.users*100)>=70?'#10b981':'#fbbf24'}">${c.users?Math.round(c.kyc/c.users*100):0}%</span></td>
+      <td>${c.riders}</td>
+      <td style="color:#64748b">—</td>
+    </tr>`).join('');
+  const top3 = [...rows].slice(0,3);
+  const byKyc = [...rows].sort((a,b)=>(b.kyc/Math.max(b.users,1))-(a.kyc/Math.max(a.users,1)));
+  const stats = document.getElementById('ranking-stats');
+  if(stats) stats.innerHTML = `
+    <div class="sc c-cyan"><div class="lbl">Países con usuarios</div><div class="val">${rows.length}</div></div>
+    <div class="sc c-green"><div class="lbl">🥇 Líder usuarios</div><div class="val">${top3[0]?.country||'—'}</div></div>
+    <div class="sc c-blue"><div class="lbl">Mejor tasa KYC</div><div class="val">${byKyc[0]?.country||'—'}</div></div>
+    <div class="sc c-yellow"><div class="lbl">Total usuarios</div><div class="val">${rows.reduce((s,c)=>s+c.users,0)}</div></div>`;
 }
 
 /* ═══ TREND CHART (7 DÍAS) ══════════════════════════ */
