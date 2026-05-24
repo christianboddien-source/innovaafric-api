@@ -1547,7 +1547,7 @@ html.light .email-preview{background:#f1f5f9}
       <button class="fb-btn" onclick="filterProducts(this,'grocery')">🥦 Grocery</button>
     </div>
     <div class="tw"><table>
-      <thead><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>Precio EUR</th><th>Precio XAF</th><th>Stock</th><th>Origen / Tienda</th><th>Tipo</th><th>Rating</th></tr></thead>
+      <thead><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>Precio EUR</th><th>Precio XAF</th><th>Stock</th><th>Origen / Tienda</th><th>Tipo</th><th>Acciones</th></tr></thead>
       <tbody id="tb-products">
         <tr class="skel-row"><td><span class="skel" style="width:60px"></span></td><td><span class="skel" style="width:140px"></span></td><td><span class="skel" style="width:80px"></span></td><td><span class="skel" style="width:60px"></span></td><td><span class="skel" style="width:80px"></span></td><td><span class="skel" style="width:40px"></span></td><td><span class="skel" style="width:60px"></span></td><td><span class="skel" style="width:30px"></span></td><td><span class="skel" style="width:80px"></span></td></tr>
       </tbody>
@@ -4326,7 +4326,7 @@ function filterKycPage(btn,v){
 }
 
 /* ═══ PRODUCTS MODULE ═══════════════════════════════ */
-let ALL_PRODUCTS = [], productTypeFilter = '';
+let ALL_PRODUCTS = [], productTypeFilter = '', PRODUCT_MAP = {};
 async function loadProducts(){
   const r = await api('/admin/products');
   if(!r.success){
@@ -4337,6 +4337,7 @@ async function loadProducts(){
   const shop    = (r.data.products||[]).map(p=>({...p,type:'shop'}));
   const grocery = (r.data.grocery_products||[]).map(p=>({...p,type:'grocery'}));
   ALL_PRODUCTS  = [...shop, ...grocery];
+  PRODUCT_MAP   = {}; ALL_PRODUCTS.forEach(p=>{ PRODUCT_MAP[p.id]=p; });
   const availGrocery = grocery.filter(p=>p.available!==false).length;
   const el = document.getElementById('products-stats');
   if(el) el.innerHTML=`
@@ -4366,7 +4367,7 @@ function renderProducts(){
       <td><span class="b ${p.type==='grocery'?'bco':'bc'}">${p.type}</span></td>
       <td style="white-space:nowrap">
         ${p.ratingAvg!=null?`<span style="font-size:11px;color:#fbbf24;margin-right:6px">⭐${p.ratingAvg.toFixed(1)}</span>`:''}
-        <button class="btn btn-ghost btn-sm" onclick='openModal("product",${JSON.stringify({...p})})'>✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="editProduct('${p.id}')">✏️</button>
         <button class="btn btn-sm" style="background:#ef444420;color:#f87171;border:none" onclick="deleteProduct('${p.id}','${p.type}')">🗑️</button>
       </td>
     </tr>`).join('');
@@ -4375,6 +4376,12 @@ function filterProducts(btn,v){
   document.querySelectorAll('#product-type-fb .fb-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); productTypeFilter=v; renderProducts();
 }
+function editProduct(id){
+  const p = PRODUCT_MAP[id];
+  if(!p) return toast('Producto no encontrado','error');
+  openModal('product', p);
+}
+
 async function saveProduct(){
   const id       = document.getElementById('pr-id').value;
   const type     = document.getElementById('pr-type').value;
