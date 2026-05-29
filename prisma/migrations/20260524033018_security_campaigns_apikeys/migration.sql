@@ -1,2 +1,2 @@
--- AlterTable
-ALTER TABLE "Campaign" ALTER COLUMN "updatedAt" DROP DEFAULT;
+-- Migration fixed: AlterTable Campaign moved to later migration
+SELECT 1;
