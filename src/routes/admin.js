@@ -772,4 +772,160 @@ router.patch('/users/:id/unblock', requireAuth, requireLevel(2), async (req, res
   } catch (e) { return error(res, e.message); }
 });
 
+// ══════════════════════════════════════════════════════
+//  WEBHOOK SYNC — Supabase → Railway
+//  Recibe usuarios nuevos de Supabase y los sincroniza
+//  en PostgreSQL de Railway
+// ══════════════════════════════════════════════════════
+
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'innovaafric_sync_2026';
+
+router.post('/sync-user', async (req, res) => {
+  // Verificar secret
+  const secret = req.headers['x-webhook-secret'];
+  if (secret !== WEBHOOK_SECRET) {
+    return error(res, 'Webhook secret inválido', 401);
+  }
+
+  try {
+    // Supabase envía { type: 'INSERT', table: 'users', record: {...}, old_record: null }
+    const { type, record } = req.body;
+
+    if (!record || !record.id) {
+      return error(res, 'Payload inválido — falta record.id', 400);
+    }
+
+    // Solo procesar INSERT
+    if (type !== 'INSERT') {
+      return success(res, { message: 'Evento ignorado: ' + type });
+    }
+
+    const supabaseId = record.id;
+    const email      = record.email;
+    const name       = record.full_name || record.email?.split('@')[0] || 'Usuario';
+    const phone      = record.phone     || '0000000000';
+    const country    = record.country   || 'GQ';
+    const role       = record.role      || 'customer';
+    const city       = record.city      || null;
+
+    // Verificar si ya existe en Railway
+    const existing = await prisma.user.findFirst({
+      where: { OR: [{ id: supabaseId }, { email }] }
+    });
+
+    if (existing) {
+      return success(res, {
+        message: 'Usuario ya existe en Railway',
+        id: existing.id,
+        synced: false
+      });
+    }
+
+    // Crear usuario en Railway PostgreSQL
+    const userId = supabaseId.startsWith('usr_') ? supabaseId : 'usr_' + supabaseId.slice(0, 8);
+
+    const [user] = await prisma.$transaction([
+      prisma.user.create({
+        data: {
+          id:           userId,
+          email,
+          name,
+          phone,
+          country,
+          city,
+          role,
+          passwordHash: bcrypt.hashSync(Math.random().toString(36), 8), // placeholder
+          kycStatus:    record.kyc_level > 0 ? 'verified' : 'pending',
+          referralCode: record.ia_code || null
+        }
+      }),
+      prisma.wallet.create({
+        data: {
+          userId,
+          balanceEur: parseFloat(record.eur || 0),
+          balanceXaf: parseFloat(record.xaf || 0),
+          balanceUsd: parseFloat(record.usd || 0)
+        }
+      })
+    ]);
+
+    console.log(`[SYNC] ✅ Usuario sincronizado: ${email} (${userId})`);
+
+    return success(res, {
+      message: 'Usuario sincronizado correctamente',
+      id:      user.id,
+      email:   user.email,
+      synced:  true
+    }, 201);
+
+  } catch (e) {
+    console.error('[SYNC] Error:', e.message);
+    // Devolver 200 aunque falle para que Supabase no reintente indefinidamente
+    return res.status(200).json({
+      success: false,
+      error:   e.message,
+      note:    'Error interno pero webhook recibido'
+    });
+  }
+});
+
+// ── SYNC BULK — Sincronizar todos los usuarios de Supabase
+//  POST /v1/admin/sync-bulk
+//  Body: { users: [{id, email, full_name, phone, country, role, ...}] }
+router.post('/sync-bulk', requireAuth, requireLevel(3), async (req, res) => {
+  const { users } = req.body;
+  if (!Array.isArray(users) || !users.length) {
+    return error(res, 'Se requiere array de usuarios', 400);
+  }
+
+  let synced = 0, skipped = 0, errors = 0;
+
+  for (const record of users) {
+    try {
+      const existing = await prisma.user.findFirst({
+        where: { OR: [{ id: record.id }, { email: record.email }] }
+      });
+      if (existing) { skipped++; continue; }
+
+      const userId = record.id?.startsWith('usr_') ? record.id : 'usr_' + (record.id || uuidv4()).slice(0, 8);
+      await prisma.$transaction([
+        prisma.user.create({
+          data: {
+            id:           userId,
+            email:        record.email,
+            name:         record.full_name || record.email?.split('@')[0] || 'Usuario',
+            phone:        record.phone || '0000000000',
+            country:      record.country || 'GQ',
+            city:         record.city || null,
+            role:         record.role || 'customer',
+            passwordHash: bcrypt.hashSync(Math.random().toString(36), 8),
+            kycStatus:    record.kyc_level > 0 ? 'verified' : 'pending'
+          }
+        }),
+        prisma.wallet.create({
+          data: {
+            userId,
+            balanceEur: parseFloat(record.eur || 0),
+            balanceXaf: parseFloat(record.xaf || 0),
+            balanceUsd: parseFloat(record.usd || 0)
+          }
+        })
+      ]);
+      synced++;
+    } catch (e) {
+      console.error('[SYNC-BULK] Error en', record.email, ':', e.message);
+      errors++;
+    }
+  }
+
+  return success(res, {
+    message: `Sincronización completada`,
+    total:   users.length,
+    synced,
+    skipped,
+    errors
+  });
+});
+
 module.exports = router;
+
