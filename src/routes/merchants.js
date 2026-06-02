@@ -39,6 +39,14 @@ router.post('/', requireAuth, requireRole(...ADMIN), async (req, res) => {
   return success(res, m, 201);
 });
 
+// PATCH /v1/merchants/:id — actualizar datos
+router.patch('/:id', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  const m = MERCHANTS.find(x => x.id === req.params.id);
+  if (!m) return error(res, 'Merchant no encontrado', 404);
+  Object.assign(m, req.body);
+  return success(res, m);
+});
+
 // PUT /v1/merchants/:id/status
 router.put('/:id/status', requireAuth, requireRole(...ADMIN), async (req, res) => {
   const m = MERCHANTS.find(x => x.id === req.params.id);
