@@ -166,4 +166,55 @@ router.delete('/:id', requireAuth, async (req, res) => {
   });
 });
 
+// ── Tarjetas físicas (admin) ─────────────────────────────
+const { requireRole } = require('../middleware/auth');
+
+let PHYSICAL_CARDS = [
+  {id:'pc-001',user:'Amara Diallo',email:'amara@test.com',country:'GQ',network:'Visa',last4:'4521',status:'activo',limit:500000,currency:'XAF',requested:'2026-05-10',issued:'2026-05-18'},
+  {id:'pc-002',user:'Carlos Martínez',email:'carlos@test.com',country:'ES',network:'Mastercard',last4:'7823',status:'activo',limit:2000,currency:'EUR',requested:'2026-05-20',issued:'2026-05-28'},
+  {id:'pc-003',user:'Fatou Seck',email:'fatou@test.com',country:'SN',network:'Visa',last4:'3390',status:'bloqueada',limit:250000,currency:'XOF',requested:'2026-04-01',issued:'2026-04-10'},
+  {id:'pc-004',user:'Jean-Pierre N.',email:'jp@test.com',country:'CM',network:'Mastercard',last4:'6641',status:'pendiente',limit:300000,currency:'XAF',requested:'2026-06-01',issued:null}
+];
+
+// GET /v1/cards/physical
+router.get('/physical', requireAuth, requireRole('admin','super_admin','kyc_officer','finance_officer','country_manager','regional_director'), async (req, res) => {
+  return success(res, PHYSICAL_CARDS);
+});
+
+// POST /v1/cards/physical
+router.post('/physical', requireAuth, requireRole('admin','super_admin','kyc_officer','finance_officer'), async (req, res) => {
+  const { user, email, country, network, limit, currency } = req.body;
+  if (!user || !email || !country) return error(res, 'Faltan campos obligatorios', 400);
+  const card = {
+    id: 'pc-'+uuidv4().slice(0,8),
+    user, email, country,
+    network: network||'Visa',
+    last4: String(Math.floor(1000+Math.random()*9000)),
+    status: 'pendiente',
+    limit: limit||100000,
+    currency: currency||'XAF',
+    requested: new Date().toISOString().split('T')[0],
+    issued: null
+  };
+  PHYSICAL_CARDS.push(card);
+  return success(res, card, 201);
+});
+
+// PUT /v1/cards/physical/:id/block
+router.put('/physical/:id/block', requireAuth, requireRole('admin','super_admin','kyc_officer','finance_officer','risk_officer'), async (req, res) => {
+  const card = PHYSICAL_CARDS.find(c => c.id === req.params.id);
+  if (!card) return error(res, 'Tarjeta no encontrada', 404);
+  card.status = 'bloqueada';
+  return success(res, card);
+});
+
+// PUT /v1/cards/physical/:id/issue
+router.put('/physical/:id/issue', requireAuth, requireRole('admin','super_admin','finance_officer'), async (req, res) => {
+  const card = PHYSICAL_CARDS.find(c => c.id === req.params.id);
+  if (!card) return error(res, 'Tarjeta no encontrada', 404);
+  card.status = 'activo';
+  card.issued = new Date().toISOString().split('T')[0];
+  return success(res, card);
+});
+
 module.exports = router;
