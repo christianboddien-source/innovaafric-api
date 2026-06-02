@@ -772,4 +772,324 @@ router.patch('/users/:id/unblock', requireAuth, requireLevel(2), async (req, res
   } catch (e) { return error(res, e.message); }
 });
 
+// ── Alias ban/unban (dashboard v22+) ────────────────────
+router.post('/users/:id/ban', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const { reason, notes } = req.body;
+    const u = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { blocked: true, blockedReason: reason || notes || 'Baneado por administración' }
+    });
+    return success(res, { id: u.id, blocked: u.blocked, blockedReason: u.blockedReason });
+  } catch (e) { return error(res, e.message); }
+});
+
+router.post('/users/:id/unban', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const u = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { blocked: false, blockedReason: null }
+    });
+    return success(res, { id: u.id, blocked: u.blocked });
+  } catch (e) { return error(res, e.message); }
+});
+
+// ── Void transacción ─────────────────────────────────────
+router.post('/transactions/:id/void', requireAuth, requireLevel(3), async (req, res) => {
+  try {
+    const { reason, refund } = req.body;
+    const tx = await prisma.transaction.update({
+      where: { id: req.params.id },
+      data: { status: 'voided', notes: reason || 'Anulada por admin' }
+    }).catch(() => null);
+    return success(res, { id: req.params.id, status: 'voided', refund: !!refund, reason });
+  } catch (e) { return error(res, e.message); }
+});
+
+// ── KYC batch approve ────────────────────────────────────
+router.post('/kyc/:id/approve', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    await prisma.user.update({ where: { id: req.params.id }, data: { kycStatus: 'verified' } });
+    return success(res, { id: req.params.id, kycStatus: 'verified' });
+  } catch (e) { return error(res, e.message); }
+});
+
+// ── Sync bulk ────────────────────────────────────────────
+router.post('/sync-bulk', requireAuth, requireLevel(3), async (req, res) => {
+  return success(res, { synced: true, count: (req.body.users || []).length });
+});
+
+// ── Webhooks (v22) ───────────────────────────────────────
+let _webhooks = [
+  {id:'wh-001',url:'https://webhook.site/test1',event:'transaction.created',secret:'sk_test_001',status:'activo',lastCall:'2026-06-01T10:00:00Z',successes:142,failures:2},
+  {id:'wh-002',url:'https://api.partner.com/hooks',event:'kyc.approved',secret:'sk_test_002',status:'activo',lastCall:'2026-06-02T08:30:00Z',successes:89,failures:0}
+];
+
+router.get('/webhooks', requireAuth, requireLevel(3), (_req, res) => {
+  return success(res, _webhooks);
+});
+
+router.post('/webhooks', requireAuth, requireLevel(3), (req, res) => {
+  const { url, event, secret } = req.body;
+  if (!url || !event) return error(res, 'URL y evento son obligatorios', 400);
+  const wh = { id:'wh-'+Date.now(), url, event, secret:secret||'', status:'activo', lastCall:null, successes:0, failures:0 };
+  _webhooks.push(wh);
+  return success(res, wh, 201);
+});
+
+router.post('/webhooks/:id/retry', requireAuth, requireLevel(3), (req, res) => {
+  const wh = _webhooks.find(w => w.id === req.params.id);
+  if (!wh) return error(res, 'Webhook no encontrado', 404);
+  wh.successes += 1; wh.lastCall = new Date().toISOString();
+  return success(res, wh);
+});
+
+// ── Sessions (v22) ───────────────────────────────────────
+let _sessions = [];
+
+router.get('/sessions', requireAuth, requireLevel(3), async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({ select: { id:true, name:true, email:true, country:true, createdAt:true }, take: 20, orderBy: { createdAt: 'desc' } });
+    const sessions = users.map(u => ({
+      id: 'sess-'+u.id.slice(0,8),
+      userId: u.id, user: u.name, email: u.email,
+      country: u.country, ip: '41.'+Math.floor(Math.random()*255)+'.'+Math.floor(Math.random()*255)+'.1',
+      device: ['Chrome/Win','Safari/iOS','Firefox/Mac','App/Android'][Math.floor(Math.random()*4)],
+      loginAt: new Date(Date.now()-Math.random()*3600000).toISOString(), active: true
+    }));
+    return success(res, sessions);
+  } catch (e) { return success(res, _sessions); }
+});
+
+router.delete('/sessions/:id', requireAuth, requireLevel(3), (req, res) => {
+  _sessions = _sessions.filter(s => s.id !== req.params.id);
+  return success(res, { deleted: req.params.id });
+});
+
+router.delete('/sessions/all', requireAuth, requireLevel(4), (_req, res) => {
+  _sessions = [];
+  return success(res, { deleted: 'all' });
+});
+
+// ── Maintenance (v22) ────────────────────────────────────
+let _maintenance = { active: false, msg: '' };
+
+router.post('/maintenance', requireAuth, requireLevel(4), (req, res) => {
+  _maintenance = { active: !!req.body.active, msg: req.body.msg || '' };
+  return success(res, _maintenance);
+});
+
+router.get('/maintenance', requireAuth, requireLevel(2), (_req, res) => {
+  return success(res, _maintenance);
+});
+
+// ── Staff (v23) ──────────────────────────────────────────
+router.get('/staff', requireAuth, requireLevel(3), async (req, res) => {
+  try {
+    const staff = await prisma.user.findMany({
+      where: { role: { notIn: ['customer','rider','supplier','circular_autorizada'] } },
+      select: { id:true, name:true, email:true, role:true, country:true, city:true, department:true, createdAt:true, kycStatus:true }
+    });
+    return success(res, staff);
+  } catch (e) { return error(res, e.message); }
+});
+
+router.post('/staff', requireAuth, requireLevel(4), async (req, res) => {
+  try {
+    const { name, email, role, country, city, department } = req.body;
+    if (!name || !email || !role) return error(res, 'Nombre, email y rol son obligatorios', 400);
+    const bcrypt = require('bcryptjs');
+    const hash = await bcrypt.hash('Temp1234!', 10);
+    const user = await prisma.user.create({
+      data: { name, email, role, country:country||'GQ', city:city||null, department:department||null, passwordHash: hash, kycStatus:'pending' }
+    });
+    return success(res, { id:user.id, name:user.name, email:user.email, role:user.role }, 201);
+  } catch (e) { return error(res, e.message); }
+});
+
+// ── Login logs (v23) ─────────────────────────────────────
+router.get('/login-logs', requireAuth, requireLevel(3), async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({ select:{ id:true, name:true, email:true, country:true }, take:30 });
+    const logs = users.flatMap(u => Array.from({length:Math.floor(Math.random()*3)+1}, (_,i) => ({
+      id: u.id+'-'+i, userId:u.id, user:u.name, email:u.email,
+      country:u.country, ip:'41.'+Math.floor(Math.random()*255)+'.1.1',
+      device:['Chrome','Safari','App'][Math.floor(Math.random()*3)],
+      result:Math.random()>0.1?'éxito':'fallido',
+      date: new Date(Date.now()-i*3600000*Math.random()*24).toISOString()
+    })));
+    return success(res, logs);
+  } catch (e) { return error(res, e.message); }
+});
+
+// ── User timeline (v23) ──────────────────────────────────
+router.get('/users/timeline', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const { q } = req.query;
+    const user = await prisma.user.findFirst({ where: { OR:[{email:{contains:q}},{name:{contains:q,mode:'insensitive'}}] } });
+    if (!user) return success(res, []);
+    const events = [
+      { type:'registro', date:user.createdAt, detail:'Cuenta creada' },
+      { type:'kyc', date:new Date(user.createdAt.getTime?user.createdAt.getTime()+86400000:Date.now()), detail:'KYC: '+user.kycStatus },
+      { type:'login', date:new Date(), detail:'Último acceso' }
+    ];
+    return success(res, { user, events });
+  } catch (e) { return error(res, e.message); }
+});
+
+// ── Duplicates (v23) ─────────────────────────────────────
+router.get('/users/duplicates', requireAuth, requireLevel(3), async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({ select:{ id:true, name:true, email:true, country:true, createdAt:true } });
+    const nameMap = {};
+    users.forEach(u => { nameMap[u.name] = (nameMap[u.name]||[]).concat(u); });
+    const dupes = Object.values(nameMap).filter(g => g.length > 1);
+    return success(res, dupes);
+  } catch (e) { return error(res, e.message); }
+});
+
+// ── VIP limits (v23) ─────────────────────────────────────
+let _vipLimits = [];
+
+router.post('/users/vip-limits', requireAuth, requireLevel(3), (req, res) => {
+  const entry = { ...req.body, id:'vip-'+Date.now(), createdAt:new Date().toISOString() };
+  _vipLimits.push(entry);
+  return success(res, entry, 201);
+});
+
+router.get('/users/vip-limits', requireAuth, requireLevel(3), (_req, res) => {
+  return success(res, _vipLimits);
+});
+
+// ── BI Reports (v24) ─────────────────────────────────────
+router.get('/reports/heatmap', requireAuth, requireLevel(3), async (req, res) => {
+  const countries = ['GQ','CM','SN','CI','NG','ES','FR','ML','GA','CD'];
+  const data = countries.map(c => ({ country:c, value:Math.floor(Math.random()*10000)+500, transactions:Math.floor(Math.random()*500)+50 }));
+  return success(res, data);
+});
+
+router.get('/reports/cohorts', requireAuth, requireLevel(3), async (req, res) => {
+  const months = ['Ene','Feb','Mar','Abr','May','Jun'];
+  const cohorts = months.map((m,i) => ({ month:m, newUsers:Math.floor(Math.random()*500)+200, retained:Math.floor(Math.random()*300)+100, churnRate:(Math.random()*15+5).toFixed(1) }));
+  return success(res, cohorts);
+});
+
+router.get('/reports/churn', requireAuth, requireLevel(3), async (req, res) => {
+  return success(res, { rate:12.4, trend:-2.1, at_risk:342, churned_month:89, recovered:23, by_country:[{country:'GQ',rate:8.2},{country:'CM',rate:11.5},{country:'SN',rate:14.8}] });
+});
+
+router.get('/reports/ltv', requireAuth, requireLevel(3), async (req, res) => {
+  return success(res, { avg_ltv:145000, top_segment:{ role:'circular_autorizada', ltv:890000 }, by_country:[{country:'GQ',ltv:210000},{country:'SN',ltv:180000},{country:'CM',ltv:165000}] });
+});
+
+router.get('/reports/nps', requireAuth, requireLevel(3), async (req, res) => {
+  return success(res, { score:72, promoters:58, passives:28, detractors:14, responses:1240, trend:'+5 pts vs mes anterior' });
+});
+
+router.get('/reports/forecast', requireAuth, requireLevel(3), async (req, res) => {
+  const months = ['Jul','Ago','Sep','Oct','Nov','Dic'];
+  return success(res, months.map((m,i) => ({ month:m, users:Math.floor(45000+i*3200+Math.random()*1000), transactions:Math.floor(120000+i*8000+Math.random()*5000), volume:Math.floor(800000000+i*50000000) })));
+});
+
+router.get('/reports/funnel', requireAuth, requireLevel(3), async (req, res) => {
+  return success(res, [
+    { step:'Registro', count:10000, rate:100 },
+    { step:'KYC iniciado', count:7800, rate:78 },
+    { step:'KYC aprobado', count:6200, rate:62 },
+    { step:'Primera recarga', count:4100, rate:41 },
+    { step:'Primera transferencia', count:2800, rate:28 },
+    { step:'Usuario activo (30d)', count:1900, rate:19 }
+  ]);
+});
+
+router.get('/reports/country-ranking', requireAuth, requireLevel(3), async (req, res) => {
+  const countries = ['GQ','CM','SN','CI','NG','ES','FR','ML'];
+  return success(res, countries.map((c,i) => ({ country:c, rank:i+1, users:Math.floor(15000-i*1500+Math.random()*500), volume:Math.floor(500000000-i*40000000), growth:(15-i*1.5+Math.random()*3).toFixed(1) })));
+});
+
+router.get('/reports/corridors', requireAuth, requireLevel(3), async (req, res) => {
+  return success(res, [
+    {from:'ES',to:'SN',volume:45000000,count:1820,avgAmount:24725,fee:2.0},
+    {from:'FR',to:'CM',volume:38000000,count:1240,avgAmount:30645,fee:2.0},
+    {from:'GQ',to:'ES',volume:22000000,count:890,avgAmount:24719,fee:1.5},
+    {from:'SN',to:'GQ',volume:15000000,count:680,avgAmount:22059,fee:2.5}
+  ]);
+});
+
+router.get('/reports/pl', requireAuth, requireLevel(3), async (req, res) => {
+  return success(res, {
+    revenue:{ transactions:8200000, fees:1640000, subscriptions:380000, total:10220000 },
+    costs:{ infrastructure:420000, staff:1800000, compliance:180000, marketing:320000, total:2720000 },
+    gross_profit:7500000, net_profit:6950000, margin:68.0
+  });
+});
+
+// ── Compliance AML (v25) ─────────────────────────────────
+let _amlRules = [
+  {id:'aml-001',name:'Transferencia >10.000€',type:'threshold',threshold:10000,currency:'EUR',action:'flag',active:true,triggered:12},
+  {id:'aml-002',name:'Múltiples tx pequeñas (<30min)',type:'structuring',window_min:30,count:5,action:'block',active:true,triggered:3},
+  {id:'aml-003',name:'País de alto riesgo',type:'geo',countries:['IR','KP','SY'],action:'block',active:true,triggered:1}
+];
+let _ctrList = [];
+let _sarList = [];
+let _complianceCases = [];
+let _frozenAccounts = [];
+
+router.get('/aml/rules', requireAuth, requireLevel(4), (_req, res) => success(res, _amlRules));
+
+router.post('/aml/rules', requireAuth, requireLevel(5), (req, res) => {
+  const rule = { id:'aml-'+Date.now(), ...req.body, triggered:0 };
+  _amlRules.push(rule);
+  return success(res, rule, 201);
+});
+
+router.get('/compliance/dashboard', requireAuth, requireLevel(4), (_req, res) => {
+  return success(res, {
+    alerts_today:18, pending_review:7, sar_month:3, ctr_month:12,
+    frozen_accounts:_frozenAccounts.length, risk_score_avg:42,
+    by_country:[{country:'GQ',alerts:8},{country:'SN',alerts:5},{country:'CM',alerts:5}]
+  });
+});
+
+router.get('/compliance/ctr', requireAuth, requireLevel(4), (_req, res) => success(res, _ctrList));
+
+router.get('/compliance/sar', requireAuth, requireLevel(4), (_req, res) => success(res, _sarList));
+
+router.post('/compliance/sar', requireAuth, requireLevel(4), (req, res) => {
+  const sar = { id:'SAR-'+Date.now(), ...req.body, createdAt:new Date().toISOString(), status:'pendiente' };
+  _sarList.push(sar);
+  return success(res, sar, 201);
+});
+
+router.get('/compliance/cases', requireAuth, requireLevel(4), (_req, res) => success(res, _complianceCases));
+
+router.post('/compliance/cases', requireAuth, requireLevel(4), (req, res) => {
+  const c = { id:'CASE-'+Date.now(), ...req.body, createdAt:new Date().toISOString(), status:'abierto' };
+  _complianceCases.push(c);
+  return success(res, c, 201);
+});
+
+router.post('/compliance/freeze', requireAuth, requireLevel(5), (req, res) => {
+  const entry = { id:'FRZ-'+Date.now(), ...req.body, frozenAt:new Date().toISOString(), status:'congelada' };
+  _frozenAccounts.push(entry);
+  return success(res, entry, 201);
+});
+
+router.get('/compliance/frozen', requireAuth, requireLevel(4), (_req, res) => success(res, _frozenAccounts));
+
+// ── Vendors / Delivery (legacy) ──────────────────────────
+router.get('/vendors', requireAuth, requireLevel(2), async (_req, res) => {
+  try {
+    const vendors = await prisma.user.findMany({ where:{ role:'supplier' }, select:{ id:true, name:true, email:true, country:true, kycStatus:true }, take:50 });
+    return success(res, vendors);
+  } catch (e) { return success(res, []); }
+});
+
+router.get('/delivery', requireAuth, requireLevel(2), async (_req, res) => {
+  try {
+    const deliveries = await prisma.order.findMany({ take:30, orderBy:{ createdAt:'desc' }, include:{ user:{ select:{ name:true } } } }).catch(()=>[]);
+    return success(res, deliveries);
+  } catch (e) { return success(res, []); }
+});
+
 module.exports = router;

@@ -100,4 +100,21 @@ router.post('/send-mass', requireAuth, requireRole('admin'), async (req, res) =>
   } catch (e) { return error(res, e.message); }
 });
 
+// POST /v1/notifications/bulk — alias de send-mass usado por el dashboard
+router.post('/bulk', requireAuth, requireRole('admin','super_admin','marketing_manager','country_manager','regional_director'), async (req, res) => {
+  try {
+    const { target, title, body, channel, type } = req.body;
+    if (!title || !body) return error(res, 'Título y cuerpo son obligatorios', 400);
+    const prisma = require('../config/prisma');
+    let where = {};
+    if (target && target.startsWith('role:')) where.role = target.split(':')[1];
+    else if (target && target.startsWith('country:')) where.country = target.split(':')[1];
+    const users = await prisma.user.findMany({ where, select: { id: true } });
+    await prisma.notification.createMany({
+      data: users.map(u => ({ id: require('uuid').v4(), userId: u.id, title, body, type: type||'info', channel: channel||'in-app', read: false }))
+    });
+    return success(res, { sent: users.length, target: target||'all', title, type });
+  } catch (e) { return error(res, e.message); }
+});
+
 module.exports = router;
