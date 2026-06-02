@@ -772,7 +772,6 @@ router.patch('/users/:id/unblock', requireAuth, requireLevel(2), async (req, res
   } catch (e) { return error(res, e.message); }
 });
 
-<<<<<<< HEAD
 // ══════════════════════════════════════════════════════
 //  WEBHOOK SYNC — Supabase → Railway
 //  Recibe usuarios nuevos de Supabase y los sincroniza
@@ -928,7 +927,6 @@ router.post('/sync-bulk', requireAuth, requireLevel(3), async (req, res) => {
   });
 });
 
-=======
 // ── Alias ban/unban (dashboard v22+) ────────────────────
 router.post('/users/:id/ban', requireAuth, requireLevel(2), async (req, res) => {
   try {
@@ -1257,6 +1255,5 @@ router.get('/delivery', requireAuth, requireLevel(2), async (_req, res) => {
   } catch (e) { return success(res, []); }
 });
 
->>>>>>> a3d8725 (feat: endpoints v22-v25 completos en admin + kyc + notifications)
 module.exports = router;
 
