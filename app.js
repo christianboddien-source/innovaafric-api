@@ -40,6 +40,28 @@ const apikeysRoutes       = require('./src/routes/apikeys');
 const ticketsRoutes       = require('./src/routes/tickets');
 const countryconfigRoutes = require('./src/routes/countryconfig');
 const payrollRoutes       = require('./src/routes/payroll');
+// v26 — Productos Financieros
+const insuranceRoutes     = require('./src/routes/insurance');
+const savingsRoutes       = require('./src/routes/savings');
+const creditRoutes        = require('./src/routes/credit');
+const installmentsRoutes  = require('./src/routes/installments');
+const investRoutes        = require('./src/routes/invest');
+// v27 — Comercio Avanzado
+const merchantsRoutes     = require('./src/routes/merchants');
+const refundsRoutes       = require('./src/routes/refunds');
+const marketplaceRoutes   = require('./src/routes/marketplace');
+const promocodesRoutes    = require('./src/routes/promocodes');
+// v28 — Partners B2B
+const partnersRoutes      = require('./src/routes/partners');
+const billingRoutes       = require('./src/routes/billing');
+const whitelabelRoutes    = require('./src/routes/whitelabel');
+// v30 — Comunicación
+const inboxRoutes         = require('./src/routes/inbox');
+const smsRoutes           = require('./src/routes/sms');
+// v32 — Integraciones
+const stripeRoutes        = require('./src/routes/stripe');
+const mobilemoneyRoutes   = require('./src/routes/mobilemoney');
+const swiftRoutes         = require('./src/routes/swift');
 const { error }      = require('./src/helpers/response');
 
 const app = express();
@@ -119,6 +141,28 @@ app.use('/v1/apikeys',       apikeysRoutes);
 app.use('/v1/tickets',       ticketsRoutes);
 app.use('/v1/countryconfig', countryconfigRoutes);
 app.use('/v1/payroll',       payrollRoutes);
+// v26
+app.use('/v1/insurance',    insuranceRoutes);
+app.use('/v1/savings',      savingsRoutes);
+app.use('/v1/credit',       creditRoutes);
+app.use('/v1/installments', installmentsRoutes);
+app.use('/v1/invest',       investRoutes);
+// v27
+app.use('/v1/merchants',    merchantsRoutes);
+app.use('/v1/refunds',      refundsRoutes);
+app.use('/v1/marketplace',  marketplaceRoutes);
+app.use('/v1/promo-codes',  promocodesRoutes);
+// v28
+app.use('/v1/partners',     partnersRoutes);
+app.use('/v1/billing',      billingRoutes);
+app.use('/v1/white-label',  whitelabelRoutes);
+// v30
+app.use('/v1/messages',     inboxRoutes);
+app.use('/v1/sms',          smsRoutes);
+// v32
+app.use('/v1/stripe',       stripeRoutes);
+app.use('/v1/mobile-money', mobilemoneyRoutes);
+app.use('/v1/swift',        swiftRoutes);
 
 // ── 404 ─────────────────────────────────────────────────
 app.use((_req, res) => {
