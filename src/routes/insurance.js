@@ -39,6 +39,14 @@ router.get('/claims', requireAuth, requireRole(...ADMIN), async (req, res) => {
   return success(res, CLAIMS);
 });
 
+// PATCH /v1/insurance/claims/:id — actualizar estado genérico
+router.patch('/claims/:id', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  const claim = CLAIMS.find(c => c.id === req.params.id);
+  if (!claim) return error(res, 'Siniestro no encontrado', 404);
+  Object.assign(claim, req.body);
+  return success(res, claim);
+});
+
 // POST /v1/insurance/claims/:id/approve
 router.post('/claims/:id/approve', requireAuth, requireRole(...ADMIN), async (req, res) => {
   const claim = CLAIMS.find(c => c.id === req.params.id);

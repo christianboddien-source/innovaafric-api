@@ -1051,6 +1051,14 @@ router.get('/staff', requireAuth, requireLevel(3), async (req, res) => {
   } catch (e) { return error(res, e.message); }
 });
 
+router.patch('/staff/:id', requireAuth, requireLevel(4), async (req, res) => {
+  try {
+    const { role, city, department, country } = req.body;
+    const u = await prisma.user.update({ where:{ id:req.params.id }, data:{ role, city, department, country } });
+    return success(res, { id:u.id, name:u.name, role:u.role });
+  } catch (e) { return error(res, e.message); }
+});
+
 router.post('/staff', requireAuth, requireLevel(4), async (req, res) => {
   try {
     const { name, email, role, country, city, department } = req.body;

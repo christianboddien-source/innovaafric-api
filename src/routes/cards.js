@@ -200,6 +200,14 @@ router.post('/physical', requireAuth, requireRole('admin','super_admin','kyc_off
   return success(res, card, 201);
 });
 
+// PATCH /v1/cards/physical/:id — actualizar estado
+router.patch('/physical/:id', requireAuth, requireRole('admin','super_admin','kyc_officer','finance_officer','risk_officer'), async (req, res) => {
+  const card = PHYSICAL_CARDS.find(c => c.id === req.params.id);
+  if (!card) return error(res, 'Tarjeta no encontrada', 404);
+  Object.assign(card, req.body);
+  return success(res, card);
+});
+
 // PUT /v1/cards/physical/:id/block
 router.put('/physical/:id/block', requireAuth, requireRole('admin','super_admin','kyc_officer','finance_officer','risk_officer'), async (req, res) => {
   const card = PHYSICAL_CARDS.find(c => c.id === req.params.id);

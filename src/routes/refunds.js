@@ -21,6 +21,14 @@ router.get('/', requireAuth, requireRole(...ADMIN), async (req, res) => {
   return success(res, list);
 });
 
+// PATCH /v1/refunds/:id — actualizar estado genérico
+router.patch('/:id', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  const r = REFUNDS.find(x => x.id === req.params.id);
+  if (!r) return error(res, 'Devolución no encontrada', 404);
+  Object.assign(r, req.body);
+  return success(res, r);
+});
+
 // POST /v1/refunds/:id/approve
 router.post('/:id/approve', requireAuth, requireRole(...ADMIN), async (req, res) => {
   const r = REFUNDS.find(x => x.id === req.params.id);
