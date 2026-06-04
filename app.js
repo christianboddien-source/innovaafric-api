@@ -82,6 +82,8 @@ app.use(helmet({
   }
 }));
 app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(',') || '*' }));
+// Stripe webhook necesita body raw — debe ir ANTES de express.json()
+app.use('/v1/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

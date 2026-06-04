@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^8.0.8",
     "prisma": "^6.0.0",
+    "stripe": "^22.2.0",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^9.0.1"
   },
