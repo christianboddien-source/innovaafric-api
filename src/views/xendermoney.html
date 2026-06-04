@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XenderMoney — Envía dinero al mundo</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#FFB800">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XenderMoney">
+<meta name="description" content="Envía dinero a África en segundos. EUR↔XAF, USD↔XOF sin comisiones ocultas.">
+<style>
+:root {
+  --bg: #0a0f1e; --bg2: #111827; --bg3: #1f2937; --border: #2d3748;
+  --text: #f1f5f9; --muted: #94a3b8;
+  --gold: #FFB800; --green: #00C48C; --orange: #FF6B35; --teal: #4ECDC4;
+  --red: #ef4444; --radius: 12px; --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Segoe UI',sans-serif; }
+
+nav {
+  position:sticky; top:0; z-index:100;
+  background:rgba(10,15,30,0.95); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 2rem; height:64px;
+}
+.nav-logo { font-size:1.3rem; font-weight:800; color:var(--gold); }
+.nav-links { display:flex; gap:0.5rem; align-items:center; }
+.nav-links a { padding:6px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; text-decoration:none; transition:all 0.2s; }
+.nav-links a.home { color:var(--green); border:1px solid var(--green); }
+.nav-links a.shop { color:var(--orange); border:1px solid var(--orange); }
+.nav-links a.delivery { color:var(--teal); border:1px solid var(--teal); }
+.nav-links a.bigshop { color:#a78bfa; border:1px solid #a78bfa; }
+.nav-links a:hover { opacity:0.8; }
+.nav-btn { background:var(--gold); color:#000; padding:8px 20px; border-radius:8px; font-weight:700; font-size:0.85rem; text-decoration:none; }
+
+.hero {
+  min-height:85vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:4rem 2rem;
+  background:radial-gradient(ellipse at 60% 30%, rgba(255,184,0,0.12) 0%, transparent 60%), var(--bg);
+}
+.hero-badge { display:inline-block; background:rgba(255,184,0,0.15); border:1px solid rgba(255,184,0,0.4); color:var(--gold); padding:6px 16px; border-radius:20px; font-size:0.8rem; font-weight:600; letter-spacing:2px; text-transform:uppercase; margin-bottom:1.5rem; }
+.hero h1 { font-size:clamp(2.2rem,5vw,4.5rem); font-weight:900; line-height:1.1; margin-bottom:1.2rem; }
+.hero h1 span { color:var(--gold); }
+.hero p { font-size:1.1rem; color:var(--muted); max-width:560px; margin-bottom:2.5rem; line-height:1.6; }
+.btn-gold { background:var(--gold); color:#000; padding:14px 32px; border-radius:10px; font-weight:800; font-size:1rem; border:none; cursor:pointer; transition:all 0.2s; text-decoration:none; display:inline-block; }
+.btn-gold:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(255,184,0,0.4); }
+.btn-outline { background:transparent; color:var(--text); padding:14px 32px; border-radius:10px; font-weight:700; font-size:1rem; border:1px solid var(--border); cursor:pointer; transition:all 0.2s; text-decoration:none; display:inline-block; }
+.btn-outline:hover { border-color:var(--gold); color:var(--gold); }
+.hero-btns { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; }
+
+/* CALCULADORA */
+.calc-section { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); padding:4rem 2rem; }
+.calc-inner { max-width:700px; margin:0 auto; }
+.section-title { text-align:center; margin-bottom:2.5rem; }
+.section-title h2 { font-size:2rem; font-weight:800; margin-bottom:0.5rem; }
+.section-title p { color:var(--muted); }
+.calc-box { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:2rem; }
+.calc-row { display:grid; grid-template-columns:1fr auto 1fr; gap:1rem; align-items:end; margin-bottom:1.5rem; }
+.calc-group { display:flex; flex-direction:column; gap:0.5rem; }
+.calc-group label { font-size:0.8rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+.calc-input { display:flex; }
+.calc-input input { flex:1; background:var(--bg2); border:1px solid var(--border); border-right:none; border-radius:8px 0 0 8px; padding:12px 14px; color:var(--text); font-size:1.1rem; font-weight:600; outline:none; }
+.calc-input select { background:var(--bg2); border:1px solid var(--border); border-radius:0 8px 8px 0; padding:12px 10px; color:var(--text); font-size:0.9rem; outline:none; cursor:pointer; }
+.calc-arrow { display:flex; align-items:center; justify-content:center; padding-bottom:4px; font-size:1.5rem; color:var(--gold); }
+.calc-result { background:var(--bg2); border:1px solid rgba(255,184,0,0.3); border-radius:10px; padding:1.5rem; margin-bottom:1.5rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+.result-item { text-align:center; }
+.result-label { font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.3rem; }
+.result-value { font-size:1.4rem; font-weight:800; color:var(--gold); }
+.result-value.small { font-size:1rem; color:var(--text); }
+
+/* FEATURES */
+section { padding:5rem 2rem; max-width:1200px; margin:0 auto; }
+.features-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.5rem; }
+.feature-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; }
+.feature-icon { font-size:2rem; margin-bottom:0.75rem; }
+.feature-card h4 { font-weight:700; margin-bottom:0.4rem; }
+.feature-card p { color:var(--muted); font-size:0.85rem; line-height:1.5; }
+
+/* PANEL USUARIO */
+.panel-section { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.panel-inner { max-width:1000px; margin:0 auto; padding:4rem 2rem; }
+.panel-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:2rem; }
+.ptab { padding:10px 20px; background:none; border:none; color:var(--muted); font-size:0.9rem; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; transition:all 0.2s; }
+.ptab.active { color:var(--gold); border-bottom-color:var(--gold); }
+.ptab-panel { display:none; }
+.ptab-panel.active { display:block; }
+
+/* WALLET */
+.wallets-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
+.wallet-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; }
+.wallet-currency { font-size:0.8rem; color:var(--muted); font-weight:600; text-transform:uppercase; margin-bottom:0.5rem; }
+.wallet-amount { font-size:1.8rem; font-weight:900; color:var(--gold); }
+.wallet-symbol { font-size:1rem; color:var(--muted); }
+
+/* FORM */
+.form-container { max-width:560px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:2rem; }
+.form-group { margin-bottom:1rem; display:flex; flex-direction:column; gap:0.4rem; }
+label { font-size:0.8rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+input, select, textarea { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:0.95rem; outline:none; transition:border-color 0.2s; width:100%; }
+input:focus, select:focus { border-color:var(--gold); }
+.form-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.form-submit { width:100%; padding:13px; background:var(--gold); color:#000; border:none; border-radius:10px; font-size:1rem; font-weight:800; cursor:pointer; margin-top:0.5rem; transition:all 0.2s; }
+.form-submit:hover { opacity:0.85; }
+.form-submit:disabled { opacity:0.5; cursor:not-allowed; }
+
+/* HISTORIAL */
+.tx-list { display:flex; flex-direction:column; gap:0.75rem; }
+.tx-item { display:flex; align-items:center; gap:1rem; background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:1rem 1.25rem; }
+.tx-icon { font-size:1.5rem; }
+.tx-info { flex:1; }
+.tx-desc { font-weight:600; font-size:0.9rem; }
+.tx-date { font-size:0.75rem; color:var(--muted); }
+.tx-amount { font-weight:800; }
+.tx-amount.out { color:var(--red); }
+.tx-amount.in { color:var(--green); }
+
+/* REGISTRO */
+.reg-section { max-width:600px; margin:0 auto; padding:4rem 2rem; }
+.form-container-white { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:2.5rem; }
+
+/* ALERT */
+.alert { padding:12px 16px; border-radius:8px; margin-bottom:1rem; font-size:0.9rem; display:none; }
+.alert.show { display:block; }
+.alert-success { background:rgba(0,196,140,0.15); border:1px solid rgba(0,196,140,0.4); color:var(--green); }
+.alert-error { background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; }
+.alert-info { background:rgba(255,184,0,0.1); border:1px solid rgba(255,184,0,0.3); color:var(--gold); }
+
+.spinner { display:none; width:18px; height:18px; border:2px solid rgba(0,0,0,0.3); border-top-color:#000; border-radius:50%; animation:spin 0.6s linear infinite; margin:0 auto; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+footer { background:var(--bg2); border-top:1px solid var(--border); padding:3rem 2rem; text-align:center; }
+.footer-brands { display:flex; gap:1.5rem; justify-content:center; flex-wrap:wrap; margin-bottom:1rem; }
+.footer-brands a { color:var(--muted); text-decoration:none; font-size:0.85rem; }
+.footer-brands a:hover { color:var(--gold); }
+footer p { color:var(--muted); font-size:0.8rem; }
+
+@media(max-width:600px) {
+  .calc-row { grid-template-columns:1fr; }
+  .calc-arrow { transform:rotate(90deg); }
+  .nav-links { display:none; }
+  .form-grid2 { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">💰 XenderMoney</span>
+  <div class="nav-links">
+    <a href="/" class="home">🌍 INNOVAAFRIC</a>
+    <a href="/shop" class="shop">🛒 XenderShop</a>
+    <a href="/bigshop" class="bigshop">🏭 BigShop</a>
+    <a href="/delivery" class="delivery">🚚 Delivery</a>
+  </div>
+  <a href="#panel" class="nav-btn">Mi cuenta</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">💸 Remesas internacionales</div>
+  <h1>Envía dinero<br>a <span>África</span> en segundos</h1>
+  <p>Transferencias EUR↔XAF, USD↔XOF y más. Sin comisiones ocultas, con tipo de cambio en tiempo real.</p>
+  <div class="hero-btns">
+    <a href="#calculadora" class="btn-gold">Calcular envío</a>
+    <a href="#registro" class="btn-outline">Crear cuenta</a>
+  </div>
+</div>
+
+<!-- CALCULADORA -->
+<div class="calc-section" id="calculadora">
+  <div class="calc-inner">
+    <div class="section-title">
+      <h2>Calculadora de envío</h2>
+      <p>Tipo de cambio actualizado · Sin comisiones ocultas</p>
+    </div>
+    <div class="calc-box">
+      <div class="calc-row">
+        <div class="calc-group">
+          <label>Tú envías</label>
+          <div class="calc-input">
+            <input type="number" id="send-amount" value="100" min="1" oninput="calcular()">
+            <select id="send-currency" onchange="calcular()">
+              <option value="EUR">EUR €</option>
+              <option value="USD">USD $</option>
+              <option value="GBP">GBP £</option>
+            </select>
+          </div>
+        </div>
+        <div class="calc-arrow">→</div>
+        <div class="calc-group">
+          <label>Destinatario recibe</label>
+          <div class="calc-input">
+            <input type="number" id="recv-amount" readonly style="color:var(--gold);font-weight:800">
+            <select id="recv-currency" onchange="calcular()">
+              <option value="XAF">XAF</option>
+              <option value="XOF">XOF</option>
+              <option value="USD">USD $</option>
+              <option value="EUR">EUR €</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="calc-result">
+        <div class="result-item">
+          <div class="result-label">Tipo de cambio</div>
+          <div class="result-value small" id="rate-display">1 EUR = 655 XAF</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Comisión</div>
+          <div class="result-value small" id="fee-display">0.50 EUR</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Recibirá exactamente</div>
+          <div class="result-value" id="recv-exact">65,000 XAF</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Tiempo estimado</div>
+          <div class="result-value small">⚡ Instantáneo</div>
+        </div>
+      </div>
+      <button class="btn-gold" style="width:100%;padding:14px;font-size:1rem" onclick="window.location.href='#registro'">Enviar ahora →</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section>
+  <div class="section-title">
+    <h2>¿Por qué XenderMoney?</h2>
+    <p>La plataforma de remesas más completa para la diáspora africana</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h4>Instantáneo</h4>
+      <p>Transferencias completadas en segundos. Disponible 24/7 los 365 días del año.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h4>100% Seguro</h4>
+      <p>Cifrado bancario, autenticación en dos pasos y monitoreo antifraude en tiempo real.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💱</div>
+      <h4>Mejores tipos</h4>
+      <p>Tipo de cambio actualizado en tiempo real, siempre mejor que los bancos tradicionales.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h4>Mobile Money</h4>
+      <p>Recibe directamente en MTN Money, Orange Money, Wave y más de 10 operadores.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏦</div>
+      <h4>A cuenta bancaria</h4>
+      <p>Transferencia directa a cualquier banco en Camerún, Senegal, Costa de Marfil y más.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h4>Historial completo</h4>
+      <p>Registro detallado de todos tus envíos con recibos descargables.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PANEL USUARIO -->
+<div class="panel-section" id="panel">
+  <div class="panel-inner">
+    <div class="section-title">
+      <h2>Mi panel financiero</h2>
+      <p>Gestiona tu wallet, envía dinero y consulta tu historial</p>
+    </div>
+    <div id="panel-login-required" style="text-align:center;padding:2rem">
+      <p style="color:var(--muted);margin-bottom:1rem">Inicia sesión para acceder a tu panel</p>
+      <a href="#registro" class="btn-gold">Crear cuenta · Iniciar sesión</a>
+    </div>
+    <div id="panel-content" style="display:none">
+      <div class="panel-tabs">
+        <button class="ptab active" onclick="switchPTab('wallet')">💰 Mi Wallet</button>
+        <button class="ptab" onclick="switchPTab('enviar')">📤 Enviar dinero</button>
+        <button class="ptab" onclick="switchPTab('historial')">📋 Historial</button>
+        <button class="ptab" onclick="switchPTab('qr')">📱 Pago QR</button>
+      </div>
+
+      <!-- WALLET -->
+      <div id="ptab-wallet" class="ptab-panel active">
+        <h3 style="margin-bottom:1.5rem">Mis saldos</h3>
+        <div class="wallets-grid" id="wallets-grid">
+          <div class="wallet-card"><div class="wallet-currency">EUR</div><div class="wallet-amount">—</div></div>
+          <div class="wallet-card"><div class="wallet-currency">USD</div><div class="wallet-amount">—</div></div>
+          <div class="wallet-card"><div class="wallet-currency">XAF</div><div class="wallet-amount">—</div></div>
+          <div class="wallet-card"><div class="wallet-currency">XOF</div><div class="wallet-amount">—</div></div>
+        </div>
+        <button class="btn-gold" onclick="loadWallet()">🔄 Actualizar saldos</button>
+      </div>
+
+      <!-- ENVIAR -->
+      <div id="ptab-enviar" class="ptab-panel">
+        <div class="form-container">
+          <h3 style="margin-bottom:1.5rem">Enviar dinero</h3>
+          <div id="alert-send" class="alert"></div>
+          <form onsubmit="sendMoney(event)">
+            <div class="form-group">
+              <label>Email o teléfono del destinatario</label>
+              <input type="text" id="send-to" placeholder="destinatario@email.com o +237..." required>
+            </div>
+            <div class="form-grid2">
+              <div class="form-group">
+                <label>Cantidad</label>
+                <input type="number" id="send-amt" placeholder="100" min="1" required>
+              </div>
+              <div class="form-group">
+                <label>Divisa</label>
+                <select id="send-curr">
+                  <option value="EUR">EUR €</option>
+                  <option value="USD">USD $</option>
+                  <option value="XAF">XAF</option>
+                  <option value="XOF">XOF</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Concepto (opcional)</label>
+              <input type="text" id="send-concept" placeholder="Familia, alquiler...">
+            </div>
+            <button type="submit" class="form-submit">📤 Enviar dinero</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- HISTORIAL -->
+      <div id="ptab-historial" class="ptab-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+          <h3>Mis transacciones</h3>
+          <button class="btn-gold" style="padding:8px 16px;font-size:0.85rem" onclick="loadHistory()">🔄 Actualizar</button>
+        </div>
+        <div id="tx-list" class="tx-list">
+          <p style="color:var(--muted);text-align:center;padding:2rem">Cargando historial...</p>
+        </div>
+      </div>
+
+      <!-- QR -->
+      <div id="ptab-qr" class="ptab-panel">
+        <div class="form-container">
+          <h3 style="margin-bottom:1rem">Pago con código QR</h3>
+          <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.5rem">Paga a comercios escaneando su código QR</p>
+          <div id="alert-qr" class="alert"></div>
+          <div class="form-group">
+            <label>Código QR del comercio</label>
+            <input type="text" id="qr-code" placeholder="qr_xxxxxxxx">
+          </div>
+          <div class="form-group">
+            <label>Cantidad (EUR)</label>
+            <input type="number" id="qr-amount" placeholder="25.00" min="0.01" step="0.01">
+          </div>
+          <button class="form-submit" onclick="payQR()">💳 Pagar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTRO -->
+<section id="registro">
+  <div class="section-title">
+    <h2>Empieza a enviar hoy</h2>
+    <p>Registro gratuito en menos de 2 minutos</p>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;max-width:900px;margin:0 auto">
+    <!-- REGISTER -->
+    <div class="form-container-white">
+      <h3 style="margin-bottom:1.5rem;color:var(--gold)">Nueva cuenta</h3>
+      <div id="alert-reg" class="alert"></div>
+      <form onsubmit="register(event)">
+        <div class="form-group"><label>Nombre</label><input type="text" id="reg-name" required placeholder="Tu nombre"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="reg-email" required placeholder="tu@email.com"></div>
+        <div class="form-group"><label>Teléfono</label><input type="tel" id="reg-phone" required placeholder="+237..."></div>
+        <div class="form-group"><label>País</label>
+          <select id="reg-country" required>
+            <option value="">Seleccionar...</option>
+            <option value="CM">🇨🇲 Camerún</option><option value="SN">🇸🇳 Senegal</option>
+            <option value="GQ">🇬🇶 Guinea Ecuatorial</option><option value="ES">🇪🇸 España</option>
+            <option value="FR">🇫🇷 Francia</option><option value="DE">🇩🇪 Alemania</option>
+            <option value="US">🇺🇸 Estados Unidos</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Contraseña</label><input type="password" id="reg-pass" minlength="8" required placeholder="Mín. 8 caracteres"></div>
+        <button type="submit" class="form-submit" style="background:var(--gold)">Crear cuenta</button>
+      </form>
+    </div>
+    <!-- LOGIN -->
+    <div class="form-container-white">
+      <h3 style="margin-bottom:1.5rem;color:var(--gold)">Iniciar sesión</h3>
+      <div id="alert-login" class="alert"></div>
+      <form onsubmit="login(event)">
+        <div class="form-group"><label>Email</label><input type="email" id="login-email" required placeholder="tu@email.com"></div>
+        <div class="form-group"><label>Contraseña</label><input type="password" id="login-pass" required placeholder="Tu contraseña"></div>
+        <button type="submit" class="form-submit" style="background:var(--gold)">Entrar</button>
+      </form>
+      <div style="margin-top:1rem;padding:1rem;background:var(--bg3);border-radius:8px;font-size:0.8rem;color:var(--muted)">
+        💡 Tras iniciar sesión, accede a tu wallet, envía dinero y consulta tu historial arriba.
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-brands">
+    <a href="/">🌍 INNOVAAFRIC</a>
+    <a href="/money">💰 XenderMoney</a>
+    <a href="/shop">🛒 XenderShop</a>
+    <a href="/bigshop">🏭 XenderBigShop</a>
+    <a href="/delivery">🚚 Xender Delivery</a>
+  </div>
+  <p>© 2026 XenderMoney by INNOVAAFRIC. Servicios de pago regulados.</p>
+</footer>
+
+<script>
+const API = '';
+let token = localStorage.getItem('inno_token');
+
+const RATES = {
+  'EUR-XAF': 655.957, 'EUR-XOF': 655.957, 'EUR-USD': 1.08, 'EUR-EUR': 1,
+  'USD-XAF': 607.37, 'USD-XOF': 607.37, 'USD-EUR': 0.925, 'USD-USD': 1,
+  'GBP-XAF': 766.20, 'GBP-XOF': 766.20, 'GBP-USD': 1.27, 'GBP-EUR': 1.17
+};
+
+function calcular() {
+  const amount = parseFloat(document.getElementById('send-amount').value) || 0;
+  const from = document.getElementById('send-currency').value;
+  const to = document.getElementById('recv-currency').value;
+  const key = from + '-' + to;
+  const rate = RATES[key] || 1;
+  const fee = Math.max(0.5, amount * 0.005);
+  const net = (amount - fee) * rate;
+  document.getElementById('recv-amount').value = net.toFixed(2);
+  document.getElementById('recv-exact').textContent = net.toLocaleString('es-ES', {maximumFractionDigits:0}) + ' ' + to;
+  document.getElementById('rate-display').textContent = '1 ' + from + ' = ' + rate.toFixed(3) + ' ' + to;
+  document.getElementById('fee-display').textContent = fee.toFixed(2) + ' ' + from;
+}
+calcular();
+
+function switchPTab(id) {
+  document.querySelectorAll('.ptab').forEach((b,i)=>{
+    b.classList.toggle('active', ['wallet','enviar','historial','qr'][i]===id);
+  });
+  document.querySelectorAll('.ptab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('ptab-'+id).classList.add('active');
+  if(id==='wallet') loadWallet();
+  if(id==='historial') loadHistory();
+}
+
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = msg; el.className = 'alert show alert-'+type;
+}
+
+if(token) {
+  document.getElementById('panel-login-required').style.display = 'none';
+  document.getElementById('panel-content').style.display = 'block';
+  loadWallet();
+}
+
+async function loadWallet() {
+  if(!token) return;
+  try {
+    const res = await fetch(API+'/v1/money/balance', { headers: {'Authorization':'Bearer '+token} });
+    const json = await res.json();
+    const balances = json.balances || json.data || [];
+    const grid = document.getElementById('wallets-grid');
+    grid.innerHTML = balances.map(b => `
+      <div class="wallet-card">
+        <div class="wallet-currency">${b.currency}</div>
+        <div class="wallet-amount">${parseFloat(b.balance||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} <span class="wallet-symbol">${b.currency}</span></div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('wallets-grid').innerHTML = '<p style="color:var(--muted)">Error cargando saldos</p>';
+  }
+}
+
+async function loadHistory() {
+  if(!token) return;
+  try {
+    const res = await fetch(API+'/v1/money/history?limit=20', { headers: {'Authorization':'Bearer '+token} });
+    const json = await res.json();
+    const txs = json.transactions || json.data || [];
+    const list = document.getElementById('tx-list');
+    if(!txs.length) { list.innerHTML = '<p style="color:var(--muted);text-align:center;padding:2rem">Sin transacciones aún</p>'; return; }
+    list.innerHTML = txs.map(t => `
+      <div class="tx-item">
+        <div class="tx-icon">${t.type==='send'?'📤':t.type==='receive'?'📥':'💱'}</div>
+        <div class="tx-info">
+          <div class="tx-desc">${t.description||t.type||'Transacción'}</div>
+          <div class="tx-date">${new Date(t.createdAt||t.created_at).toLocaleDateString('es-ES')}</div>
+        </div>
+        <div class="tx-amount ${t.amount<0?'out':'in'}">${t.amount>0?'+':''}${parseFloat(t.amount).toFixed(2)} ${t.currency||'EUR'}</div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('tx-list').innerHTML = '<p style="color:var(--muted);text-align:center">Error cargando historial</p>';
+  }
+}
+
+async function sendMoney(e) {
+  e.preventDefault();
+  if(!token) return showAlert('alert-send','Inicia sesión primero','error');
+  const to = document.getElementById('send-to').value;
+  const amount = parseFloat(document.getElementById('send-amt').value);
+  const currency = document.getElementById('send-curr').value;
+  const description = document.getElementById('send-concept').value;
+  try {
+    const res = await fetch(API+'/v1/money/send', {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({to, amount, currency, description})
+    });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Error al enviar');
+    showAlert('alert-send','✅ Dinero enviado correctamente','success');
+  } catch(err) { showAlert('alert-send','❌ '+err.message,'error'); }
+}
+
+async function payQR() {
+  if(!token) return showAlert('alert-qr','Inicia sesión primero','error');
+  const qr_code = document.getElementById('qr-code').value;
+  const amount = parseFloat(document.getElementById('qr-amount').value);
+  try {
+    const res = await fetch(API+'/v1/money/qr/pay', {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body: JSON.stringify({qr_code, amount, currency:'EUR'})
+    });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Error en el pago');
+    showAlert('alert-qr','✅ Pago realizado','success');
+  } catch(err) { showAlert('alert-qr','❌ '+err.message,'error'); }
+}
+
+async function register(e) {
+  e.preventDefault();
+  const body = { name:document.getElementById('reg-name').value, email:document.getElementById('reg-email').value, phone:document.getElementById('reg-phone').value, country:document.getElementById('reg-country').value, password:document.getElementById('reg-pass').value, role:'customer' };
+  try {
+    const res = await fetch(API+'/v1/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Error');
+    token = json.token||(json.data&&json.data.token);
+    if(token) { localStorage.setItem('inno_token',token); }
+    showAlert('alert-reg','✅ Cuenta creada. ¡Ya puedes usar tu wallet!','success');
+    document.getElementById('panel-login-required').style.display='none';
+    document.getElementById('panel-content').style.display='block';
+    loadWallet();
+  } catch(err) { showAlert('alert-reg','❌ '+err.message,'error'); }
+}
+
+async function login(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-pass').value;
+  try {
+    const res = await fetch(API+'/v1/auth/token', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({grant_type:'password', email, password}) });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Credenciales incorrectas');
+    token = json.access_token||json.token;
+    localStorage.setItem('inno_token', token);
+    showAlert('alert-login','✅ Sesión iniciada','success');
+    document.getElementById('panel-login-required').style.display='none';
+    document.getElementById('panel-content').style.display='block';
+    loadWallet();
+  } catch(err) { showAlert('alert-login','❌ '+err.message,'error'); }
+}
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+</body>
+</html>

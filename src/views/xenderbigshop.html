@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XenderBigShop — Marketplace B2B Tricontinental</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#a78bfa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XenderBigShop">
+<meta name="description" content="Marketplace B2B mayorista tricontinental. Compra al por mayor entre Europa y África.">
+<style>
+:root{
+  --bg:#0a0f1e;--bg2:#111827;--bg3:#1f2937;--border:#2d3748;
+  --text:#f1f5f9;--muted:#94a3b8;
+  --purple:#a78bfa;--green:#00C48C;--gold:#FFB800;--orange:#FF6B35;--teal:#4ECDC4;
+  --red:#ef4444;--radius:12px;--shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(10,15,30,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:64px;}
+.nav-logo{font-size:1.3rem;font-weight:800;color:var(--purple);}
+.nav-links{display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;}
+.nav-links a{padding:6px 12px;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;transition:all 0.2s;}
+.nav-links a.home{color:var(--green);border:1px solid var(--green);}
+.nav-links a.money{color:var(--gold);border:1px solid var(--gold);}
+.nav-links a.shop{color:var(--orange);border:1px solid var(--orange);}
+.nav-links a.delivery{color:var(--teal);border:1px solid var(--teal);}
+.nav-links a:hover{opacity:0.8;}
+.nav-btn{background:var(--purple);color:#fff;padding:8px 20px;border-radius:8px;font-weight:700;font-size:0.85rem;text-decoration:none;}
+
+.hero{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;background:radial-gradient(ellipse at 60% 30%,rgba(167,139,250,0.13) 0%,transparent 60%),radial-gradient(ellipse at 20% 70%,rgba(0,196,140,0.07) 0%,transparent 50%),var(--bg);}
+.hero-badge{display:inline-block;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.4);color:var(--purple);padding:6px 16px;border-radius:20px;font-size:0.8rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:1.5rem;}
+.hero h1{font-size:clamp(2.2rem,5vw,4.5rem);font-weight:900;line-height:1.1;margin-bottom:1.2rem;}
+.hero h1 span{color:var(--purple);}
+.hero p{font-size:1.1rem;color:var(--muted);max-width:580px;margin-bottom:2.5rem;line-height:1.6;}
+.btn-purple{background:var(--purple);color:#fff;padding:14px 32px;border-radius:10px;font-weight:800;font-size:1rem;border:none;cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;}
+.btn-purple:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(167,139,250,0.4);}
+.btn-outline{background:transparent;color:var(--text);padding:14px 32px;border-radius:10px;font-weight:700;font-size:1rem;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;}
+.btn-outline:hover{border-color:var(--purple);color:var(--purple);}
+.hero-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
+
+.stats-bar{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:2rem;}
+.stats-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:space-around;flex-wrap:wrap;gap:1.5rem;}
+.stat{text-align:center;}
+.stat-num{font-size:2rem;font-weight:900;color:var(--purple);}
+.stat-label{font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+section{padding:5rem 2rem;max-width:1200px;margin:0 auto;}
+.section-title{text-align:center;margin-bottom:3rem;}
+.section-title h2{font-size:2rem;font-weight:800;margin-bottom:0.5rem;}
+.section-title p{color:var(--muted);}
+
+/* CATEGORÍAS B2B */
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;}
+.cat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;text-align:center;cursor:pointer;transition:all 0.3s;text-decoration:none;color:var(--text);}
+.cat-card:hover{transform:translateY(-4px);border-color:rgba(167,139,250,0.5);box-shadow:var(--shadow);}
+.cat-icon{font-size:2.5rem;margin-bottom:0.75rem;}
+.cat-card h4{font-weight:700;margin-bottom:0.3rem;}
+.cat-card p{color:var(--muted);font-size:0.8rem;}
+.cat-tag{display:inline-block;background:rgba(167,139,250,0.15);color:var(--purple);padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:600;margin-top:0.5rem;}
+
+/* PRODUCTOS MAYORISTAS */
+.products-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+.products-header h2{font-size:1.4rem;font-weight:800;}
+.search-wrap{display:flex;gap:0;flex:0 0 300px;}
+.search-wrap input{flex:1;background:var(--bg3);border:1px solid var(--border);border-right:none;border-radius:8px 0 0 8px;padding:10px 14px;color:var(--text);font-size:0.9rem;outline:none;}
+.search-wrap input:focus{border-color:var(--purple);}
+.search-wrap button{background:var(--purple);border:none;color:#fff;padding:10px 16px;border-radius:0 8px 8px 0;cursor:pointer;}
+.filter-row{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.5rem;}
+.f-pill{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:0.8rem;cursor:pointer;color:var(--text);transition:all 0.2s;}
+.f-pill.active,.f-pill:hover{background:rgba(167,139,250,0.15);border-color:var(--purple);color:var(--purple);}
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.5rem;}
+.product-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all 0.3s;}
+.product-card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:rgba(167,139,250,0.4);}
+.product-img{width:100%;height:160px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:3.5rem;}
+.product-info{padding:1rem;}
+.product-cat{font-size:0.72rem;color:var(--purple);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem;}
+.product-name{font-weight:700;font-size:0.95rem;margin-bottom:0.3rem;}
+.product-seller{font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem;}
+.product-moq{font-size:0.75rem;color:var(--gold);margin-bottom:0.75rem;}
+.product-footer{display:flex;justify-content:space-between;align-items:center;}
+.product-price{font-size:1.1rem;font-weight:900;color:var(--purple);}
+.product-price small{font-size:0.72rem;color:var(--muted);font-weight:400;}
+.quote-btn{background:var(--purple);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;transition:all 0.2s;}
+.quote-btn:hover{opacity:0.85;}
+
+/* CÓMO FUNCIONA */
+.steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;}
+.step-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;text-align:center;}
+.step-num{width:48px;height:48px;border-radius:50%;background:rgba(167,139,250,0.15);border:2px solid var(--purple);color:var(--purple);font-size:1.2rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;}
+.step-card h4{font-weight:700;margin-bottom:0.5rem;}
+.step-card p{color:var(--muted);font-size:0.85rem;line-height:1.5;}
+
+/* VENTAJAS B2B */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;}
+.feature-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;}
+.feature-icon{font-size:2rem;margin-bottom:0.75rem;}
+.feature-card h4{font-weight:700;margin-bottom:0.4rem;}
+.feature-card p{color:var(--muted);font-size:0.85rem;line-height:1.5;}
+
+/* FORMULARIOS */
+.forms-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.forms-inner{max-width:1000px;margin:0 auto;padding:4rem 2rem;}
+.forms-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;}
+.form-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;}
+.form-box h3{font-size:1.1rem;font-weight:800;margin-bottom:1.5rem;}
+.form-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:2rem;}
+.ftab{padding:10px 18px;background:none;border:none;color:var(--muted);font-size:0.85rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all 0.2s;}
+.ftab.active{color:var(--purple);border-bottom-color:var(--purple);}
+.ftab-panel{display:none;}
+.ftab-panel.active{display:block;}
+.form-group{margin-bottom:1rem;display:flex;flex-direction:column;gap:0.4rem;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+input,select,textarea{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:0.9rem;outline:none;transition:border-color 0.2s;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--purple);}
+textarea{resize:vertical;min-height:80px;}
+.form-submit{width:100%;padding:13px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:800;cursor:pointer;margin-top:0.5rem;transition:all 0.2s;}
+.form-submit:hover{opacity:0.85;}
+
+/* COTIZACIÓN MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:100%;max-width:480px;}
+.modal h3{margin-bottom:1.25rem;}
+.modal-close{float:right;background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;margin-top:-0.5rem;}
+
+/* ALERT */
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;display:none;}
+.alert.show{display:block;}
+.alert-success{background:rgba(0,196,140,0.15);border:1px solid rgba(0,196,140,0.4);color:var(--green);}
+.alert-error{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;}
+
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:3rem 2rem;text-align:center;}
+.footer-brands{display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;}
+.footer-brands a{color:var(--muted);text-decoration:none;font-size:0.85rem;}
+.footer-brands a:hover{color:var(--purple);}
+footer p{color:var(--muted);font-size:0.8rem;}
+
+@media(max-width:700px){.nav-links{display:none;}.forms-grid{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr;}.search-wrap{flex:1;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">🏭 XenderBigShop</span>
+  <div class="nav-links">
+    <a href="/" class="home">🌍 INNOVAAFRIC</a>
+    <a href="/money" class="money">💰 XenderMoney</a>
+    <a href="/shop" class="shop">🛒 XenderShop</a>
+    <a href="/delivery" class="delivery">🚚 Delivery</a>
+  </div>
+  <a href="#registro-b2b" class="nav-btn">Acceso B2B</a>
+</nav>
+
+<!-- COTIZACIÓN MODAL -->
+<div class="modal-overlay" id="quote-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeQuote()">×</button>
+    <h3>📋 Solicitar cotización</h3>
+    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.25rem">Producto: <strong id="quote-product-name">—</strong></p>
+    <div id="alert-quote" class="alert"></div>
+    <div class="form-group"><label>Tu empresa</label><input type="text" id="q-company" placeholder="Nombre de la empresa"></div>
+    <div class="form-group"><label>Email de contacto</label><input type="email" id="q-email" placeholder="compras@empresa.com"></div>
+    <div class="form-group"><label>Cantidad deseada (unidades)</label><input type="number" id="q-qty" placeholder="Ej: 500" min="1"></div>
+    <div class="form-group"><label>Mensaje adicional</label><textarea id="q-msg" placeholder="Condiciones especiales, plazos, país de entrega..."></textarea></div>
+    <button class="form-submit" onclick="sendQuote()">📤 Enviar solicitud de cotización</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">🏭 Marketplace B2B mayorista</div>
+  <h1>Compra al por mayor<br>en <span>tres continentes</span></h1>
+  <p>Conectamos compradores y proveedores mayoristas de Europa, África y América. Pedidos mínimos desde 50 unidades. Logística integrada con Xender Delivery.</p>
+  <div class="hero-btns">
+    <a href="#catalogo-b2b" class="btn-purple">Explorar catálogo B2B</a>
+    <a href="#registro-b2b" class="btn-outline">Registrar mi empresa</a>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat"><div class="stat-num">1.200+</div><div class="stat-label">Productos mayoristas</div></div>
+    <div class="stat"><div class="stat-num">300+</div><div class="stat-label">Proveedores B2B</div></div>
+    <div class="stat"><div class="stat-num">12</div><div class="stat-label">Países</div></div>
+    <div class="stat"><div class="stat-num">50u.</div><div class="stat-label">MOQ mínimo</div></div>
+  </div>
+</div>
+
+<!-- CATEGORÍAS -->
+<section>
+  <div class="section-title">
+    <h2>Categorías mayoristas</h2>
+    <p>Encuentra proveedores en todos los sectores del ecosistema africano y europeo</p>
+  </div>
+  <div class="cat-grid">
+    <a href="#catalogo-b2b" class="cat-card" onclick="filterCatB2b(event,'alimentacion')"><div class="cat-icon">🌾</div><h4>Agroalimentación</h4><p>Cacao, café, aceite de palma, cereales</p><span class="cat-tag">Mayorista</span></a>
+    <a href="#catalogo-b2b" class="cat-card" onclick="filterCatB2b(event,'belleza')"><div class="cat-icon">🧴</div><h4>Cosméticos & Belleza</h4><p>Shea, argán, karité, aceites naturales</p><span class="cat-tag">Mayorista</span></a>
+    <a href="#catalogo-b2b" class="cat-card" onclick="filterCatB2b(event,'textil')"><div class="cat-icon">👘</div><h4>Textil & Moda</h4><p>Telas africanas, batik, bogolan, dashiki</p><span class="cat-tag">Mayorista</span></a>
+    <a href="#catalogo-b2b" class="cat-card" onclick="filterCatB2b(event,'electronica')"><div class="cat-icon">📱</div><h4>Electrónica</h4><p>Smartphones, accesorios, repuestos</p><span class="cat-tag">Mayorista</span></a>
+    <a href="#catalogo-b2b" class="cat-card" onclick="filterCatB2b(event,'artesania')"><div class="cat-icon">🏺</div><h4>Artesanía & Decoración</h4><p>Máscaras, cestas, maderas talladas</p><span class="cat-tag">Mayorista</span></a>
+    <a href="#catalogo-b2b" class="cat-card" onclick="filterCatB2b(event,'farmacia')"><div class="cat-icon">💊</div><h4>Salud & Farmacia</h4><p>Plantas medicinales, suplementos naturales</p><span class="cat-tag">Mayorista</span></a>
+    <a href="#catalogo-b2b" class="cat-card" onclick="filterCatB2b(event,'construccion')"><div class="cat-icon">🧱</div><h4>Construcción</h4><p>Materiales, ferreterías, herramientas</p><span class="cat-tag">Mayorista</span></a>
+    <a href="#catalogo-b2b" class="cat-card" onclick="filterCatB2b(event,'hogar')"><div class="cat-icon">🏠</div><h4>Hogar & Menaje</h4><p>Utensilios, muebles, textiles del hogar</p><span class="cat-tag">Mayorista</span></a>
+  </div>
+</section>
+
+<!-- CATÁLOGO B2B -->
+<div style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:4rem 2rem;" id="catalogo-b2b">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="products-header">
+      <h2>Catálogo mayorista</h2>
+      <div class="search-wrap">
+        <input type="text" id="b2b-search" placeholder="Buscar productos..." oninput="filterB2b()">
+        <button>🔍</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="f-pill active" onclick="filterCatB2bPill(this,'all')">Todos</div>
+      <div class="f-pill" onclick="filterCatB2bPill(this,'alimentacion')">🌾 Alimentación</div>
+      <div class="f-pill" onclick="filterCatB2bPill(this,'belleza')">🧴 Belleza</div>
+      <div class="f-pill" onclick="filterCatB2bPill(this,'textil')">👘 Textil</div>
+      <div class="f-pill" onclick="filterCatB2bPill(this,'electronica')">📱 Electrónica</div>
+      <div class="f-pill" onclick="filterCatB2bPill(this,'artesania')">🏺 Artesanía</div>
+      <div class="f-pill" onclick="filterCatB2bPill(this,'hogar')">🏠 Hogar</div>
+    </div>
+    <div class="products-grid" id="b2b-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted)">Cargando catálogo B2B...</div>
+    </div>
+  </div>
+</div>
+
+<!-- CÓMO FUNCIONA -->
+<section>
+  <div class="section-title">
+    <h2>¿Cómo funciona XenderBigShop?</h2>
+    <p>Proceso simplificado para compras mayoristas internacionales</p>
+  </div>
+  <div class="steps-grid">
+    <div class="step-card"><div class="step-num">1</div><h4>Regístra tu empresa</h4><p>Crea una cuenta empresarial con tu NIF/RUC y datos fiscales. Proceso en 24h.</p></div>
+    <div class="step-card"><div class="step-num">2</div><h4>Explora el catálogo</h4><p>Navega entre 1.200+ productos mayoristas de 300+ proveedores verificados.</p></div>
+    <div class="step-card"><div class="step-num">3</div><h4>Solicita cotización</h4><p>Envía solicitudes de precio a varios proveedores a la vez. Respuesta en 48h.</p></div>
+    <div class="step-card"><div class="step-num">4</div><h4>Paga con seguridad</h4><p>Pago escrow: el dinero se libera al proveedor solo cuando recibes la mercancía.</p></div>
+    <div class="step-card"><div class="step-num">5</div><h4>Entrega gestionada</h4><p>Xender Delivery gestiona el transporte desde el proveedor hasta tu almacén.</p></div>
+  </div>
+</section>
+
+<!-- VENTAJAS -->
+<section>
+  <div class="section-title">
+    <h2>¿Por qué elegir XenderBigShop?</h2>
+    <p>La plataforma B2B diseñada para el comercio tricontinental</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon">🔒</div><h4>Pago escrow seguro</h4><p>Tu dinero está protegido hasta confirmar la recepción de la mercancía.</p></div>
+    <div class="feature-card"><div class="feature-icon">✅</div><h4>Proveedores verificados</h4><p>Todos los proveedores pasan por un proceso de verificación KYB antes de publicar.</p></div>
+    <div class="feature-card"><div class="feature-icon">💱</div><h4>Multi-divisa</h4><p>Opera en EUR, USD, XAF y XOF. Conversión automática al mejor tipo de cambio.</p></div>
+    <div class="feature-card"><div class="feature-icon">🚚</div><h4>Logística integrada</h4><p>Xender Delivery gestiona recogida, transporte y entrega internacional.</p></div>
+    <div class="feature-card"><div class="feature-icon">📋</div><h4>Facturas automáticas</h4><p>Facturación B2B automatizada con IVA por país, descargable en PDF.</p></div>
+    <div class="feature-card"><div class="feature-icon">🤝</div><h4>Negociación directa</h4><p>Chat directo con proveedores, contraofertas y acuerdos de volumen.</p></div>
+  </div>
+</section>
+
+<!-- REGISTRO B2B -->
+<div class="forms-section" id="registro-b2b">
+  <div class="forms-inner">
+    <div class="section-title">
+      <h2>Acceso empresarial</h2>
+      <p>Regístrate como comprador B2B o como proveedor mayorista</p>
+    </div>
+    <div class="forms-grid">
+
+      <!-- COMPRADOR -->
+      <div class="form-box">
+        <div class="form-tabs">
+          <button class="ftab active" onclick="switchFTab('comprador')">🏢 Comprador B2B</button>
+          <button class="ftab" onclick="switchFTab('proveedor-b2b')">🏭 Proveedor</button>
+          <button class="ftab" onclick="switchFTab('login-b2b')">🔐 Acceder</button>
+        </div>
+
+        <div id="ftab-comprador" class="ftab-panel active">
+          <div id="alert-buyer" class="alert"></div>
+          <div class="form-grid">
+            <div class="form-group full"><label>Razón social *</label><input type="text" id="b-company" required placeholder="Mi Empresa S.L."></div>
+            <div class="form-group"><label>Responsable de compras *</label><input type="text" id="b-name" required placeholder="Nombre completo"></div>
+            <div class="form-group"><label>Email corporativo *</label><input type="email" id="b-email" required placeholder="compras@empresa.com"></div>
+            <div class="form-group"><label>Teléfono *</label><input type="tel" id="b-phone" required placeholder="+34 6XX..."></div>
+            <div class="form-group"><label>NIF / RUC / Tax ID</label><input type="text" id="b-taxid" placeholder="B12345678"></div>
+            <div class="form-group"><label>País *</label>
+              <select id="b-country" required>
+                <option value="">País...</option>
+                <option value="ES">🇪🇸 España</option><option value="FR">🇫🇷 Francia</option>
+                <option value="DE">🇩🇪 Alemania</option><option value="CM">🇨🇲 Camerún</option>
+                <option value="SN">🇸🇳 Senegal</option><option value="CI">🇨🇮 Costa de Marfil</option>
+                <option value="GQ">🇬🇶 Guinea Ecuatorial</option><option value="US">🇺🇸 EE.UU.</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Sector de actividad</label>
+              <select id="b-sector">
+                <option value="retail">Comercio minorista</option><option value="wholesale">Mayorista</option>
+                <option value="import">Importación/Exportación</option><option value="restaurant">Hostelería</option>
+                <option value="industry">Industria</option><option value="other">Otro</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Volumen mensual estimado (EUR)</label>
+              <select id="b-volume">
+                <option value="500-2000">500 – 2.000 EUR</option>
+                <option value="2000-10000">2.000 – 10.000 EUR</option>
+                <option value="10000-50000">10.000 – 50.000 EUR</option>
+                <option value="50000+">+ 50.000 EUR</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Contraseña *</label><input type="password" id="b-pass" minlength="8" required placeholder="Mín. 8 caracteres"></div>
+            <div class="form-group"><label>Confirmar contraseña *</label><input type="password" id="b-pass2" required placeholder="Repetir"></div>
+          </div>
+          <button class="form-submit" onclick="registerBuyer()">Registrar empresa compradora</button>
+        </div>
+
+        <div id="ftab-proveedor-b2b" class="ftab-panel">
+          <div id="alert-prov-b2b" class="alert"></div>
+          <div class="form-grid">
+            <div class="form-group full"><label>Nombre de la empresa / marca *</label><input type="text" id="p-company" required placeholder="Mi Fábrica S.A."></div>
+            <div class="form-group"><label>Responsable *</label><input type="text" id="p-name" required placeholder="Nombre completo"></div>
+            <div class="form-group"><label>Email *</label><input type="email" id="p-email" required placeholder="ventas@fabrica.com"></div>
+            <div class="form-group"><label>Teléfono *</label><input type="tel" id="p-phone" required placeholder="+237..."></div>
+            <div class="form-group"><label>País de producción *</label>
+              <select id="p-country" required>
+                <option value="">País...</option>
+                <option value="CM">🇨🇲 Camerún</option><option value="SN">🇸🇳 Senegal</option>
+                <option value="CI">🇨🇮 Costa de Marfil</option><option value="GQ">🇬🇶 Guinea Ec.</option>
+                <option value="ES">🇪🇸 España</option><option value="FR">🇫🇷 Francia</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Categoría principal</label>
+              <select id="p-cat">
+                <option value="alimentacion">🌾 Alimentación</option>
+                <option value="belleza">🧴 Belleza / Cosmética</option>
+                <option value="textil">👘 Textil / Moda</option>
+                <option value="artesania">🏺 Artesanía</option>
+                <option value="electronica">📱 Electrónica</option>
+                <option value="hogar">🏠 Hogar</option>
+              </select>
+            </div>
+            <div class="form-group full"><label>Descripción de productos</label><textarea id="p-desc" placeholder="¿Qué productos ofreces al por mayor? MOQ, condiciones..."></textarea></div>
+            <div class="form-group"><label>Contraseña *</label><input type="password" id="p-pass" minlength="8" required></div>
+            <div class="form-group"><label>Confirmar *</label><input type="password" id="p-pass2" required></div>
+          </div>
+          <button class="form-submit" onclick="registerProviderB2b()">Registrar como proveedor B2B</button>
+        </div>
+
+        <div id="ftab-login-b2b" class="ftab-panel">
+          <div id="alert-login-b2b" class="alert"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="l-email" required placeholder="tu@empresa.com"></div>
+          <div class="form-group"><label>Contraseña</label><input type="password" id="l-pass" required></div>
+          <button class="form-submit" onclick="loginB2b()">Acceder a mi cuenta B2B</button>
+        </div>
+      </div>
+
+      <!-- INFO B2B -->
+      <div>
+        <div style="background:linear-gradient(135deg,rgba(167,139,250,0.12),rgba(167,139,250,0.04));border:1px solid rgba(167,139,250,0.3);border-radius:var(--radius);padding:2rem;margin-bottom:1.5rem;">
+          <h3 style="margin-bottom:1rem;color:var(--purple)">🏭 ¿Por qué vender en XenderBigShop?</h3>
+          <div style="display:flex;flex-direction:column;gap:0.75rem">
+            <div style="display:flex;gap:0.75rem;align-items:flex-start"><span style="color:var(--purple);font-weight:800;flex-shrink:0">✓</span><span style="color:var(--muted);font-size:0.9rem">Accede a compradores en 12 países sin gastos de representación</span></div>
+            <div style="display:flex;gap:0.75rem;align-items:flex-start"><span style="color:var(--purple);font-weight:800;flex-shrink:0">✓</span><span style="color:var(--muted);font-size:0.9rem">Cobros garantizados vía sistema escrow — cero riesgo de impago</span></div>
+            <div style="display:flex;gap:0.75rem;align-items:flex-start"><span style="color:var(--purple);font-weight:800;flex-shrink:0">✓</span><span style="color:var(--muted);font-size:0.9rem">Facturación automática multipaís con soporte fiscal incluido</span></div>
+            <div style="display:flex;gap:0.75rem;align-items:flex-start"><span style="color:var(--purple);font-weight:800;flex-shrink:0">✓</span><span style="color:var(--muted);font-size:0.9rem">Logística puerta a puerta con Xender Delivery</span></div>
+            <div style="display:flex;gap:0.75rem;align-items:flex-start"><span style="color:var(--purple);font-weight:800;flex-shrink:0">✓</span><span style="color:var(--muted);font-size:0.9rem">Comisión de plataforma del 3% solo sobre ventas cerradas</span></div>
+          </div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;">
+          <h4 style="margin-bottom:1rem">📞 Contacto B2B directo</h4>
+          <div style="display:flex;flex-direction:column;gap:0.75rem">
+            <div style="font-size:0.85rem;color:var(--muted)">📧 b2b@innovaafric.com</div>
+            <div style="font-size:0.85rem;color:var(--muted)">💬 WhatsApp: +237 6XX XXX XXX</div>
+            <div style="font-size:0.85rem;color:var(--muted)">🕐 Lun-Vie: 8:00 – 20:00 (CET)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-brands">
+    <a href="/">🌍 INNOVAAFRIC</a>
+    <a href="/money">💰 XenderMoney</a>
+    <a href="/shop">🛒 XenderShop</a>
+    <a href="/bigshop">🏭 XenderBigShop</a>
+    <a href="/delivery">🚚 Xender Delivery</a>
+  </div>
+  <p>© 2026 XenderBigShop by INNOVAAFRIC. Marketplace B2B tricontinental.</p>
+</footer>
+
+<script>
+const API = '';
+let token = localStorage.getItem('inno_token');
+let allB2bProducts = [];
+let currentCatB2b = 'all';
+
+const DEMO_B2B = [
+  {id:'b1',name:'Cacao en grano Camerún – 25kg',price:180,unit:'saco 25kg',moq:10,cat:'alimentacion',icon:'🍫',seller:'Cacao Royal CM',country:'CM'},
+  {id:'b2',name:'Manteca de Karité – 50kg',price:320,unit:'bidón 50kg',moq:5,cat:'belleza',icon:'🧴',seller:'NaturShea BF',country:'BF'},
+  {id:'b3',name:'Tela Wax Holland – lote 100 m',price:450,unit:'lote 100m',moq:3,cat:'textil',icon:'👘',seller:'DakarTextil SN',country:'SN'},
+  {id:'b4',name:'Café Arábica – 10kg premium',price:95,unit:'bolsa 10kg',moq:20,cat:'alimentacion',icon:'☕',seller:'Café Monte CM',country:'CM'},
+  {id:'b5',name:'Aceite de Palma Roja – 200L',price:260,unit:'bidón 200L',moq:5,cat:'alimentacion',icon:'🫙',seller:'Palmier CI',country:'CI'},
+  {id:'b6',name:'Smartphones Android A-Series x50',price:3200,unit:'50 unidades',moq:1,cat:'electronica',icon:'📱',seller:'TechBulk ES',country:'ES'},
+  {id:'b7',name:'Bogolan Fabric – 100 metros',price:380,unit:'100 metros',moq:5,cat:'textil',icon:'🎨',seller:'Mali Tradition ML',country:'ML'},
+  {id:'b8',name:'Cestas Raffia artesanales x100',price:850,unit:'100 unidades',moq:2,cat:'artesania',icon:'🧺',seller:'ArtisanGQ',country:'GQ'},
+  {id:'b9',name:'Moringa en polvo – 10kg',price:140,unit:'10 kg',moq:10,cat:'alimentacion',icon:'🌱',seller:'GreenHealth SN',country:'SN'},
+  {id:'b10',name:'Aceite de Argán – lote 50 frascos',price:520,unit:'50 × 100ml',moq:3,cat:'belleza',icon:'🌿',seller:'ArganGold MA',country:'MA'},
+  {id:'b11',name:'Auriculares BT a granel x100',price:1800,unit:'100 unidades',moq:1,cat:'electronica',icon:'🎧',seller:'TechBulk ES',country:'ES'},
+  {id:'b12',name:'Utensilios de madera africana x200',price:480,unit:'200 piezas',moq:2,cat:'hogar',icon:'🥄',seller:'WoodCraft CM',country:'CM'},
+];
+
+function renderB2b(products) {
+  const grid = document.getElementById('b2b-grid');
+  if(!products.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted)">No se encontraron productos</div>';return;}
+  grid.innerHTML = products.map(p=>`
+    <div class="product-card">
+      <div class="product-img">${p.icon||'📦'}</div>
+      <div class="product-info">
+        <div class="product-cat">${p.cat||'B2B'}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-seller">Proveedor: ${p.seller} · ${p.country}</div>
+        <div class="product-moq">⚡ MOQ: ${p.moq} ${p.unit}</div>
+        <div class="product-footer">
+          <div class="product-price">${parseFloat(p.price).toLocaleString('es-ES')} <small>EUR / ${p.unit}</small></div>
+          <button class="quote-btn" onclick="openQuote('${p.id}','${p.name.replace(/'/g,"\\'")}')">📋 Cotizar</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadB2bProducts() {
+  try {
+    const res = await fetch(API+'/v1/bigshop/products?limit=50', token?{headers:{'Authorization':'Bearer '+token}}:{});
+    const json = await res.json();
+    const products = (json.products||json.data||[]).map(p=>({...p,icon:'📦'}));
+    if(!products.length) throw new Error('empty');
+    allB2bProducts = products;
+  } catch {
+    allB2bProducts = DEMO_B2B;
+  }
+  renderB2b(allB2bProducts);
+}
+
+function filterCatB2b(e, cat) { e.preventDefault(); currentCatB2b=cat; filterB2b(); document.getElementById('catalogo-b2b').scrollIntoView({behavior:'smooth'}); }
+function filterCatB2bPill(el, cat) { document.querySelectorAll('.f-pill').forEach(p=>p.classList.remove('active')); el.classList.add('active'); currentCatB2b=cat; filterB2b(); }
+function filterB2b() {
+  const q = document.getElementById('b2b-search').value.toLowerCase();
+  const filtered = allB2bProducts.filter(p=>{
+    const matchCat = currentCatB2b==='all'||p.cat===currentCatB2b;
+    const matchQ = !q||p.name.toLowerCase().includes(q)||(p.seller||'').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  renderB2b(filtered);
+}
+
+let quoteProductName = '';
+function openQuote(id, name) { quoteProductName=name; document.getElementById('quote-product-name').textContent=name; document.getElementById('quote-modal').classList.add('open'); }
+function closeQuote() { document.getElementById('quote-modal').classList.remove('open'); }
+
+async function sendQuote() {
+  const company = document.getElementById('q-company').value;
+  const email   = document.getElementById('q-email').value;
+  const qty     = document.getElementById('q-qty').value;
+  const msg     = document.getElementById('q-msg').value;
+  const alertEl = document.getElementById('alert-quote');
+  if(!company||!email) { alertEl.textContent='❌ Rellena empresa y email'; alertEl.className='alert show alert-error'; return; }
+  alertEl.textContent='✅ Cotización enviada. El proveedor te responderá en 48h.';
+  alertEl.className='alert show alert-success';
+  setTimeout(closeQuote, 2000);
+}
+
+function switchFTab(id) {
+  document.querySelectorAll('.ftab').forEach((b,i)=>b.classList.toggle('active',['comprador','proveedor-b2b','login-b2b'][i]===id));
+  document.querySelectorAll('.ftab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('ftab-'+id).classList.add('active');
+}
+
+function showAlert(id,msg,type){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='alert show alert-'+type;}
+
+async function registerBuyer() {
+  const pass = document.getElementById('b-pass').value;
+  if(pass!==document.getElementById('b-pass2').value) return showAlert('alert-buyer','Las contraseñas no coinciden','error');
+  try {
+    const res = await fetch(API+'/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:document.getElementById('b-name').value,email:document.getElementById('b-email').value,phone:document.getElementById('b-phone').value,country:document.getElementById('b-country').value,password:pass,role:'circular_autorizada'})});
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Error');
+    const tok = json.token||(json.data&&json.data.token);
+    if(tok){ localStorage.setItem('inno_token',tok); token=tok; }
+    await fetch(API+'/v1/business/accounts',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(tok||token)},
+      body:JSON.stringify({company_name:document.getElementById('b-company').value,tax_id:document.getElementById('b-taxid').value,industry:document.getElementById('b-sector').value,country:document.getElementById('b-country').value})});
+    showAlert('alert-buyer','✅ Empresa registrada. Accede al catálogo mayorista.','success');
+  } catch(err){showAlert('alert-buyer','❌ '+err.message,'error');}
+}
+
+async function registerProviderB2b() {
+  const pass = document.getElementById('p-pass').value;
+  if(pass!==document.getElementById('p-pass2').value) return showAlert('alert-prov-b2b','Las contraseñas no coinciden','error');
+  try {
+    const res = await fetch(API+'/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:document.getElementById('p-name').value,email:document.getElementById('p-email').value,phone:document.getElementById('p-phone').value,country:document.getElementById('p-country').value,password:pass,role:'supplier'})});
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Error');
+    showAlert('alert-prov-b2b','✅ Proveedor registrado. Publicaremos tus productos en 48h.','success');
+  } catch(err){showAlert('alert-prov-b2b','❌ '+err.message,'error');}
+}
+
+async function loginB2b() {
+  try {
+    const res = await fetch(API+'/v1/auth/token',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({grant_type:'password',email:document.getElementById('l-email').value,password:document.getElementById('l-pass').value})});
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Credenciales incorrectas');
+    token = json.access_token||json.token;
+    localStorage.setItem('inno_token',token);
+    showAlert('alert-login-b2b','✅ Sesión iniciada','success');
+  } catch(err){showAlert('alert-login-b2b','❌ '+err.message,'error');}
+}
+
+loadB2bProducts();
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+</body>
+</html>

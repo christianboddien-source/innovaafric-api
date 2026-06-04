@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xender Delivery — Logística Tricontinental</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#4ECDC4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Xender Delivery">
+<meta name="description" content="Entregas express en África y Europa. Red de riders certificados. Seguimiento en tiempo real.">
+<style>
+:root {
+  --bg:#0a0f1e; --bg2:#111827; --bg3:#1f2937; --border:#2d3748;
+  --text:#f1f5f9; --muted:#94a3b8;
+  --teal:#4ECDC4; --green:#00C48C; --gold:#FFB800; --orange:#FF6B35;
+  --red:#ef4444; --radius:12px; --shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(10,15,30,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:64px;}
+.nav-logo{font-size:1.3rem;font-weight:800;color:var(--teal);}
+.nav-links{display:flex;gap:0.5rem;align-items:center;}
+.nav-links a{padding:6px 14px;border-radius:8px;font-size:0.85rem;font-weight:600;text-decoration:none;transition:all 0.2s;}
+.nav-links a.home{color:var(--green);border:1px solid var(--green);}
+.nav-links a.money{color:var(--gold);border:1px solid var(--gold);}
+.nav-links a.shop{color:var(--orange);border:1px solid var(--orange);}
+.nav-links a.bigshop{color:#a78bfa;border:1px solid #a78bfa;}
+.nav-links a:hover{opacity:0.8;}
+.nav-btn{background:var(--teal);color:#000;padding:8px 20px;border-radius:8px;font-weight:700;font-size:0.85rem;text-decoration:none;}
+
+.hero{min-height:85vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;background:radial-gradient(ellipse at 60% 30%,rgba(78,205,196,0.12) 0%,transparent 60%),radial-gradient(ellipse at 20% 70%,rgba(0,196,140,0.08) 0%,transparent 50%),var(--bg);}
+.hero-badge{display:inline-block;background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.4);color:var(--teal);padding:6px 16px;border-radius:20px;font-size:0.8rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:1.5rem;}
+.hero h1{font-size:clamp(2.2rem,5vw,4.5rem);font-weight:900;line-height:1.1;margin-bottom:1.2rem;}
+.hero h1 span{color:var(--teal);}
+.hero p{font-size:1.1rem;color:var(--muted);max-width:560px;margin-bottom:2.5rem;line-height:1.6;}
+.btn-teal{background:var(--teal);color:#000;padding:14px 32px;border-radius:10px;font-weight:800;font-size:1rem;border:none;cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;}
+.btn-teal:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(78,205,196,0.4);}
+.btn-outline{background:transparent;color:var(--text);padding:14px 32px;border-radius:10px;font-weight:700;font-size:1rem;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;}
+.btn-outline:hover{border-color:var(--teal);color:var(--teal);}
+.hero-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
+
+/* TRACKING */
+.tracking-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:4rem 2rem;}
+.tracking-inner{max-width:700px;margin:0 auto;}
+.section-title{text-align:center;margin-bottom:2.5rem;}
+.section-title h2{font-size:2rem;font-weight:800;margin-bottom:0.5rem;}
+.section-title p{color:var(--muted);}
+.tracking-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;}
+.track-input-row{display:flex;gap:0;margin-bottom:1.5rem;}
+.track-input-row input{flex:1;background:var(--bg2);border:1px solid var(--border);border-right:none;border-radius:10px 0 0 10px;padding:14px 16px;color:var(--text);font-size:1rem;outline:none;}
+.track-input-row input:focus{border-color:var(--teal);}
+.track-btn{background:var(--teal);border:none;color:#000;padding:14px 24px;border-radius:0 10px 10px 0;font-weight:800;cursor:pointer;font-size:0.95rem;transition:opacity 0.2s;}
+.track-btn:hover{opacity:0.85;}
+.track-result{display:none;}
+.track-result.show{display:block;}
+.track-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:0.5rem;}
+.track-id{font-weight:800;font-size:1.1rem;}
+.track-status{padding:6px 14px;border-radius:20px;font-size:0.8rem;font-weight:700;}
+.status-delivered{background:rgba(0,196,140,0.15);color:var(--green);}
+.status-transit{background:rgba(255,184,0,0.15);color:var(--gold);}
+.status-pending{background:rgba(78,205,196,0.15);color:var(--teal);}
+.status-preparing{background:rgba(255,107,53,0.15);color:var(--orange);}
+.track-timeline{display:flex;flex-direction:column;gap:0;}
+.timeline-step{display:flex;gap:1rem;align-items:flex-start;padding:0.75rem 0;}
+.timeline-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;margin-top:2px;border:2px solid var(--border);}
+.timeline-dot.done{background:var(--teal);border-color:var(--teal);}
+.timeline-dot.current{background:var(--gold);border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,184,0,0.2);}
+.timeline-line{width:2px;background:var(--border);height:32px;margin-left:7px;}
+.timeline-line.done{background:var(--teal);}
+.timeline-info{}
+.timeline-label{font-weight:600;font-size:0.9rem;}
+.timeline-time{font-size:0.75rem;color:var(--muted);}
+.track-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);}
+.info-item{}
+.info-label{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.2rem;}
+.info-value{font-weight:600;font-size:0.9rem;}
+
+/* HOW IT WORKS */
+section{padding:5rem 2rem;max-width:1200px;margin:0 auto;}
+.steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;}
+.step-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;text-align:center;}
+.step-num{width:48px;height:48px;border-radius:50%;background:rgba(78,205,196,0.15);border:2px solid var(--teal);color:var(--teal);font-size:1.2rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;}
+.step-card h4{font-weight:700;margin-bottom:0.5rem;}
+.step-card p{color:var(--muted);font-size:0.85rem;line-height:1.5;}
+
+/* ZONAS */
+.zones-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem;}
+.zone-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;}
+.zone-flag{font-size:2rem;margin-bottom:0.75rem;}
+.zone-card h4{font-weight:700;margin-bottom:0.5rem;}
+.zone-card p{color:var(--muted);font-size:0.85rem;margin-bottom:0.75rem;}
+.zone-tag{display:inline-block;padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:600;background:rgba(78,205,196,0.15);color:var(--teal);}
+
+/* FORMULARIOS */
+.forms-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.forms-inner{max-width:1000px;margin:0 auto;padding:4rem 2rem;}
+.forms-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;}
+.form-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;}
+.form-box h3{font-size:1.1rem;font-weight:800;margin-bottom:1.5rem;}
+.form-group{margin-bottom:1rem;display:flex;flex-direction:column;gap:0.4rem;}
+.form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+label{font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+input,select,textarea{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:0.9rem;outline:none;transition:border-color 0.2s;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--teal);}
+.form-submit{width:100%;padding:13px;background:var(--teal);color:#000;border:none;border-radius:10px;font-size:1rem;font-weight:800;cursor:pointer;margin-top:0.5rem;transition:all 0.2s;}
+.form-submit:hover{opacity:0.85;}
+.form-divider{text-align:center;color:var(--muted);font-size:0.8rem;margin:1rem 0;position:relative;}
+.form-divider::before,.form-divider::after{content:'';position:absolute;top:50%;width:38%;height:1px;background:var(--border);}
+.form-divider::before{left:0;}
+.form-divider::after{right:0;}
+
+/* RIDER PANEL */
+.rider-panel{display:none;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;margin-top:2rem;}
+.rider-panel.show{display:block;}
+.rider-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;}
+.rider-stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center;}
+.rider-stat-num{font-size:1.5rem;font-weight:900;color:var(--teal);}
+.rider-stat-label{font-size:0.75rem;color:var(--muted);text-transform:uppercase;}
+.deliveries-list{display:flex;flex-direction:column;gap:0.75rem;}
+.delivery-item{display:flex;align-items:center;gap:1rem;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;}
+.delivery-icon{font-size:1.5rem;}
+.delivery-info{flex:1;}
+.delivery-id{font-weight:700;font-size:0.9rem;}
+.delivery-route{font-size:0.8rem;color:var(--muted);}
+.delivery-status-badge{padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;}
+
+/* STATUS BADGES */
+.badge-pending{background:rgba(78,205,196,0.15);color:var(--teal);}
+.badge-progress{background:rgba(255,184,0,0.15);color:var(--gold);}
+.badge-done{background:rgba(0,196,140,0.15);color:var(--green);}
+
+/* ALERT */
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;display:none;}
+.alert.show{display:block;}
+.alert-success{background:rgba(0,196,140,0.15);border:1px solid rgba(0,196,140,0.4);color:var(--green);}
+.alert-error{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;}
+.alert-info{background:rgba(78,205,196,0.1);border:1px solid rgba(78,205,196,0.3);color:var(--teal);}
+
+/* STATS BAR */
+.stats-bar{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:2rem;}
+.stats-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:space-around;flex-wrap:wrap;gap:1.5rem;}
+.stat{text-align:center;}
+.stat-num{font-size:2rem;font-weight:900;color:var(--teal);}
+.stat-label{font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:3rem 2rem;text-align:center;}
+.footer-brands{display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;}
+.footer-brands a{color:var(--muted);text-decoration:none;font-size:0.85rem;}
+.footer-brands a:hover{color:var(--teal);}
+footer p{color:var(--muted);font-size:0.8rem;}
+
+@media(max-width:700px){.nav-links{display:none;}.forms-grid{grid-template-columns:1fr;}.track-info-grid{grid-template-columns:1fr;}.rider-stats{grid-template-columns:1fr 1fr;}.form-grid2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">🚚 Xender Delivery</span>
+  <div class="nav-links">
+    <a href="/" class="home">🌍 INNOVAAFRIC</a>
+    <a href="/money" class="money">💰 XenderMoney</a>
+    <a href="/shop" class="shop">🛒 XenderShop</a>
+    <a href="/bigshop" class="bigshop">🏭 BigShop</a>
+  </div>
+  <a href="#riders" class="nav-btn">Ser repartidor</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">🚚 Logística tricontinental</div>
+  <h1>Entrega en<br><span>África y Europa</span><br>en tiempo récord</h1>
+  <p>Red de repartidores certificados para entregas urgentes y programadas. Seguimiento en tiempo real.</p>
+  <div class="hero-btns">
+    <a href="#tracking" class="btn-teal">Rastrear pedido</a>
+    <a href="#riders" class="btn-outline">Unirse como rider</a>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat"><div class="stat-num">200+</div><div class="stat-label">Riders activos</div></div>
+    <div class="stat"><div class="stat-num">12</div><div class="stat-label">Ciudades</div></div>
+    <div class="stat"><div class="stat-num">98%</div><div class="stat-label">Entregas a tiempo</div></div>
+    <div class="stat"><div class="stat-num">⚡ 45min</div><div class="stat-label">Entrega express</div></div>
+  </div>
+</div>
+
+<!-- TRACKING -->
+<div class="tracking-section" id="tracking">
+  <div class="tracking-inner">
+    <div class="section-title">
+      <h2>🔍 Rastrear mi pedido</h2>
+      <p>Introduce tu número de seguimiento para ver el estado en tiempo real</p>
+    </div>
+    <div class="tracking-box">
+      <div class="track-input-row">
+        <input type="text" id="tracking-input" placeholder="Ej: DLV-2026-CM-004821" oninput="this.value=this.value.toUpperCase()">
+        <button class="track-btn" onclick="trackOrder()">Rastrear →</button>
+      </div>
+      <div id="track-result" class="track-result">
+        <div class="track-header">
+          <span class="track-id" id="track-id-display"></span>
+          <span class="track-status" id="track-status-badge"></span>
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="track-timeline" id="track-timeline"></div>
+
+        <!-- INFO GRID -->
+        <div class="track-info-grid">
+          <div class="info-item"><div class="info-label">Origen</div><div class="info-value" id="track-origin"></div></div>
+          <div class="info-item"><div class="info-label">Destino</div><div class="info-value" id="track-dest"></div></div>
+          <div class="info-item"><div class="info-label">Repartidor</div><div class="info-value" id="track-rider"></div></div>
+          <div class="info-item"><div class="info-label">Entrega estimada</div><div class="info-value" id="track-eta"></div></div>
+        </div>
+      </div>
+      <div id="track-error" style="display:none;text-align:center;padding:1.5rem;color:var(--muted)">
+        ❌ Número de seguimiento no encontrado. Comprueba el código e inténtalo de nuevo.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CÓMO FUNCIONA -->
+<section>
+  <div class="section-title">
+    <h2>¿Cómo funciona?</h2>
+    <p>Proceso simple para enviar y recibir paquetes</p>
+  </div>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <h4>Solicita recogida</h4>
+      <p>Indica dirección de recogida, destino y tipo de paquete. Precio calculado al instante.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <h4>Rider asignado</h4>
+      <p>Un repartidor certificado en tu zona acepta el pedido en menos de 5 minutos.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <h4>Seguimiento live</h4>
+      <p>Rastrea tu paquete en tiempo real con el número de seguimiento único.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <h4>Entrega confirmada</h4>
+      <p>Firma digital del receptor y notificación instantánea al remitente.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ZONAS -->
+<section>
+  <div class="section-title">
+    <h2>Zonas de cobertura</h2>
+    <p>Operamos en las principales ciudades de tres continentes</p>
+  </div>
+  <div class="zones-grid">
+    <div class="zone-card"><div class="zone-flag">🇨🇲</div><h4>Camerún</h4><p>Yaundé, Duala, Bamenda, Bafoussam, Garoua</p><span class="zone-tag">Express 45min</span></div>
+    <div class="zone-card"><div class="zone-flag">🇸🇳</div><h4>Senegal</h4><p>Dakar, Thiès, Ziguinchor, Saint-Louis</p><span class="zone-tag">Express 1h</span></div>
+    <div class="zone-card"><div class="zone-flag">🇬🇶</div><h4>Guinea Ecuatorial</h4><p>Malabo, Bata</p><span class="zone-tag">Estándar 2-4h</span></div>
+    <div class="zone-card"><div class="zone-flag">🇨🇮</div><h4>Costa de Marfil</h4><p>Abidjan, Bouaké, Daloa</p><span class="zone-tag">Express 1h</span></div>
+    <div class="zone-card"><div class="zone-flag">🇪🇸</div><h4>España</h4><p>Madrid, Barcelona, Valencia, Sevilla</p><span class="zone-tag">Express 2h</span></div>
+    <div class="zone-card"><div class="zone-flag">🇫🇷</div><h4>Francia</h4><p>París, Lyon, Marsella, Toulouse</p><span class="zone-tag">Estándar 4-8h</span></div>
+  </div>
+</section>
+
+<!-- FORMULARIOS RIDERS + CLIENTES -->
+<div class="forms-section" id="riders">
+  <div class="forms-inner">
+    <div class="section-title">
+      <h2>Únete a la red</h2>
+      <p>Regístrate como repartidor o cliente y empieza hoy</p>
+    </div>
+    <div class="forms-grid">
+
+      <!-- REGISTRO RIDER -->
+      <div class="form-box">
+        <h3>🛵 Registro de repartidor (Rider)</h3>
+        <div id="alert-rider" class="alert"></div>
+        <form onsubmit="registerRider(event)">
+          <div class="form-group"><label>Nombre completo *</label><input type="text" id="r-name" required placeholder="Tu nombre"></div>
+          <div class="form-grid2">
+            <div class="form-group"><label>Email *</label><input type="email" id="r-email" required placeholder="tu@email.com"></div>
+            <div class="form-group"><label>Teléfono *</label><input type="tel" id="r-phone" required placeholder="+237..."></div>
+          </div>
+          <div class="form-grid2">
+            <div class="form-group"><label>País *</label>
+              <select id="r-country" required>
+                <option value="">País...</option>
+                <option value="CM">🇨🇲 Camerún</option>
+                <option value="SN">🇸🇳 Senegal</option>
+                <option value="GQ">🇬🇶 Guinea Ec.</option>
+                <option value="CI">🇨🇮 Costa Marfil</option>
+                <option value="GA">🇬🇦 Gabón</option>
+                <option value="ES">🇪🇸 España</option>
+                <option value="FR">🇫🇷 Francia</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Ciudad / Zona *</label><input type="text" id="r-zone" required placeholder="Yaundé Centro"></div>
+          </div>
+          <div class="form-group"><label>Tipo de vehículo *</label>
+            <select id="r-vehicle" required>
+              <option value="">Seleccionar...</option>
+              <option value="moto">🏍️ Moto</option>
+              <option value="bicycle">🚲 Bicicleta</option>
+              <option value="car">🚗 Coche</option>
+              <option value="tricycle">🛺 Triciclo</option>
+              <option value="foot">🚶 A pie (zona centro)</option>
+            </select>
+          </div>
+          <div class="form-grid2">
+            <div class="form-group"><label>Nº de licencia</label><input type="text" id="r-license" placeholder="B12345678"></div>
+            <div class="form-group"><label>Disponibilidad</label>
+              <select id="r-availability">
+                <option value="full_time">Tiempo completo</option>
+                <option value="part_time">Tiempo parcial</option>
+                <option value="weekends">Solo fines de semana</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>Contraseña *</label><input type="password" id="r-pass" minlength="8" required placeholder="Mín. 8 caracteres"></div>
+          <button type="submit" class="form-submit">Registrarme como rider</button>
+        </form>
+
+        <!-- PANEL RIDER -->
+        <div id="rider-panel" class="rider-panel">
+          <h4 style="margin-bottom:1.5rem;color:var(--teal)">✅ Panel del Rider — <span id="rider-name-display"></span></h4>
+          <div class="rider-stats">
+            <div class="rider-stat"><div class="rider-stat-num" id="rs-deliveries">0</div><div class="rider-stat-label">Entregas</div></div>
+            <div class="rider-stat"><div class="rider-stat-num" id="rs-rating">—</div><div class="rider-stat-label">Valoración</div></div>
+            <div class="rider-stat"><div class="rider-stat-num" id="rs-earnings">0 EUR</div><div class="rider-stat-label">Ganancias</div></div>
+          </div>
+          <h5 style="margin-bottom:1rem;color:var(--muted)">Entregas asignadas</h5>
+          <div class="deliveries-list" id="rider-deliveries">
+            <p style="color:var(--muted);text-align:center;padding:1rem">Sin entregas pendientes</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOLICITAR ENTREGA -->
+      <div class="form-box">
+        <h3>📦 Solicitar una entrega</h3>
+        <div id="alert-delivery" class="alert"></div>
+        <form onsubmit="requestDelivery(event)">
+          <div class="form-group"><label>Tu nombre *</label><input type="text" id="d-sender" required placeholder="Nombre del remitente"></div>
+          <div class="form-group"><label>Dirección de recogida *</label><input type="text" id="d-pickup" required placeholder="Calle, número, ciudad"></div>
+          <div class="form-group"><label>Dirección de entrega *</label><input type="text" id="d-dropoff" required placeholder="Calle, número, ciudad"></div>
+          <div class="form-grid2">
+            <div class="form-group"><label>Nombre del receptor *</label><input type="text" id="d-recipient" required placeholder="Receptor"></div>
+            <div class="form-group"><label>Teléfono receptor *</label><input type="tel" id="d-recipient-phone" required placeholder="+237..."></div>
+          </div>
+          <div class="form-grid2">
+            <div class="form-group"><label>Tipo de paquete</label>
+              <select id="d-type">
+                <option value="document">📄 Documento</option>
+                <option value="package_small">📦 Paquete pequeño</option>
+                <option value="package_medium">🗃️ Paquete mediano</option>
+                <option value="food">🍱 Comida</option>
+                <option value="fragile">⚗️ Frágil</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Tipo de servicio</label>
+              <select id="d-service">
+                <option value="express">⚡ Express (45min)</option>
+                <option value="standard">🕐 Estándar (2-4h)</option>
+                <option value="scheduled">📅 Programado</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>Notas para el repartidor</label>
+            <input type="text" id="d-notes" placeholder="Ej: Llamar al llegar, código portal 1234...">
+          </div>
+          <div id="price-estimate" style="background:var(--bg2);border:1px solid rgba(78,205,196,0.3);border-radius:10px;padding:1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:var(--muted);font-size:0.85rem">Precio estimado</span>
+            <span style="color:var(--teal);font-weight:800;font-size:1.1rem" id="price-val">2.50 EUR</span>
+          </div>
+          <button type="submit" class="form-submit">🚚 Solicitar entrega</button>
+        </form>
+
+        <div class="form-divider">ya tengo cuenta</div>
+
+        <!-- LOGIN RIDER/CLIENTE -->
+        <form onsubmit="loginUser(event)">
+          <div id="alert-login" class="alert"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="l-email" required placeholder="tu@email.com"></div>
+          <div class="form-group"><label>Contraseña</label><input type="password" id="l-pass" required placeholder="Tu contraseña"></div>
+          <button type="submit" class="form-submit" style="background:var(--bg2);color:var(--teal);border:1px solid var(--teal);">Iniciar sesión</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-brands">
+    <a href="/">🌍 INNOVAAFRIC</a>
+    <a href="/money">💰 XenderMoney</a>
+    <a href="/shop">🛒 XenderShop</a>
+    <a href="/bigshop">🏭 XenderBigShop</a>
+    <a href="/delivery">🚚 Xender Delivery</a>
+  </div>
+  <p>© 2026 Xender Delivery by INNOVAAFRIC. Red logística tricontinental.</p>
+</footer>
+
+<script>
+const API = '';
+let token = localStorage.getItem('inno_token');
+
+// DATOS DE DEMO PARA TRACKING
+const DEMO_ORDERS = {
+  'DLV-2026-CM-004821': {
+    status: 'transit', statusLabel: '🚚 En tránsito',
+    origin: 'Yaundé Centro, CM', dest: 'Duala, CM',
+    rider: 'Jean-Pierre M.', eta: 'Hoy 16:30',
+    steps: [
+      {label:'Pedido creado',time:'09:15',done:true},
+      {label:'Recogido por rider',time:'09:45',done:true},
+      {label:'En tránsito',time:'10:20',done:true,current:true},
+      {label:'Entregado',time:'—',done:false}
+    ]
+  },
+  'DLV-2026-SN-001234': {
+    status: 'delivered', statusLabel: '✅ Entregado',
+    origin: 'Dakar Plateau, SN', dest: 'Pikine, SN',
+    rider: 'Moussa D.', eta: 'Entregado a las 14:22',
+    steps: [
+      {label:'Pedido creado',time:'13:00',done:true},
+      {label:'Recogido por rider',time:'13:20',done:true},
+      {label:'En tránsito',time:'13:45',done:true},
+      {label:'Entregado',time:'14:22',done:true}
+    ]
+  },
+  'DLV-2026-ES-007890': {
+    status: 'pending', statusLabel: '⏳ Esperando rider',
+    origin: 'Madrid Centro, ES', dest: 'Getafe, ES',
+    rider: 'Asignando...', eta: 'Estimado: 2h',
+    steps: [
+      {label:'Pedido creado',time:'15:00',done:true,current:true},
+      {label:'Recogido por rider',time:'—',done:false},
+      {label:'En tránsito',time:'—',done:false},
+      {label:'Entregado',time:'—',done:false}
+    ]
+  }
+};
+
+function trackOrder() {
+  const code = document.getElementById('tracking-input').value.trim();
+  const result = document.getElementById('track-result');
+  const error = document.getElementById('track-error');
+  result.classList.remove('show');
+  error.style.display = 'none';
+
+  const order = DEMO_ORDERS[code];
+  if(!order) {
+    // Try API
+    fetch(API+'/v1/delivery/orders/'+code, token?{headers:{'Authorization':'Bearer '+token}}:{})
+      .then(r=>r.json()).then(json=>{
+        if(json.id) renderTrack(code, {
+          status:'transit',statusLabel:'🚚 En proceso',
+          origin:json.pickup_address||'—',dest:json.dropoff_address||'—',
+          rider:json.rider_name||'Asignado',eta:json.estimated_at||'—',
+          steps:[{label:'Pedido creado',time:'—',done:true},{label:'En proceso',time:'—',done:true,current:true},{label:'Entregado',time:'—',done:false}]
+        });
+      }).catch(()=>{ error.style.display='block'; });
+    return;
+  }
+  renderTrack(code, order);
+}
+
+function renderTrack(code, order) {
+  document.getElementById('track-id-display').textContent = code;
+  const badge = document.getElementById('track-status-badge');
+  badge.textContent = order.statusLabel;
+  badge.className = 'track-status status-'+order.status;
+  document.getElementById('track-origin').textContent = order.origin;
+  document.getElementById('track-dest').textContent = order.dest;
+  document.getElementById('track-rider').textContent = order.rider;
+  document.getElementById('track-eta').textContent = order.eta;
+
+  const timeline = document.getElementById('track-timeline');
+  timeline.innerHTML = order.steps.map((s,i)=>`
+    <div class="timeline-step">
+      <div>
+        <div class="timeline-dot ${s.done?(s.current?'current':'done'):''}"></div>
+        ${i<order.steps.length-1?`<div class="timeline-line ${s.done&&!s.current?'done':''}"></div>`:''}
+      </div>
+      <div class="timeline-info">
+        <div class="timeline-label" style="color:${s.current?'var(--gold)':s.done?'var(--text)':'var(--muted)'}">${s.label}</div>
+        <div class="timeline-time">${s.time}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('track-result').classList.add('show');
+}
+
+// PRECIO DINÁMICO
+document.addEventListener('DOMContentLoaded', ()=>{
+  const serviceEl = document.getElementById('d-service');
+  const typeEl = document.getElementById('d-type');
+  if(serviceEl) serviceEl.addEventListener('change', calcPrice);
+  if(typeEl) typeEl.addEventListener('change', calcPrice);
+});
+
+function calcPrice() {
+  const service = document.getElementById('d-service')?.value;
+  const type = document.getElementById('d-type')?.value;
+  const prices = {express:3.50,standard:2.00,scheduled:1.50};
+  const extras = {document:0,package_small:0.50,package_medium:1.00,food:0.50,fragile:1.50};
+  const total = (prices[service]||2)+( extras[type]||0);
+  const el = document.getElementById('price-val');
+  if(el) el.textContent = total.toFixed(2)+' EUR';
+}
+
+function showAlert(id,msg,type){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='alert show alert-'+type;}
+
+async function registerRider(e) {
+  e.preventDefault();
+  try {
+    const body={name:document.getElementById('r-name').value,email:document.getElementById('r-email').value,phone:document.getElementById('r-phone').value,country:document.getElementById('r-country').value,password:document.getElementById('r-pass').value,role:'rider'};
+    const res=await fetch(API+'/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const json=await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Error');
+    token=json.token||(json.data&&json.data.token);
+    if(token) localStorage.setItem('inno_token',token);
+    showAlert('alert-rider','✅ Registro completado. ¡Bienvenido a la red de riders!','success');
+    document.getElementById('rider-name-display').textContent = document.getElementById('r-name').value;
+    document.getElementById('rider-panel').classList.add('show');
+    loadRiderData();
+  } catch(err){showAlert('alert-rider','❌ '+err.message,'error');}
+}
+
+async function loadRiderData() {
+  if(!token) return;
+  try {
+    const res=await fetch(API+'/v1/delivery/orders?role=rider&limit=5',{headers:{'Authorization':'Bearer '+token}});
+    const json=await res.json();
+    const orders=json.orders||json.data||[];
+    if(orders.length){
+      document.getElementById('rs-deliveries').textContent=orders.filter(o=>o.status==='delivered').length;
+      document.getElementById('rider-deliveries').innerHTML=orders.map(o=>`
+        <div class="delivery-item">
+          <div class="delivery-icon">📦</div>
+          <div class="delivery-info">
+            <div class="delivery-id">${o.id}</div>
+            <div class="delivery-route">${o.pickup_address||'—'} → ${o.dropoff_address||'—'}</div>
+          </div>
+          <span class="delivery-status-badge badge-${o.status==='delivered'?'done':o.status==='in_transit'?'progress':'pending'}">${o.status}</span>
+        </div>`).join('');
+    }
+  } catch {}
+}
+
+async function requestDelivery(e) {
+  e.preventDefault();
+  if(!token) return showAlert('alert-delivery','Inicia sesión para solicitar una entrega','error');
+  const body={
+    pickup_address:document.getElementById('d-pickup').value,
+    dropoff_address:document.getElementById('d-dropoff').value,
+    recipient_name:document.getElementById('d-recipient').value,
+    recipient_phone:document.getElementById('d-recipient-phone').value,
+    package_type:document.getElementById('d-type').value,
+    service_type:document.getElementById('d-service').value,
+    notes:document.getElementById('d-notes').value
+  };
+  try {
+    const res=await fetch(API+'/v1/delivery/orders',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
+    const json=await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Error');
+    const id=json.tracking_id||json.id||'DLV-2026-NEW';
+    showAlert('alert-delivery','✅ Entrega solicitada. Nº seguimiento: '+id,'success');
+    document.getElementById('tracking-input').value=id;
+  } catch(err){showAlert('alert-delivery','❌ '+err.message,'error');}
+}
+
+async function loginUser(e) {
+  e.preventDefault();
+  try {
+    const res=await fetch(API+'/v1/auth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'password',email:document.getElementById('l-email').value,password:document.getElementById('l-pass').value})});
+    const json=await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Credenciales incorrectas');
+    token=json.access_token||json.token;
+    localStorage.setItem('inno_token',token);
+    showAlert('alert-login','✅ Sesión iniciada correctamente','success');
+    loadRiderData();
+  } catch(err){showAlert('alert-login','❌ '+err.message,'error');}
+}
+
+if(token) loadRiderData();
+calcPrice();
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+</body>
+</html>

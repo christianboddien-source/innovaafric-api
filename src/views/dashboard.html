@@ -867,6 +867,15 @@ html.light .email-preview{background:#f1f5f9}
       <div class="ni" data-tip="Configuración" onclick="gp('settings')"><span class="ic">⚙️</span> <span data-i18n="nav_settings">Configuración</span></div>
       <div class="ni" data-tip="Sistema" onclick="gp('system')"><span class="ic">🖥️</span> <span data-i18n="nav_system">Sistema</span></div>
     </div>
+
+    <div class="sb-sec" onclick="toggleSec('sec-web')"><span>PÁGINAS WEB</span><span class="chv">▾</span></div>
+    <div class="sb-group" id="sec-web">
+      <a class="ni" href="/" target="_blank" style="text-decoration:none;color:inherit"><span class="ic">🌍</span> <span>INNOVAAFRIC</span></a>
+      <a class="ni" href="/money" target="_blank" style="text-decoration:none;color:inherit"><span class="ic">💰</span> <span>XenderMoney</span></a>
+      <a class="ni" href="/shop" target="_blank" style="text-decoration:none;color:inherit"><span class="ic">🛒</span> <span>XenderShop</span></a>
+      <a class="ni" href="/bigshop" target="_blank" style="text-decoration:none;color:inherit"><span class="ic">🏭</span> <span>XenderBigShop</span></a>
+      <a class="ni" href="/delivery" target="_blank" style="text-decoration:none;color:inherit"><span class="ic">🚚</span> <span>Xender Delivery</span></a>
+    </div>
   </nav>
 
   <div class="sb-foot">
@@ -2958,21 +2967,38 @@ const TR = {
 function t(k){ return (TR[LANG]||TR.es)[k] || k; }
 
 function applyLang(){
+  const lang = LANG || 'es';
+  const dict = TR[lang] || TR.es;
+  // traducir todos los elementos con data-i18n
   document.querySelectorAll('[data-i18n]').forEach(el=>{
     const k = el.getAttribute('data-i18n');
-    el.textContent = t(k);
+    const v = dict[k];
+    if(v) el.textContent = v;
   });
+  // marcar opción de idioma activa
   ['es','en','fr'].forEach(l=>{
     const el = document.getElementById('lang-'+l);
-    if(el) el.classList.toggle('selected', l===LANG);
+    if(el) el.classList.toggle('selected', l===lang);
   });
+  // actualizar título de la página en la topbar
+  try {
+    const pgTitle = document.getElementById('pg-title');
+    if(pgTitle){
+      const page = (typeof currentNotePage !== 'undefined') ? currentNotePage : 'overview';
+      const titleKey = 'nav_' + page;
+      const titleTR = dict[titleKey];
+      if(titleTR) pgTitle.textContent = titleTR;
+    }
+  } catch(e){}
+  document.documentElement.lang = lang;
 }
 
 function setLang(l){
   LANG = l;
   localStorage.setItem('inn_lang', l);
   applyLang();
-  toast(LANG==='es'?'Idioma cambiado a Español':LANG==='en'?'Language changed to English':'Langue changée en Français','info');
+  const msgs = {es:'✅ Idioma: Español', en:'✅ Language: English', fr:'✅ Langue: Français'};
+  toast(msgs[l]||'Idioma cambiado','info');
 }
 
 /* ═══ API ═══════════════════════════════════════════ */
@@ -3140,6 +3166,24 @@ function gp(name){
   if(name==='alerts') loadAlerts();
   if(name==='ranking') loadRanking();
   if(name==='roles') loadRolesPage();
+  // módulos que necesitan trigger explícito al navegar
+  if(name==='riders') loadRiders();
+  if(name==='providers') loadProv();
+  if(name==='shop') loadShop();
+  if(name==='txns') loadTxns();
+  if(name==='loans') loadLoans();
+  if(name==='tontines') loadTontines();
+  if(name==='cards') loadCards();
+  if(name==='bills') loadBills();
+  if(name==='coupons') loadCoupons();
+  if(name==='reviews') loadReviews();
+  if(name==='loyalty') loadLoyalty();
+  if(name==='referrals') loadReferrals();
+  if(name==='taxes') loadTaxes();
+  if(name==='banks') loadBanks();
+  if(name==='categories') loadCategories();
+  if(name==='reps'){ if(!ALL_USERS.length) loadUsers().then(()=>renderReps()); else renderReps(); }
+  if(name==='users'){ if(!ALL_USERS.length) loadUsers(); else renderUsers(); }
 }
 
 /* ═══ OVERVIEW ══════════════════════════════════════ */
@@ -3933,7 +3977,10 @@ async function loadWithdraws(){
 /* ═══ RIDERS ────────────────────────────────────── */
 async function loadRiders(){
   const r = await api('/admin/riders');
-  if(!r.success) return;
+  if(!r.success){
+    document.getElementById('tb-riders').innerHTML='<tr><td colspan="9" class="misc">⚠️ Sin datos — verifica la conexión o inicia sesión</td></tr>';
+    return;
+  }
   ALL_RIDERS = r.data.riders||[];
   renderRiders();
 }
@@ -3987,7 +4034,10 @@ async function deleteRider(id){
 /* ═══ PROVIDERS ─────────────────────────────────── */
 async function loadProv(){
   const r = await api('/admin/providers');
-  if(!r.success) return;
+  if(!r.success){
+    document.getElementById('tb-prov').innerHTML='<tr><td colspan="8" class="misc">⚠️ Sin datos — verifica la conexión o inicia sesión</td></tr>';
+    return;
+  }
   ALL_PROV = r.data.providers||[];
   renderProv();
 }
@@ -4838,7 +4888,11 @@ async function deactivateCoupon(id){
 
 /* ═══ SHOP / PEDIDOS ────────────────────────────── */
 async function loadShop(){
-  const r = await api('/admin/orders'); if(!r.success) return;
+  const r = await api('/admin/orders');
+  if(!r.success){
+    document.getElementById('tb-shop').innerHTML='<tr><td colspan="7" class="misc">⚠️ Sin datos — verifica la conexión o inicia sesión</td></tr>';
+    return;
+  }
   ALL_SHOP = r.data.orders||[];
   document.getElementById('shop-stats').innerHTML=`
     <div class="sc c-cyan"><div class="lbl">Total pedidos</div><div class="val">${r.data.total||0}</div></div>

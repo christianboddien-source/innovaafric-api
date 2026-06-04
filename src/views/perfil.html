@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Perfil — INNOVAAFRIC</title>
+<style>
+:root{--bg:#0a0f1e;--bg2:#111827;--bg3:#1f2937;--border:#2d3748;--text:#f1f5f9;--muted:#94a3b8;--green:#00C48C;--gold:#FFB800;--orange:#FF6B35;--teal:#4ECDC4;--red:#ef4444;--radius:12px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;}
+nav{position:sticky;top:0;z-index:100;background:rgba(10,15,30,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:64px;}
+.nav-logo{font-size:1.2rem;font-weight:800;color:var(--green);}
+.nav-links{display:flex;gap:0.5rem;}
+.nav-links a{padding:6px 14px;border-radius:8px;font-size:0.85rem;font-weight:600;text-decoration:none;color:var(--muted);border:1px solid var(--border);transition:all 0.2s;}
+.nav-links a:hover{color:var(--green);border-color:var(--green);}
+.nav-links a.active{color:var(--green);border-color:var(--green);}
+
+.profile-hero{background:linear-gradient(135deg,rgba(0,196,140,0.1) 0%,transparent 60%),var(--bg2);border-bottom:1px solid var(--border);padding:3rem 2rem;}
+.profile-hero-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:2rem;flex-wrap:wrap;}
+.avatar-wrap{position:relative;}
+.avatar{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--green),#00897B);display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:900;color:#fff;border:3px solid rgba(0,196,140,0.4);box-shadow:0 0 0 6px rgba(0,196,140,0.1);}
+.avatar-edit{position:absolute;bottom:4px;right:4px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.8rem;}
+.profile-info{flex:1;}
+.profile-name{font-size:1.8rem;font-weight:800;margin-bottom:0.3rem;}
+.profile-email{color:var(--muted);font-size:0.9rem;margin-bottom:0.75rem;}
+.profile-badges{display:flex;gap:0.5rem;flex-wrap:wrap;}
+.badge{padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;}
+.badge-role{background:rgba(0,196,140,0.15);color:var(--green);border:1px solid rgba(0,196,140,0.3);}
+.badge-kyc-pending{background:rgba(255,184,0,0.15);color:var(--gold);border:1px solid rgba(255,184,0,0.3);}
+.badge-kyc-verified{background:rgba(0,196,140,0.15);color:var(--green);border:1px solid rgba(0,196,140,0.3);}
+.badge-kyc-review{background:rgba(78,205,196,0.15);color:var(--teal);border:1px solid rgba(78,205,196,0.3);}
+.badge-country{background:var(--bg3);color:var(--muted);border:1px solid var(--border);}
+.profile-actions{display:flex;gap:0.75rem;margin-top:1rem;}
+.btn-primary{background:var(--green);color:#000;padding:10px 24px;border-radius:8px;font-weight:700;font-size:0.9rem;border:none;cursor:pointer;text-decoration:none;display:inline-block;}
+.btn-outline{background:transparent;color:var(--text);padding:10px 24px;border-radius:8px;font-weight:600;font-size:0.9rem;border:1px solid var(--border);cursor:pointer;text-decoration:none;display:inline-block;transition:all 0.2s;}
+.btn-outline:hover{border-color:var(--green);color:var(--green);}
+
+.main{max-width:900px;margin:0 auto;padding:2rem;}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:2rem;overflow-x:auto;}
+.tab{padding:12px 20px;background:none;border:none;color:var(--muted);font-size:0.9rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s;}
+.tab.active{color:var(--green);border-bottom-color:var(--green);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;}
+.card-title{font-size:1rem;font-weight:700;margin-bottom:1.25rem;display:flex;align-items:center;gap:0.5rem;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.form-group{display:flex;flex-direction:column;gap:0.4rem;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:0.9rem;outline:none;transition:border-color 0.2s;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--green);}
+input:read-only{color:var(--muted);cursor:default;}
+.save-btn{background:var(--green);color:#000;padding:11px 28px;border-radius:8px;font-weight:800;border:none;cursor:pointer;margin-top:0.5rem;}
+
+/* KYC */
+.kyc-progress{display:flex;gap:0;margin-bottom:2rem;}
+.kyc-step{flex:1;text-align:center;padding:1rem;background:var(--bg3);border:1px solid var(--border);position:relative;}
+.kyc-step:first-child{border-radius:10px 0 0 10px;}
+.kyc-step:last-child{border-radius:0 10px 10px 0;}
+.kyc-step.done{background:rgba(0,196,140,0.1);border-color:rgba(0,196,140,0.4);}
+.kyc-step.current{background:rgba(255,184,0,0.08);border-color:rgba(255,184,0,0.4);}
+.kyc-step-icon{font-size:1.5rem;margin-bottom:0.4rem;}
+.kyc-step-label{font-size:0.78rem;font-weight:600;color:var(--muted);}
+.kyc-step.done .kyc-step-label{color:var(--green);}
+.kyc-step.current .kyc-step-label{color:var(--gold);}
+
+/* WALLET SUMMARY */
+.wallets{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.wallet-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1.25rem;}
+.wallet-curr{font-size:0.75rem;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:0.3rem;}
+.wallet-bal{font-size:1.6rem;font-weight:900;color:var(--green);}
+
+/* HISTORY */
+.tx-list{display:flex;flex-direction:column;gap:0.75rem;}
+.tx-item{display:flex;align-items:center;gap:1rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1rem;}
+.tx-icon{font-size:1.4rem;width:40px;text-align:center;}
+.tx-info{flex:1;}
+.tx-desc{font-weight:600;font-size:0.9rem;}
+.tx-date{font-size:0.75rem;color:var(--muted);}
+.tx-amount{font-weight:800;font-size:1rem;}
+.tx-amount.out{color:var(--red);}
+.tx-amount.in{color:var(--green);}
+
+/* REFERRALS */
+.ref-box{background:linear-gradient(135deg,rgba(0,196,140,0.12),rgba(0,196,140,0.04));border:1px solid rgba(0,196,140,0.3);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;}
+.ref-code{font-size:1.8rem;font-weight:900;letter-spacing:3px;color:var(--green);margin:0.75rem 0;}
+.ref-copy{background:var(--green);color:#000;border:none;padding:8px 20px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.85rem;}
+.syr{display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--border);}
+.syr:last-child{border-bottom:none;}
+.syr .k{color:var(--muted);font-size:0.85rem;}
+.syr .v{font-weight:600;font-size:0.9rem;}
+
+/* SECURITY */
+.security-item{display:flex;align-items:center;justify-content:space-between;padding:1rem 0;border-bottom:1px solid var(--border);}
+.security-item:last-child{border-bottom:none;}
+.sec-info h4{font-weight:600;font-size:0.9rem;margin-bottom:0.2rem;}
+.sec-info p{color:var(--muted);font-size:0.8rem;}
+.toggle{width:44px;height:24px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;cursor:pointer;position:relative;transition:background 0.2s;}
+.toggle.on{background:var(--green);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left 0.2s;}
+.toggle.on::after{left:23px;}
+
+/* ALERT */
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;display:none;}
+.alert.show{display:block;}
+.alert-success{background:rgba(0,196,140,0.15);border:1px solid rgba(0,196,140,0.4);color:var(--green);}
+.alert-error{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;}
+
+#no-session{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;gap:1rem;}
+
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:2rem;text-align:center;margin-top:3rem;}
+.footer-brands{display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;}
+.footer-brands a{color:var(--muted);text-decoration:none;font-size:0.85rem;}
+.footer-brands a:hover{color:var(--green);}
+footer p{color:var(--muted);font-size:0.8rem;}
+
+@media(max-width:600px){.form-grid{grid-template-columns:1fr;}.profile-hero-inner{flex-direction:column;text-align:center;}.wallets{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">🌍 INNOVAAFRIC</span>
+  <div class="nav-links">
+    <a href="/">Inicio</a>
+    <a href="/money">💰 Money</a>
+    <a href="/shop">🛒 Shop</a>
+    <a href="/bigshop">🏭 BigShop</a>
+    <a href="/delivery">🚚 Delivery</a>
+    <a href="/perfil" class="active">👤 Mi perfil</a>
+  </div>
+</nav>
+
+<!-- NO SESIÓN -->
+<div id="no-session" style="display:none">
+  <div style="font-size:4rem">🔐</div>
+  <h2>Acceso requerido</h2>
+  <p style="color:var(--muted)">Inicia sesión para ver tu perfil</p>
+  <a href="/#registro" class="btn-primary">Iniciar sesión</a>
+</div>
+
+<!-- HERO PERFIL -->
+<div id="profile-content">
+  <div class="profile-hero">
+    <div class="profile-hero-inner">
+      <div class="avatar-wrap">
+        <div class="avatar" id="avatar-initials">U</div>
+        <div class="avatar-edit" title="Cambiar foto">✏️</div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name" id="p-name">Cargando...</div>
+        <div class="profile-email" id="p-email"></div>
+        <div class="profile-badges">
+          <span class="badge badge-role" id="p-role">cliente</span>
+          <span class="badge" id="p-kyc">KYC pendiente</span>
+          <span class="badge badge-country" id="p-country"></span>
+        </div>
+        <div class="profile-actions">
+          <a href="/money" class="btn-primary">💸 Enviar dinero</a>
+          <a href="/shop" class="btn-outline">🛒 Ir a la tienda</a>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.3rem">Miembro desde</div>
+        <div style="font-weight:700" id="p-since">—</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.75rem;margin-bottom:0.3rem">ID de cuenta</div>
+        <div style="font-size:0.75rem;font-family:monospace;color:var(--green)" id="p-id">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('datos')">📋 Mis datos</button>
+      <button class="tab" onclick="switchTab('wallet')">💰 Wallet</button>
+      <button class="tab" onclick="switchTab('historial')">📜 Historial</button>
+      <button class="tab" onclick="switchTab('kyc')">🪪 Verificación KYC</button>
+      <button class="tab" onclick="switchTab('referidos')">🎁 Referidos</button>
+      <button class="tab" onclick="switchTab('seguridad')">🔐 Seguridad</button>
+    </div>
+
+    <!-- DATOS -->
+    <div id="tab-datos" class="tab-panel active">
+      <div class="card">
+        <div class="card-title">📋 Información personal</div>
+        <div id="alert-datos" class="alert"></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nombre completo</label><input type="text" id="edit-name" placeholder="Tu nombre"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="edit-email" readonly></div>
+          <div class="form-group"><label>Teléfono</label><input type="tel" id="edit-phone" placeholder="+237..."></div>
+          <div class="form-group"><label>País</label>
+            <select id="edit-country">
+              <option value="CM">🇨🇲 Camerún</option><option value="SN">🇸🇳 Senegal</option>
+              <option value="GQ">🇬🇶 Guinea Ecuatorial</option><option value="CI">🇨🇮 Costa de Marfil</option>
+              <option value="GA">🇬🇦 Gabón</option><option value="ES">🇪🇸 España</option>
+              <option value="FR">🇫🇷 Francia</option><option value="DE">🇩🇪 Alemania</option>
+              <option value="US">🇺🇸 Estados Unidos</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Ciudad</label><input type="text" id="edit-city" placeholder="Tu ciudad"></div>
+          <div class="form-group"><label>Rol</label><input type="text" id="edit-role" readonly></div>
+        </div>
+        <button class="save-btn" onclick="saveProfile()">💾 Guardar cambios</button>
+      </div>
+    </div>
+
+    <!-- WALLET -->
+    <div id="tab-wallet" class="tab-panel">
+      <div class="card">
+        <div class="card-title">💰 Mis saldos</div>
+        <div class="wallets" id="wallet-grid">
+          <div style="text-align:center;padding:2rem;color:var(--muted);grid-column:1/-1">Cargando saldos...</div>
+        </div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap">
+          <a href="/money#panel" class="btn-primary">📤 Enviar dinero</a>
+          <button class="btn-outline" onclick="loadWallet()">🔄 Actualizar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div id="tab-historial" class="tab-panel">
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between">
+          <span>📜 Últimas transacciones</span>
+          <button class="btn-outline" style="padding:6px 14px;font-size:0.8rem" onclick="loadHistory()">🔄</button>
+        </div>
+        <div id="tx-list" class="tx-list">
+          <div style="text-align:center;padding:2rem;color:var(--muted)">Cargando historial...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KYC -->
+    <div id="tab-kyc" class="tab-panel">
+      <div class="card">
+        <div class="card-title">🪪 Verificación de identidad (KYC)</div>
+        <div class="kyc-progress">
+          <div class="kyc-step done" id="kyc-s1"><div class="kyc-step-icon">✅</div><div class="kyc-step-label">Registro</div></div>
+          <div class="kyc-step" id="kyc-s2"><div class="kyc-step-icon">📄</div><div class="kyc-step-label">Documentación</div></div>
+          <div class="kyc-step" id="kyc-s3"><div class="kyc-step-icon">🔍</div><div class="kyc-step-label">Revisión</div></div>
+          <div class="kyc-step" id="kyc-s4"><div class="kyc-step-icon">🎉</div><div class="kyc-step-label">Verificado</div></div>
+        </div>
+        <div id="kyc-content">
+          <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem">Verifica tu identidad para acceder a transferencias internacionales, montos mayores y todos los servicios de INNOVAAFRIC.</p>
+          <div id="alert-kyc" class="alert"></div>
+          <div class="form-group" style="margin-bottom:1rem"><label>Tipo de documento</label>
+            <select id="kyc-type">
+              <option value="national_id">DNI / Cédula nacional</option>
+              <option value="passport">Pasaporte</option>
+              <option value="residence_permit">Permiso de residencia</option>
+              <option value="driving_license">Carnet de conducir</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:1.5rem"><label>Número de documento</label>
+            <input type="text" id="kyc-number" placeholder="Ej: 12345678A">
+          </div>
+          <button class="save-btn" onclick="submitKYC()">📤 Enviar documentación</button>
+        </div>
+        <div id="kyc-done" style="display:none;text-align:center;padding:2rem">
+          <div style="font-size:3rem;margin-bottom:1rem">✅</div>
+          <h3 style="color:var(--green);margin-bottom:0.5rem">Identidad verificada</h3>
+          <p style="color:var(--muted)">Tu cuenta tiene acceso completo a todos los servicios</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- REFERIDOS -->
+    <div id="tab-referidos" class="tab-panel">
+      <div class="ref-box">
+        <p style="color:var(--muted);font-size:0.85rem">Tu código de referido</p>
+        <div class="ref-code" id="ref-code">—</div>
+        <button class="ref-copy" onclick="copyRef()">📋 Copiar enlace</button>
+      </div>
+      <div class="card">
+        <div class="card-title">🎁 Mis referidos</div>
+        <div class="syr"><span class="k">Total referidos</span><span class="v" id="ref-total">0</span></div>
+        <div class="syr"><span class="k">Bonos ganados</span><span class="v" id="ref-bonus">0 EUR</span></div>
+        <div class="syr"><span class="k">Referidos activos</span><span class="v" id="ref-active">0</span></div>
+      </div>
+    </div>
+
+    <!-- SEGURIDAD -->
+    <div id="tab-seguridad" class="tab-panel">
+      <div class="card">
+        <div class="card-title">🔐 Seguridad de la cuenta</div>
+        <div class="security-item">
+          <div class="sec-info"><h4>Autenticación en dos pasos</h4><p>Añade una capa extra de seguridad a tu cuenta</p></div>
+          <div class="toggle" id="toggle-2fa" onclick="toggleSec('2fa')"></div>
+        </div>
+        <div class="security-item">
+          <div class="sec-info"><h4>Notificaciones de inicio de sesión</h4><p>Recibe email cuando alguien inicia sesión</p></div>
+          <div class="toggle on" id="toggle-login-notif" onclick="toggleSec('login-notif')"></div>
+        </div>
+        <div class="security-item">
+          <div class="sec-info"><h4>Alertas de transacción</h4><p>Notificación por cada movimiento en tu wallet</p></div>
+          <div class="toggle on" id="toggle-tx-alert" onclick="toggleSec('tx-alert')"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔑 Cambiar contraseña</div>
+        <div id="alert-pass" class="alert"></div>
+        <div class="form-group" style="margin-bottom:1rem"><label>Contraseña actual</label><input type="password" id="pass-current" placeholder="••••••••"></div>
+        <div class="form-group" style="margin-bottom:1rem"><label>Nueva contraseña</label><input type="password" id="pass-new" placeholder="Mínimo 8 caracteres" minlength="8"></div>
+        <div class="form-group" style="margin-bottom:1rem"><label>Confirmar nueva contraseña</label><input type="password" id="pass-confirm" placeholder="Repetir contraseña"></div>
+        <button class="save-btn" onclick="changePassword()">🔑 Actualizar contraseña</button>
+      </div>
+      <div class="card" style="border-color:rgba(239,68,68,0.3)">
+        <div class="card-title" style="color:#f87171">⚠️ Zona de peligro</div>
+        <div class="syr">
+          <div><div style="font-weight:600;font-size:0.9rem">Cerrar sesión en todos los dispositivos</div><div style="color:var(--muted);font-size:0.8rem">Invalida todos los tokens activos</div></div>
+          <button class="btn-outline" style="border-color:#ef4444;color:#f87171;font-size:0.8rem;padding:6px 14px" onclick="if(confirm('¿Cerrar sesión en todos los dispositivos?')){localStorage.removeItem('inno_token');window.location.href='/';}">Cerrar todo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-brands">
+    <a href="/">🌍 INNOVAAFRIC</a>
+    <a href="/money">💰 XenderMoney</a>
+    <a href="/shop">🛒 XenderShop</a>
+    <a href="/bigshop">🏭 XenderBigShop</a>
+    <a href="/delivery">🚚 Xender Delivery</a>
+  </div>
+  <p>© 2026 INNOVAAFRIC. Todos los derechos reservados.</p>
+</footer>
+
+<script>
+const API = '';
+let token = localStorage.getItem('inno_token');
+let userData = null;
+
+function showAlert(id, msg, type){ const el=document.getElementById(id); if(!el)return; el.textContent=msg; el.className='alert show alert-'+type; }
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['datos','wallet','historial','kyc','referidos','seguridad'][i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='wallet') loadWallet();
+  if(name==='historial') loadHistory();
+  if(name==='referidos') loadReferrals();
+}
+
+async function loadProfile() {
+  if(!token){ document.getElementById('no-session').style.display='flex'; document.getElementById('profile-content').style.display='none'; return; }
+  try {
+    const res = await fetch(API+'/v1/auth/me', { headers:{'Authorization':'Bearer '+token} });
+    const json = await res.json();
+    if(!res.ok) throw new Error('no auth');
+    const u = json.user || json.data || json;
+    userData = u;
+    document.getElementById('p-name').textContent = u.name||'Usuario';
+    document.getElementById('p-email').textContent = u.email||'';
+    document.getElementById('p-role').textContent = u.role||'cliente';
+    document.getElementById('p-country').textContent = u.country||'';
+    document.getElementById('p-id').textContent = u.id||'—';
+    document.getElementById('p-since').textContent = u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-ES',{year:'numeric',month:'long'}) : '—';
+    document.getElementById('avatar-initials').textContent = (u.name||'U')[0].toUpperCase();
+    // KYC badge
+    const kyc = u.kycStatus||'pending';
+    const kycBadge = document.getElementById('p-kyc');
+    kycBadge.textContent = kyc==='verified'?'✅ KYC Verificado':kyc==='under_review'?'🔍 En revisión':'⏳ KYC Pendiente';
+    kycBadge.className = 'badge badge-kyc-'+(kyc==='verified'?'verified':kyc==='under_review'?'review':'pending');
+    // rellenar formulario
+    document.getElementById('edit-name').value = u.name||'';
+    document.getElementById('edit-email').value = u.email||'';
+    document.getElementById('edit-phone').value = u.phone||'';
+    document.getElementById('edit-city').value = u.city||'';
+    document.getElementById('edit-role').value = u.role||'';
+    document.getElementById('edit-country').value = u.country||'CM';
+    if(u.referralCode) document.getElementById('ref-code').textContent = u.referralCode;
+    // KYC progress
+    updateKYCProgress(kyc);
+  } catch {
+    document.getElementById('no-session').style.display='flex';
+    document.getElementById('profile-content').style.display='none';
+  }
+}
+
+function updateKYCProgress(status) {
+  document.getElementById('kyc-s1').className='kyc-step done';
+  if(status==='under_review'){ document.getElementById('kyc-s2').className='kyc-step done'; document.getElementById('kyc-s3').className='kyc-step current'; }
+  else if(status==='verified'){ ['kyc-s2','kyc-s3','kyc-s4'].forEach(id=>document.getElementById(id).className='kyc-step done'); document.getElementById('kyc-content').style.display='none'; document.getElementById('kyc-done').style.display='block'; }
+  else { document.getElementById('kyc-s2').className='kyc-step current'; }
+}
+
+async function saveProfile() {
+  const body = { name:document.getElementById('edit-name').value, phone:document.getElementById('edit-phone').value, country:document.getElementById('edit-country').value, city:document.getElementById('edit-city').value };
+  try {
+    const res = await fetch(API+'/v1/auth/profile', { method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify(body) });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||'Error');
+    showAlert('alert-datos','✅ Perfil actualizado correctamente','success');
+    document.getElementById('p-name').textContent = body.name;
+    document.getElementById('avatar-initials').textContent = body.name[0].toUpperCase();
+  } catch(err){ showAlert('alert-datos','❌ '+err.message,'error'); }
+}
+
+async function loadWallet() {
+  try {
+    const res = await fetch(API+'/v1/money/balance', { headers:{'Authorization':'Bearer '+token} });
+    const json = await res.json();
+    const balances = json.balances||json.data||[];
+    document.getElementById('wallet-grid').innerHTML = balances.map(b=>`
+      <div class="wallet-card">
+        <div class="wallet-curr">${b.currency}</div>
+        <div class="wallet-bal">${parseFloat(b.balance||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      </div>`).join('');
+  } catch { document.getElementById('wallet-grid').innerHTML='<div style="color:var(--muted);padding:1rem">Error cargando saldos</div>'; }
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch(API+'/v1/money/history?limit=15', { headers:{'Authorization':'Bearer '+token} });
+    const json = await res.json();
+    const txs = json.transactions||json.data||[];
+    const list = document.getElementById('tx-list');
+    if(!txs.length){ list.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)">Sin transacciones aún</div>'; return; }
+    list.innerHTML = txs.map(t=>`
+      <div class="tx-item">
+        <div class="tx-icon">${t.type==='send'?'📤':t.type==='receive'?'📥':'💱'}</div>
+        <div class="tx-info"><div class="tx-desc">${t.description||t.type||'Transacción'}</div><div class="tx-date">${new Date(t.createdAt||t.created_at).toLocaleDateString('es-ES')}</div></div>
+        <div class="tx-amount ${t.amount<0?'out':'in'}">${t.amount>0?'+':''}${parseFloat(t.amount).toFixed(2)} ${t.currency||'EUR'}</div>
+      </div>`).join('');
+  } catch { document.getElementById('tx-list').innerHTML='<div style="text-align:center;padding:1rem;color:var(--muted)">Error cargando historial</div>'; }
+}
+
+async function loadReferrals() {
+  try {
+    const res = await fetch(API+'/v1/referrals/my', { headers:{'Authorization':'Bearer '+token} });
+    const json = await res.json();
+    const data = json.data||json;
+    document.getElementById('ref-total').textContent = data.total||0;
+    document.getElementById('ref-bonus').textContent = (data.totalBonus||0)+' EUR';
+    document.getElementById('ref-active').textContent = data.active||0;
+  } catch {}
+}
+
+async function submitKYC() {
+  const docType = document.getElementById('kyc-type').value;
+  const docNum = document.getElementById('kyc-number').value;
+  if(!docNum) return showAlert('alert-kyc','Introduce el número de documento','error');
+  try {
+    const res = await fetch(API+'/v1/auth/kyc', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({document_type:docType,document_number:docNum}) });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||'Error KYC');
+    showAlert('alert-kyc','✅ Documentación enviada. Revisión en 24-48h.','success');
+    updateKYCProgress('under_review');
+    document.getElementById('p-kyc').textContent='🔍 En revisión';
+    document.getElementById('p-kyc').className='badge badge-kyc-review';
+  } catch(err){ showAlert('alert-kyc','❌ '+err.message,'error'); }
+}
+
+async function changePassword() {
+  const curr = document.getElementById('pass-current').value;
+  const newp = document.getElementById('pass-new').value;
+  const conf = document.getElementById('pass-confirm').value;
+  if(newp!==conf) return showAlert('alert-pass','Las contraseñas no coinciden','error');
+  if(newp.length<8) return showAlert('alert-pass','Mínimo 8 caracteres','error');
+  try {
+    const res = await fetch(API+'/v1/auth/password', { method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({current_password:curr,new_password:newp}) });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||'Error');
+    showAlert('alert-pass','✅ Contraseña actualizada','success');
+    ['pass-current','pass-new','pass-confirm'].forEach(id=>document.getElementById(id).value='');
+  } catch(err){ showAlert('alert-pass','❌ '+err.message,'error'); }
+}
+
+function toggleSec(id){ const el=document.getElementById('toggle-'+id); if(el) el.classList.toggle('on'); }
+
+function copyRef() {
+  const code = document.getElementById('ref-code').textContent;
+  const url = window.location.origin+'/?ref='+code;
+  navigator.clipboard.writeText(url).then(()=>alert('✅ Enlace copiado: '+url));
+}
+
+loadProfile();
+</script>
+</body>
+</html>

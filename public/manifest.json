@@ -1,0 +1,23 @@
+{
+  "name": "INNOVAAFRIC — Ecosistema Tricontinental",
+  "short_name": "InnovaAFRIC",
+  "description": "Pagos, comercio, entregas y servicios financieros para tres continentes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1e",
+  "theme_color": "#00C48C",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "XenderMoney", "short_name": "Money", "url": "/money", "description": "Envía dinero al mundo" },
+    { "name": "XenderShop",  "short_name": "Shop",  "url": "/shop",  "description": "Marketplace tricontinental" },
+    { "name": "Xender Delivery", "short_name": "Delivery", "url": "/delivery", "description": "Rastrea tu entrega" },
+    { "name": "XenderBigShop",  "short_name": "BigShop", "url": "/bigshop",  "description": "Compra al por mayor B2B" }
+  ],
+  "categories": ["finance", "shopping", "productivity"],
+  "screenshots": []
+}

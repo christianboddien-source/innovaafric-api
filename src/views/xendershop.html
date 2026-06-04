@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XenderShop — Marketplace Tricontinental</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#FF6B35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XenderShop">
+<meta name="description" content="Marketplace tricontinental. Compra y vende productos de África, Europa y América.">
+<style>
+:root {
+  --bg:#0a0f1e; --bg2:#111827; --bg3:#1f2937; --border:#2d3748;
+  --text:#f1f5f9; --muted:#94a3b8;
+  --orange:#FF6B35; --green:#00C48C; --gold:#FFB800; --teal:#4ECDC4;
+  --red:#ef4444; --radius:12px; --shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(10,15,30,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:64px;}
+.nav-logo{font-size:1.3rem;font-weight:800;color:var(--orange);}
+.nav-links{display:flex;gap:0.5rem;align-items:center;}
+.nav-links a{padding:6px 14px;border-radius:8px;font-size:0.85rem;font-weight:600;text-decoration:none;transition:all 0.2s;}
+.nav-links a.home{color:var(--green);border:1px solid var(--green);}
+.nav-links a.money{color:var(--gold);border:1px solid var(--gold);}
+.nav-links a.delivery{color:var(--teal);border:1px solid var(--teal);}
+.nav-links a.bigshop{color:#a78bfa;border:1px solid #a78bfa;}
+.nav-links a:hover{opacity:0.8;}
+.nav-right{display:flex;gap:0.75rem;align-items:center;}
+.cart-btn{position:relative;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:0.9rem;color:var(--text);}
+.cart-badge{position:absolute;top:-6px;right:-6px;background:var(--orange);color:#fff;font-size:0.7rem;font-weight:800;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;}
+.nav-btn{background:var(--orange);color:#fff;padding:8px 20px;border-radius:8px;font-weight:700;font-size:0.85rem;text-decoration:none;}
+
+.hero{min-height:75vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;background:radial-gradient(ellipse at 60% 30%,rgba(255,107,53,0.12) 0%,transparent 60%),var(--bg);}
+.hero-badge{display:inline-block;background:rgba(255,107,53,0.15);border:1px solid rgba(255,107,53,0.4);color:var(--orange);padding:6px 16px;border-radius:20px;font-size:0.8rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:1.5rem;}
+.hero h1{font-size:clamp(2.2rem,5vw,4.5rem);font-weight:900;line-height:1.1;margin-bottom:1.2rem;}
+.hero h1 span{color:var(--orange);}
+.hero p{font-size:1.1rem;color:var(--muted);max-width:560px;margin-bottom:2.5rem;line-height:1.6;}
+.btn-orange{background:var(--orange);color:#fff;padding:14px 32px;border-radius:10px;font-weight:800;font-size:1rem;border:none;cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;}
+.btn-orange:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,107,53,0.4);}
+.btn-outline{background:transparent;color:var(--text);padding:14px 32px;border-radius:10px;font-weight:700;font-size:1rem;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;}
+.btn-outline:hover{border-color:var(--orange);color:var(--orange);}
+.hero-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
+
+/* SEARCH */
+.search-bar{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:1.5rem 2rem;}
+.search-inner{max-width:1200px;margin:0 auto;display:flex;gap:1rem;flex-wrap:wrap;}
+.search-input-wrap{flex:1;display:flex;gap:0;}
+.search-input-wrap input{flex:1;background:var(--bg3);border:1px solid var(--border);border-right:none;border-radius:10px 0 0 10px;padding:12px 16px;color:var(--text);font-size:0.95rem;outline:none;}
+.search-input-wrap input:focus{border-color:var(--orange);}
+.search-btn{background:var(--orange);border:none;border-radius:0 10px 10px 0;padding:12px 20px;cursor:pointer;font-size:1rem;}
+.category-filter{display:flex;gap:0.5rem;flex-wrap:wrap;}
+.cat-pill{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:0.8rem;cursor:pointer;transition:all 0.2s;color:var(--text);}
+.cat-pill.active,.cat-pill:hover{background:rgba(255,107,53,0.15);border-color:var(--orange);color:var(--orange);}
+
+/* PRODUCTS */
+.shop-layout{max-width:1200px;margin:0 auto;padding:3rem 2rem;display:grid;grid-template-columns:1fr;gap:2rem;}
+.products-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+.products-header h2{font-size:1.5rem;font-weight:800;}
+.sort-select{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:0.85rem;outline:none;}
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.5rem;}
+.product-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all 0.3s;cursor:pointer;}
+.product-card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:rgba(255,107,53,0.4);}
+.product-img{width:100%;height:180px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:4rem;}
+.product-info{padding:1rem;}
+.product-category{font-size:0.72rem;color:var(--orange);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem;}
+.product-name{font-weight:700;margin-bottom:0.3rem;font-size:0.95rem;}
+.product-seller{font-size:0.75rem;color:var(--muted);margin-bottom:0.75rem;}
+.product-footer{display:flex;justify-content:space-between;align-items:center;}
+.product-price{font-size:1.2rem;font-weight:900;color:var(--orange);}
+.product-price small{font-size:0.75rem;color:var(--muted);font-weight:400;}
+.add-cart-btn{background:var(--orange);border:none;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-weight:700;transition:all 0.2s;}
+.add-cart-btn:hover{opacity:0.85;}
+.loading-grid{text-align:center;padding:4rem;color:var(--muted);}
+
+/* CART DRAWER */
+.cart-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:none;}
+.cart-overlay.open{display:block;}
+.cart-drawer{position:fixed;right:0;top:0;bottom:0;width:380px;background:var(--bg2);border-left:1px solid var(--border);z-index:201;transform:translateX(100%);transition:transform 0.3s;display:flex;flex-direction:column;}
+.cart-drawer.open{transform:translateX(0);}
+.cart-header{display:flex;justify-content:space-between;align-items:center;padding:1.5rem;border-bottom:1px solid var(--border);}
+.cart-header h3{font-weight:800;}
+.cart-close{background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;}
+.cart-items{flex:1;overflow-y:auto;padding:1rem;}
+.cart-item{display:flex;gap:1rem;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--border);}
+.cart-item-icon{font-size:2rem;background:var(--bg3);border-radius:8px;padding:8px;width:52px;text-align:center;}
+.cart-item-info{flex:1;}
+.cart-item-name{font-weight:600;font-size:0.9rem;}
+.cart-item-price{color:var(--orange);font-weight:700;font-size:0.9rem;}
+.cart-item-qty{display:flex;align-items:center;gap:0.5rem;margin-top:0.3rem;}
+.qty-btn{background:var(--bg3);border:1px solid var(--border);border-radius:5px;width:24px;height:24px;cursor:pointer;color:var(--text);font-size:0.85rem;}
+.cart-footer{padding:1.5rem;border-top:1px solid var(--border);}
+.cart-total{display:flex;justify-content:space-between;font-weight:800;font-size:1.1rem;margin-bottom:1rem;}
+.checkout-btn{width:100%;padding:14px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:800;cursor:pointer;}
+.checkout-btn:hover{opacity:0.85;}
+.cart-empty{text-align:center;padding:3rem;color:var(--muted);}
+
+/* SECTION */
+section{padding:5rem 2rem;max-width:1200px;margin:0 auto;}
+.section-title{text-align:center;margin-bottom:3rem;}
+.section-title h2{font-size:2rem;font-weight:800;margin-bottom:0.5rem;}
+.section-title p{color:var(--muted);}
+
+/* VENDEDOR FORM */
+.seller-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.seller-inner{max-width:700px;margin:0 auto;padding:4rem 2rem;}
+.form-container{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:2.5rem;}
+.form-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:2rem;}
+.ftab{padding:10px 20px;background:none;border:none;color:var(--muted);font-size:0.9rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all 0.2s;}
+.ftab.active{color:var(--orange);border-bottom-color:var(--orange);}
+.ftab-panel{display:none;}
+.ftab-panel.active{display:block;}
+.form-group{margin-bottom:1rem;display:flex;flex-direction:column;gap:0.4rem;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:0.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+input,select,textarea{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:0.95rem;outline:none;transition:border-color 0.2s;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--orange);}
+textarea{resize:vertical;min-height:80px;}
+.form-submit{width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:800;cursor:pointer;margin-top:0.5rem;transition:all 0.2s;}
+.form-submit:hover{opacity:0.85;}
+
+/* STATS */
+.stats-bar{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:2rem;}
+.stats-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:space-around;flex-wrap:wrap;gap:1.5rem;}
+.stat{text-align:center;}
+.stat-num{font-size:2rem;font-weight:900;color:var(--orange);}
+.stat-label{font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+
+/* ALERT */
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;display:none;}
+.alert.show{display:block;}
+.alert-success{background:rgba(0,196,140,0.15);border:1px solid rgba(0,196,140,0.4);color:var(--green);}
+.alert-error{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;}
+
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:3rem 2rem;text-align:center;}
+.footer-brands{display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;}
+.footer-brands a{color:var(--muted);text-decoration:none;font-size:0.85rem;}
+.footer-brands a:hover{color:var(--orange);}
+footer p{color:var(--muted);font-size:0.8rem;}
+
+@media(max-width:600px){.nav-links{display:none;}.form-grid{grid-template-columns:1fr;}.cart-drawer{width:100%;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">🛒 XenderShop</span>
+  <div class="nav-links">
+    <a href="/" class="home">🌍 INNOVAAFRIC</a>
+    <a href="/money" class="money">💰 XenderMoney</a>
+    <a href="/bigshop" class="bigshop">🏭 BigShop</a>
+    <a href="/delivery" class="delivery">🚚 Delivery</a>
+  </div>
+  <div class="nav-right">
+    <button class="cart-btn" onclick="toggleCart()">
+      🛒 Carrito
+      <span class="cart-badge" id="cart-count">0</span>
+    </button>
+    <a href="#vendedor" class="nav-btn">Vender</a>
+  </div>
+</nav>
+
+<!-- CART OVERLAY -->
+<div class="cart-overlay" id="cart-overlay" onclick="toggleCart()"></div>
+<div class="cart-drawer" id="cart-drawer">
+  <div class="cart-header">
+    <h3>🛒 Mi carrito</h3>
+    <button class="cart-close" onclick="toggleCart()">×</button>
+  </div>
+  <div class="cart-items" id="cart-items">
+    <div class="cart-empty">Tu carrito está vacío</div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total"><span>Total</span><span id="cart-total">0.00 EUR</span></div>
+    <button class="checkout-btn" onclick="checkout()">Pagar ahora →</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">🌍 Marketplace tricontinental</div>
+  <h1>Compra y vende<br>en <span>tres continentes</span></h1>
+  <p>Productos de África, Europa y América. Pagos integrados con XenderMoney y entrega con Xender Delivery.</p>
+  <div class="hero-btns">
+    <a href="#catalogo" class="btn-orange">Explorar tienda</a>
+    <a href="#vendedor" class="btn-outline">Abrir mi tienda</a>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat"><div class="stat-num">500+</div><div class="stat-label">Productos</div></div>
+    <div class="stat"><div class="stat-num">80+</div><div class="stat-label">Vendedores</div></div>
+    <div class="stat"><div class="stat-num">12</div><div class="stat-label">Países</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-label">Divisas</div></div>
+  </div>
+</div>
+
+<!-- SEARCH & FILTER -->
+<div class="search-bar" id="catalogo">
+  <div class="search-inner">
+    <div class="search-input-wrap">
+      <input type="text" id="search-input" placeholder="Buscar productos..." oninput="filterProducts()">
+      <button class="search-btn">🔍</button>
+    </div>
+  </div>
+  <div class="category-filter" style="max-width:1200px;margin:1rem auto 0;">
+    <div class="cat-pill active" onclick="filterCat(this,'all')">Todos</div>
+    <div class="cat-pill" onclick="filterCat(this,'alimentacion')">🍎 Alimentación</div>
+    <div class="cat-pill" onclick="filterCat(this,'moda')">👗 Moda</div>
+    <div class="cat-pill" onclick="filterCat(this,'electronica')">📱 Electrónica</div>
+    <div class="cat-pill" onclick="filterCat(this,'belleza')">💄 Belleza</div>
+    <div class="cat-pill" onclick="filterCat(this,'hogar')">🏠 Hogar</div>
+    <div class="cat-pill" onclick="filterCat(this,'artesania')">🎨 Artesanía</div>
+    <div class="cat-pill" onclick="filterCat(this,'agricultura')">🌾 Agricultura</div>
+  </div>
+</div>
+
+<!-- PRODUCTOS -->
+<div class="shop-layout">
+  <div>
+    <div class="products-header">
+      <h2>Catálogo de productos</h2>
+      <select class="sort-select" onchange="sortProducts(this.value)">
+        <option value="default">Ordenar por: Destacados</option>
+        <option value="price-asc">Precio: menor a mayor</option>
+        <option value="price-desc">Precio: mayor a menor</option>
+        <option value="name">Nombre A–Z</option>
+      </select>
+    </div>
+    <div class="products-grid" id="products-grid">
+      <div class="loading-grid" style="grid-column:1/-1">Cargando productos... 🔄</div>
+    </div>
+  </div>
+</div>
+
+<!-- VENDEDOR SECTION -->
+<div class="seller-section" id="vendedor">
+  <div class="seller-inner">
+    <div class="section-title">
+      <h2>Vende en XenderShop</h2>
+      <p>Llega a clientes en Europa y África desde un solo lugar</p>
+    </div>
+    <div class="form-container">
+      <div class="form-tabs">
+        <button class="ftab active" onclick="switchFTab('registro-vendedor')">📋 Registro de vendedor</button>
+        <button class="ftab" onclick="switchFTab('publicar-producto')">➕ Publicar producto</button>
+        <button class="ftab" onclick="switchFTab('login-vendedor')">🔐 Acceder</button>
+      </div>
+
+      <!-- REGISTRO VENDEDOR -->
+      <div id="ftab-registro-vendedor" class="ftab-panel active">
+        <div id="alert-seller" class="alert"></div>
+        <form onsubmit="registerSeller(event)">
+          <div class="form-grid">
+            <div class="form-group"><label>Nombre del vendedor / tienda *</label><input type="text" id="s-name" required placeholder="Mi Tienda"></div>
+            <div class="form-group"><label>Email *</label><input type="email" id="s-email" required placeholder="tienda@email.com"></div>
+            <div class="form-group"><label>Teléfono *</label><input type="tel" id="s-phone" required placeholder="+237..."></div>
+            <div class="form-group"><label>País *</label>
+              <select id="s-country" required>
+                <option value="">Seleccionar...</option>
+                <option value="CM">🇨🇲 Camerún</option><option value="SN">🇸🇳 Senegal</option>
+                <option value="GQ">🇬🇶 Guinea Ecuatorial</option><option value="CI">🇨🇮 Costa de Marfil</option>
+                <option value="ES">🇪🇸 España</option><option value="FR">🇫🇷 Francia</option><option value="DE">🇩🇪 Alemania</option>
+              </select>
+            </div>
+            <div class="form-group full"><label>Descripción de tu tienda</label><textarea id="s-desc" placeholder="¿Qué vendes? ¿Para quién?"></textarea></div>
+            <div class="form-group"><label>Contraseña *</label><input type="password" id="s-pass" minlength="8" required></div>
+            <div class="form-group"><label>Confirmar contraseña *</label><input type="password" id="s-pass2" required></div>
+          </div>
+          <button type="submit" class="form-submit">Crear cuenta de vendedor</button>
+        </form>
+      </div>
+
+      <!-- PUBLICAR PRODUCTO -->
+      <div id="ftab-publicar-producto" class="ftab-panel">
+        <div id="alert-product" class="alert"></div>
+        <form onsubmit="publishProduct(event)">
+          <div class="form-grid">
+            <div class="form-group full"><label>Nombre del producto *</label><input type="text" id="p-name" required placeholder="Ej: Shea Butter 500g"></div>
+            <div class="form-group"><label>Precio (EUR) *</label><input type="number" id="p-price" required min="0.01" step="0.01" placeholder="19.99"></div>
+            <div class="form-group"><label>Categoría *</label>
+              <select id="p-cat" required>
+                <option value="">Seleccionar...</option>
+                <option value="alimentacion">🍎 Alimentación</option>
+                <option value="moda">👗 Moda</option>
+                <option value="electronica">📱 Electrónica</option>
+                <option value="belleza">💄 Belleza</option>
+                <option value="hogar">🏠 Hogar</option>
+                <option value="artesania">🎨 Artesanía</option>
+                <option value="agricultura">🌾 Agricultura</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Stock disponible</label><input type="number" id="p-stock" min="0" placeholder="50"></div>
+            <div class="form-group full"><label>Descripción *</label><textarea id="p-desc" required placeholder="Describe tu producto..."></textarea></div>
+            <div class="form-group"><label>País de origen</label>
+              <select id="p-country">
+                <option value="CM">🇨🇲 Camerún</option><option value="SN">🇸🇳 Senegal</option>
+                <option value="GQ">🇬🇶 Guinea Ecuatorial</option><option value="ES">🇪🇸 España</option><option value="FR">🇫🇷 Francia</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Peso (kg)</label><input type="number" id="p-weight" min="0" step="0.1" placeholder="0.5"></div>
+          </div>
+          <button type="submit" class="form-submit">Publicar producto</button>
+        </form>
+      </div>
+
+      <!-- LOGIN VENDEDOR -->
+      <div id="ftab-login-vendedor" class="ftab-panel">
+        <div id="alert-login" class="alert"></div>
+        <form onsubmit="loginSeller(event)">
+          <div class="form-group"><label>Email</label><input type="email" id="l-email" required placeholder="tu@email.com"></div>
+          <div class="form-group"><label>Contraseña</label><input type="password" id="l-pass" required></div>
+          <button type="submit" class="form-submit">Entrar a mi tienda</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-brands">
+    <a href="/">🌍 INNOVAAFRIC</a>
+    <a href="/money">💰 XenderMoney</a>
+    <a href="/shop">🛒 XenderShop</a>
+    <a href="/bigshop">🏭 XenderBigShop</a>
+    <a href="/delivery">🚚 Xender Delivery</a>
+  </div>
+  <p>© 2026 XenderShop by INNOVAAFRIC. Marketplace tricontinental.</p>
+</footer>
+
+<script>
+const API = '';
+let token = localStorage.getItem('inno_token');
+let cart = JSON.parse(localStorage.getItem('xender_cart')||'[]');
+let allProducts = [];
+let currentCat = 'all';
+
+// PRODUCTOS DEMO (mientras la API responde)
+const DEMO_PRODUCTS = [
+  {id:'p1',name:'Shea Butter Natural 500g',price:12.99,currency:'EUR',category:'belleza',icon:'🧴',seller:'NaturAfrica CM',country:'CM',stock:45},
+  {id:'p2',name:'Batik Wax Print Fabric',price:24.50,currency:'EUR',category:'moda',icon:'👗',seller:'Dakar Textil SN',country:'SN',stock:30},
+  {id:'p3',name:'Café Camerún Premium 1kg',price:18.00,currency:'EUR',category:'alimentacion',icon:'☕',seller:'Café del Monte CM',country:'CM',stock:100},
+  {id:'p4',name:'Aceite de Argán Puro 100ml',price:22.99,currency:'EUR',category:'belleza',icon:'🌿',seller:'Argan Gold MA',country:'MA',stock:60},
+  {id:'p5',name:'Moringa en Polvo 250g',price:15.50,currency:'EUR',category:'alimentacion',icon:'🌱',seller:'Green Health SN',country:'SN',stock:80},
+  {id:'p6',name:'Cesta Artesanal Raffia',price:35.00,currency:'EUR',category:'artesania',icon:'🧺',seller:'Artesanía GQ',country:'GQ',stock:20},
+  {id:'p7',name:'Smartphone Refurbished A52',price:199.99,currency:'EUR',category:'electronica',icon:'📱',seller:'TechShop ES',country:'ES',stock:15},
+  {id:'p8',name:'Aceite de Palma Roja 1L',price:8.50,currency:'EUR',category:'alimentacion',icon:'🫙',seller:'Palmier CI',country:'CI',stock:200},
+  {id:'p9',name:'Bogolan Cloth Mali',price:42.00,currency:'EUR',category:'artesania',icon:'🎨',seller:'Mali Tradition ML',country:'ML',stock:25},
+  {id:'p10',name:'Cacao en Polvo Puro 500g',price:11.99,currency:'EUR',category:'alimentacion',icon:'🍫',seller:'Cacao CR CM',country:'CM',stock:150},
+  {id:'p11',name:'Dashiki Brodé Homme',price:55.00,currency:'EUR',category:'moda',icon:'👔',seller:'Mode Africaine SN',country:'SN',stock:40},
+  {id:'p12',name:'Auriculares Bluetooth',price:89.99,currency:'EUR',category:'electronica',icon:'🎧',seller:'TechShop ES',country:'ES',stock:35},
+];
+
+function renderProducts(products) {
+  const grid = document.getElementById('products-grid');
+  if(!products.length){grid.innerHTML='<div class="loading-grid" style="grid-column:1/-1">No se encontraron productos</div>';return;}
+  grid.innerHTML = products.map(p=>`
+    <div class="product-card">
+      <div class="product-img">${p.icon||'📦'}</div>
+      <div class="product-info">
+        <div class="product-category">${p.category||'Producto'}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-seller">por ${p.seller||'Vendedor'} · ${p.country||''}</div>
+        <div class="product-footer">
+          <div class="product-price">${parseFloat(p.price).toFixed(2)} <small>${p.currency||'EUR'}</small></div>
+          <button class="add-cart-btn" onclick="addToCart('${p.id}','${p.name}',${p.price},'${p.currency||'EUR'}','${p.icon||'📦'}')">+ Añadir</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadProducts() {
+  try {
+    const res = await fetch(API+'/v1/shop/products?limit=50', { headers: token?{'Authorization':'Bearer '+token}:{} });
+    const json = await res.json();
+    allProducts = (json.products||json.data||[]).map(p=>({...p,icon:getCatIcon(p.category)}));
+    if(!allProducts.length) throw new Error('empty');
+    renderProducts(allProducts);
+  } catch {
+    allProducts = DEMO_PRODUCTS;
+    renderProducts(allProducts);
+  }
+}
+
+function getCatIcon(cat) {
+  const icons={'alimentacion':'🍎','moda':'👗','electronica':'📱','belleza':'🧴','hogar':'🏠','artesania':'🎨','agricultura':'🌾'};
+  return icons[cat]||'📦';
+}
+
+function filterCat(el, cat) {
+  document.querySelectorAll('.cat-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  currentCat = cat;
+  filterProducts();
+}
+
+function filterProducts() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = allProducts.filter(p=>{
+    const matchCat = currentCat==='all'||p.category===currentCat;
+    const matchQ = !q||p.name.toLowerCase().includes(q)||(p.seller||'').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  renderProducts(filtered);
+}
+
+function sortProducts(val) {
+  let sorted=[...allProducts];
+  if(val==='price-asc') sorted.sort((a,b)=>a.price-b.price);
+  else if(val==='price-desc') sorted.sort((a,b)=>b.price-a.price);
+  else if(val==='name') sorted.sort((a,b)=>a.name.localeCompare(b.name));
+  allProducts=sorted;
+  filterProducts();
+}
+
+// CART
+function addToCart(id, name, price, currency, icon) {
+  const existing = cart.find(i=>i.id===id);
+  if(existing) existing.qty++;
+  else cart.push({id,name,price,currency,icon,qty:1});
+  saveCart();
+  renderCart();
+  openCart();
+}
+
+function saveCart() { localStorage.setItem('xender_cart', JSON.stringify(cart)); }
+
+function renderCart() {
+  const count = cart.reduce((a,i)=>a+i.qty,0);
+  document.getElementById('cart-count').textContent = count;
+  const items = document.getElementById('cart-items');
+  if(!cart.length){items.innerHTML='<div class="cart-empty">Tu carrito está vacío 🛒</div>';document.getElementById('cart-total').textContent='0.00 EUR';return;}
+  items.innerHTML = cart.map(i=>`
+    <div class="cart-item">
+      <div class="cart-item-icon">${i.icon}</div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${i.name}</div>
+        <div class="cart-item-price">${(i.price*i.qty).toFixed(2)} ${i.currency}</div>
+        <div class="cart-item-qty">
+          <button class="qty-btn" onclick="changeQty('${i.id}',-1)">−</button>
+          <span>${i.qty}</span>
+          <button class="qty-btn" onclick="changeQty('${i.id}',1)">+</button>
+        </div>
+      </div>
+    </div>`).join('');
+  const total = cart.reduce((a,i)=>a+i.price*i.qty,0);
+  document.getElementById('cart-total').textContent = total.toFixed(2)+' EUR';
+}
+
+function changeQty(id, delta) {
+  const item = cart.find(i=>i.id===id);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty<=0) cart=cart.filter(i=>i.id!==id);
+  saveCart(); renderCart();
+}
+
+function toggleCart() {
+  document.getElementById('cart-overlay').classList.toggle('open');
+  document.getElementById('cart-drawer').classList.toggle('open');
+}
+function openCart() {
+  document.getElementById('cart-overlay').classList.add('open');
+  document.getElementById('cart-drawer').classList.add('open');
+}
+
+function checkout() {
+  if(!cart.length) return alert('Tu carrito está vacío');
+  if(!token) { alert('Inicia sesión para completar la compra'); window.location.href='#vendedor'; return; }
+  alert('✅ Pedido procesado. Recibirás confirmación por email.');
+  cart=[];saveCart();renderCart();
+  document.getElementById('cart-overlay').classList.remove('open');
+  document.getElementById('cart-drawer').classList.remove('open');
+}
+
+// FORMS
+function switchFTab(id) {
+  document.querySelectorAll('.ftab').forEach((b,i)=>{
+    b.classList.toggle('active',['registro-vendedor','publicar-producto','login-vendedor'][i]===id);
+  });
+  document.querySelectorAll('.ftab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('ftab-'+id).classList.add('active');
+}
+
+function showAlert(id,msg,type){const el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='alert show alert-'+type;}
+
+async function registerSeller(e) {
+  e.preventDefault();
+  const pass = document.getElementById('s-pass').value;
+  if(pass!==document.getElementById('s-pass2').value) return showAlert('alert-seller','Las contraseñas no coinciden','error');
+  try {
+    const res = await fetch(API+'/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:document.getElementById('s-name').value,email:document.getElementById('s-email').value,phone:document.getElementById('s-phone').value,country:document.getElementById('s-country').value,password:pass,role:'supplier'})});
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Error');
+    token=json.token||(json.data&&json.data.token);
+    if(token) localStorage.setItem('inno_token',token);
+    showAlert('alert-seller','✅ Cuenta de vendedor creada. ¡Ahora publica tus productos!','success');
+    switchFTab('publicar-producto');
+  } catch(err){showAlert('alert-seller','❌ '+err.message,'error');}
+}
+
+async function publishProduct(e) {
+  e.preventDefault();
+  if(!token) return showAlert('alert-product','Inicia sesión primero','error');
+  try {
+    const body={name:document.getElementById('p-name').value,price:parseFloat(document.getElementById('p-price').value),category:document.getElementById('p-cat').value,description:document.getElementById('p-desc').value,stock:parseInt(document.getElementById('p-stock').value)||0,country:document.getElementById('p-country').value};
+    const res=await fetch(API+'/v1/shop/products',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
+    const json=await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Error');
+    showAlert('alert-product','✅ Producto publicado correctamente','success');
+  } catch(err){showAlert('alert-product','❌ '+err.message,'error');}
+}
+
+async function loginSeller(e) {
+  e.preventDefault();
+  try {
+    const res=await fetch(API+'/v1/auth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grant_type:'password',email:document.getElementById('l-email').value,password:document.getElementById('l-pass').value})});
+    const json=await res.json();
+    if(!res.ok) throw new Error(json.message||json.error||'Credenciales incorrectas');
+    token=json.access_token||json.token;
+    localStorage.setItem('inno_token',token);
+    showAlert('alert-login','✅ Sesión iniciada. Ya puedes publicar productos.','success');
+    switchFTab('publicar-producto');
+  } catch(err){showAlert('alert-login','❌ '+err.message,'error');}
+}
+
+// INIT
+loadProducts();
+renderCart();
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+</body>
+</html>

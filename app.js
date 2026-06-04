@@ -99,10 +99,17 @@ app.use((req, _res, next) => {
   next();
 });
 
-// ── Admin Dashboard ─────────────────────────────────────
-app.get('/admin', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'src/views/dashboard.html'));
-});
+// ── Archivos estáticos públicos (manifest, sw, icons) ────
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ── Páginas web públicas ─────────────────────────────────
+app.get('/',          (_req, res) => res.sendFile(path.join(__dirname, 'src/views/innovaafric.html')));
+app.get('/money',     (_req, res) => res.sendFile(path.join(__dirname, 'src/views/xendermoney.html')));
+app.get('/shop',      (_req, res) => res.sendFile(path.join(__dirname, 'src/views/xendershop.html')));
+app.get('/delivery',  (_req, res) => res.sendFile(path.join(__dirname, 'src/views/xenderdelivery.html')));
+app.get('/bigshop',   (_req, res) => res.sendFile(path.join(__dirname, 'src/views/xenderbigshop.html')));
+app.get('/perfil',    (_req, res) => res.sendFile(path.join(__dirname, 'src/views/perfil.html')));
+app.get('/admin',     (_req, res) => res.sendFile(path.join(__dirname, 'src/views/dashboard.html')));
 
 // ── Documentación Swagger ───────────────────────────────
 app.use('/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -168,8 +175,12 @@ app.use('/v1/swift',        swiftRoutes);
 app.use('/v1/kyc',          kycRoutes);
 
 // ── 404 ─────────────────────────────────────────────────
-app.use((_req, res) => {
-  error(res, 'Endpoint no encontrado. Consulta la documentación en https://api.innovaafric.com/docs', 404);
+app.use((req, res) => {
+  // Si es una petición de navegador (accept html), servir página 404
+  if(req.headers.accept && req.headers.accept.includes('text/html')) {
+    return res.status(404).sendFile(path.join(__dirname, 'src/views/404.html'));
+  }
+  error(res, 'Endpoint no encontrado. Consulta la documentación en /v1/docs', 404);
 });
 
 // ── Error handler global ────────────────────────────────

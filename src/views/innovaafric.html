@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INNOVAAFRIC — Ecosistema Tricontinental</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#00C48C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="InnovaAFRIC">
+<meta name="description" content="Pagos, comercio, entregas y servicios financieros para Europa, África y América.">
+<style>
+:root {
+  --bg: #0a0f1e;
+  --bg2: #111827;
+  --bg3: #1f2937;
+  --border: #2d3748;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --green: #00C48C;
+  --gold: #FFB800;
+  --orange: #FF6B35;
+  --teal: #4ECDC4;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; }
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,15,30,0.95); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 64px;
+}
+.nav-logo { font-size: 1.3rem; font-weight: 800; color: var(--green); letter-spacing: 1px; }
+.nav-links { display: flex; gap: 0.5rem; align-items: center; }
+.nav-links a {
+  padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+  text-decoration: none; transition: all 0.2s;
+}
+.nav-links a.money { color: var(--gold); border: 1px solid var(--gold); }
+.nav-links a.shop { color: var(--orange); border: 1px solid var(--orange); }
+.nav-links a.delivery { color: var(--teal); border: 1px solid var(--teal); }
+.nav-links a.bigshop { color: #a78bfa; border: 1px solid #a78bfa; }
+.nav-links a.admin { color: var(--muted); border: 1px solid var(--border); }
+.nav-links a:hover { opacity: 0.8; transform: translateY(-1px); }
+.nav-btn { background: var(--green); color: #000; padding: 8px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem; transition: all 0.2s; }
+.nav-btn:hover { opacity: 0.85; }
+
+/* HERO */
+.hero {
+  min-height: 90vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 4rem 2rem;
+  background: radial-gradient(ellipse at 60% 30%, rgba(0,196,140,0.12) 0%, transparent 60%),
+              radial-gradient(ellipse at 20% 80%, rgba(255,184,0,0.08) 0%, transparent 50%),
+              var(--bg);
+}
+.hero-badge {
+  display: inline-block; background: rgba(0,196,140,0.15);
+  border: 1px solid rgba(0,196,140,0.4); color: var(--green);
+  padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1.5rem;
+}
+.hero h1 {
+  font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 900; line-height: 1.1;
+  margin-bottom: 1.5rem;
+}
+.hero h1 span { color: var(--green); }
+.hero p { font-size: 1.2rem; color: var(--muted); max-width: 600px; margin-bottom: 2.5rem; line-height: 1.6; }
+.hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.btn-primary { background: var(--green); color: #000; padding: 14px 32px; border-radius: 10px; font-weight: 800; font-size: 1rem; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,196,140,0.4); }
+.btn-outline { background: transparent; color: var(--text); padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 1rem; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+.btn-outline:hover { border-color: var(--green); color: var(--green); }
+.hero-stats { display: flex; gap: 3rem; margin-top: 4rem; flex-wrap: wrap; justify-content: center; }
+.stat { text-align: center; }
+.stat-num { font-size: 2rem; font-weight: 900; color: var(--green); }
+.stat-label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* SECTION */
+section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
+.section-title { text-align: center; margin-bottom: 3rem; }
+.section-title h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; }
+.section-title p { color: var(--muted); font-size: 1rem; }
+
+/* BRANDS GRID */
+.brands-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; }
+.brand-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 2rem; transition: all 0.3s; cursor: pointer; text-decoration: none; color: var(--text);
+  display: block;
+}
+.brand-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.brand-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+.brand-card h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+.brand-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem; }
+.brand-tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+.tag-green { background: rgba(0,196,140,0.15); color: var(--green); }
+.tag-gold { background: rgba(255,184,0,0.15); color: var(--gold); }
+.tag-orange { background: rgba(255,107,53,0.15); color: var(--orange); }
+.tag-teal { background: rgba(78,205,196,0.15); color: var(--teal); }
+
+/* COUNTRIES */
+.countries-section { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.countries-inner { max-width: 1200px; margin: 0 auto; padding: 4rem 2rem; }
+.countries-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 2rem; }
+.country-pill {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 20px;
+  padding: 8px 16px; font-size: 0.85rem;
+}
+.country-flag { font-size: 1.2rem; }
+
+/* REGISTRO SECTION */
+.registro-section { background: var(--bg); }
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }
+.tab-btn {
+  padding: 12px 24px; background: none; border: none; color: var(--muted);
+  font-size: 0.95rem; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+.tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.form-container {
+  max-width: 640px; margin: 0 auto;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 2.5rem;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+input, select, textarea {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; color: var(--text); font-size: 0.95rem; outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--green); }
+select option { background: var(--bg3); }
+.form-submit { width: 100%; padding: 14px; background: var(--green); color: #000; border: none; border-radius: 10px; font-size: 1rem; font-weight: 800; cursor: pointer; margin-top: 0.5rem; transition: all 0.2s; }
+.form-submit:hover { opacity: 0.85; transform: translateY(-1px); }
+.form-footer { text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--muted); }
+.form-footer a { color: var(--green); text-decoration: none; }
+
+/* KYC SECTION */
+.kyc-box {
+  display: none; margin-top: 1.5rem;
+  background: rgba(0,196,140,0.08); border: 1px solid rgba(0,196,140,0.3);
+  border-radius: var(--radius); padding: 1.5rem;
+}
+.kyc-box.show { display: block; }
+.kyc-box h4 { color: var(--green); margin-bottom: 1rem; }
+
+/* ALERT */
+.alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; display: none; }
+.alert.show { display: block; }
+.alert-success { background: rgba(0,196,140,0.15); border: 1px solid rgba(0,196,140,0.4); color: var(--green); }
+.alert-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #f87171; }
+
+/* HOW IT WORKS */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
+.step { text-align: center; padding: 2rem 1.5rem; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); }
+.step-num { width: 48px; height: 48px; border-radius: 50%; background: rgba(0,196,140,0.15); border: 2px solid var(--green); color: var(--green); font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+.step h4 { font-weight: 700; margin-bottom: 0.5rem; }
+.step p { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
+
+/* FOOTER */
+footer {
+  background: var(--bg2); border-top: 1px solid var(--border);
+  padding: 3rem 2rem; text-align: center;
+}
+.footer-brands { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.footer-brands a { color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+.footer-brands a:hover { color: var(--green); }
+footer p { color: var(--muted); font-size: 0.8rem; }
+
+/* LOADER */
+.spinner { display: none; width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.3); border-top-color: #000; border-radius: 50%; animation: spin 0.6s linear infinite; margin: 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 600px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  .hero h1 { font-size: 2.2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-logo">INNOVAAFRIC</span>
+  <div class="nav-links">
+    <a href="/money" class="money">💰 XenderMoney</a>
+    <a href="/shop" class="shop">🛒 XenderShop</a>
+    <a href="/bigshop" class="bigshop">🏭 XenderBigShop</a>
+    <a href="/delivery" class="delivery">🚚 Xender Delivery</a>
+    <a href="/admin" class="admin">⚙️ Admin</a>
+  </div>
+  <a href="#registro" class="nav-btn">Registrarse</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <!-- LOGO -->
+  <div style="margin-bottom:1.5rem">
+    <svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 18px rgba(0,196,140,0.45))">
+      <!-- nodos externos -->
+      <circle cx="45" cy="8"  r="5" fill="#00C48C"/>
+      <circle cx="80" cy="27" r="5" fill="#00C48C"/>
+      <circle cx="80" cy="63" r="5" fill="#00C48C"/>
+      <circle cx="45" cy="82" r="5" fill="#00C48C"/>
+      <circle cx="10" cy="63" r="5" fill="#00C48C"/>
+      <circle cx="10" cy="27" r="5" fill="#00C48C"/>
+      <!-- nodo central -->
+      <circle cx="45" cy="45" r="9" fill="#00C48C" opacity="0.2"/>
+      <circle cx="45" cy="45" r="6" fill="#00C48C"/>
+      <!-- líneas hacia el centro -->
+      <line x1="45" y1="13" x2="45" y2="39" stroke="#00C48C" stroke-width="1.8" stroke-opacity="0.7"/>
+      <line x1="75" y1="29" x2="51" y2="40" stroke="#00C48C" stroke-width="1.8" stroke-opacity="0.7"/>
+      <line x1="75" y1="61" x2="51" y2="50" stroke="#00C48C" stroke-width="1.8" stroke-opacity="0.7"/>
+      <line x1="45" y1="77" x2="45" y2="51" stroke="#00C48C" stroke-width="1.8" stroke-opacity="0.7"/>
+      <line x1="15" y1="61" x2="39" y2="50" stroke="#00C48C" stroke-width="1.8" stroke-opacity="0.7"/>
+      <line x1="15" y1="29" x2="39" y2="40" stroke="#00C48C" stroke-width="1.8" stroke-opacity="0.7"/>
+      <!-- anillo exterior punteado -->
+      <circle cx="45" cy="45" r="40" stroke="#00C48C" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="4 3"/>
+    </svg>
+    <div style="text-align:center;margin-top:0.6rem">
+      <div style="font-size:1.5rem;font-weight:900;color:#00C48C;letter-spacing:1px">InnovaAFRIC</div>
+      <div style="font-size:0.78rem;color:#94a3b8;font-weight:500;letter-spacing:2px;text-transform:uppercase">We Simplify Life</div>
+    </div>
+  </div>
+  <div class="hero-badge">🌏 Asia · Europa · África</div>
+  <h1>El ecosistema<br><span>tricontinental</span><br>que conecta el mundo</h1>
+  <p>Pagos, comercio, entregas y servicios financieros para personas y empresas en tres continentes.</p>
+  <div class="hero-btns">
+    <a href="#registro" class="btn-primary">Crear cuenta gratis</a>
+    <a href="#servicios" class="btn-outline">Ver servicios</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">4</div><div class="stat-label">Divisas</div></div>
+    <div class="stat"><div class="stat-num">10+</div><div class="stat-label">Países</div></div>
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">Continentes</div></div>
+    <div class="stat"><div class="stat-num">40+</div><div class="stat-label">Servicios</div></div>
+  </div>
+</div>
+
+<!-- SERVICIOS -->
+<section id="servicios">
+  <div class="section-title">
+    <h2>Nuestro ecosistema</h2>
+    <p>Cinco plataformas, un solo ecosistema integrado</p>
+  </div>
+  <div class="brands-grid">
+    <a href="/money" class="brand-card" style="border-color:rgba(255,184,0,0.3)">
+      <div class="brand-icon">💰</div>
+      <h3>XenderMoney</h3>
+      <p>Envía y recibe dinero entre Europa y África con conversión automática EUR↔XAF, USD↔XOF y más.</p>
+      <span class="brand-tag tag-gold">Fintech · Remesas</span>
+    </a>
+    <a href="/shop" class="brand-card" style="border-color:rgba(255,107,53,0.3)">
+      <div class="brand-icon">🛒</div>
+      <h3>XenderShop</h3>
+      <p>Marketplace tricontinental para comprar y vender productos con pagos integrados y entregas gestionadas.</p>
+      <span class="brand-tag tag-orange">E-commerce · Marketplace</span>
+    </a>
+    <a href="/bigshop" class="brand-card" style="border-color:rgba(167,139,250,0.3)">
+      <div class="brand-icon">🏭</div>
+      <h3>XenderBigShop</h3>
+      <p>Plataforma B2B de compras al por mayor tricontinental. Conecta compradores y proveedores con escrow integrado.</p>
+      <span class="brand-tag" style="background:rgba(167,139,250,0.15);color:#a78bfa;">B2B · Mayorista</span>
+    </a>
+    <a href="/delivery" class="brand-card" style="border-color:rgba(78,205,196,0.3)">
+      <div class="brand-icon">🚚</div>
+      <h3>Xender Delivery</h3>
+      <p>Red de repartidores certificados para entregas urgentes y programadas en ciudades de África y Europa.</p>
+      <span class="brand-tag tag-teal">Logística · Entregas</span>
+    </a>
+    <a href="#registro" class="brand-card" style="border-color:rgba(0,196,140,0.3)">
+      <div class="brand-icon">🏢</div>
+      <h3>INNOVAAFRIC Business</h3>
+      <p>Soluciones B2B: nóminas, facturación, white-label, tontinas, seguros y crédito empresarial.</p>
+      <span class="brand-tag tag-green">B2B · Empresas</span>
+    </a>
+  </div>
+</section>
+
+<!-- PAÍSES -->
+<div class="countries-section">
+  <div class="countries-inner">
+    <div class="section-title">
+      <h2>Países disponibles</h2>
+      <p>Operamos en tres continentes con expansión continua</p>
+    </div>
+    <div class="countries-grid">
+      <div class="country-pill"><span class="country-flag">🇨🇲</span> Camerún</div>
+      <div class="country-pill"><span class="country-flag">🇸🇳</span> Senegal</div>
+      <div class="country-pill"><span class="country-flag">🇬🇶</span> Guinea Ecuatorial</div>
+      <div class="country-pill"><span class="country-flag">🇨🇮</span> Costa de Marfil</div>
+      <div class="country-pill"><span class="country-flag">🇬🇦</span> Gabón</div>
+      <div class="country-pill"><span class="country-flag">🇨🇬</span> Congo</div>
+      <div class="country-pill"><span class="country-flag">🇲🇱</span> Malí</div>
+      <div class="country-pill"><span class="country-flag">🇧🇫</span> Burkina Faso</div>
+      <div class="country-pill"><span class="country-flag">🇪🇸</span> España</div>
+      <div class="country-pill"><span class="country-flag">🇫🇷</span> Francia</div>
+      <div class="country-pill"><span class="country-flag">🇩🇪</span> Alemania</div>
+      <div class="country-pill"><span class="country-flag">🇺🇸</span> Estados Unidos</div>
+    </div>
+  </div>
+</div>
+
+<!-- CÓMO FUNCIONA -->
+<section>
+  <div class="section-title">
+    <h2>¿Cómo empezar?</h2>
+    <p>Tres pasos para acceder al ecosistema completo</p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h4>Crea tu cuenta</h4>
+      <p>Registro gratuito en menos de 2 minutos. Solo necesitas email y teléfono.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h4>Verifica tu identidad</h4>
+      <p>Proceso KYC rápido: sube tu documento de identidad y activa todas las funciones.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h4>Úsalo todo</h4>
+      <p>Accede a pagos, tienda, entregas y servicios financieros desde una sola cuenta.</p>
+    </div>
+  </div>
+</section>
+
+<!-- REGISTRO -->
+<section id="registro" style="background:var(--bg2); border-radius:20px; margin-top:0;">
+  <div class="section-title">
+    <h2>Crear cuenta</h2>
+    <p>Elige el tipo de cuenta que mejor se adapta a ti</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('cliente')">👤 Cliente / Particular</button>
+    <button class="tab-btn" onclick="switchTab('comercio')">🏪 Comercio / Empresa</button>
+    <button class="tab-btn" onclick="switchTab('login')">🔐 Iniciar sesión</button>
+  </div>
+
+  <!-- TAB CLIENTE -->
+  <div id="tab-cliente" class="tab-panel active">
+    <div class="form-container">
+      <h3 style="margin-bottom:1.5rem">Registro de cliente</h3>
+      <div id="alert-cliente" class="alert"></div>
+      <form id="form-cliente" onsubmit="registerCliente(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre completo *</label>
+            <input type="text" name="name" placeholder="Juan García" required>
+          </div>
+          <div class="form-group">
+            <label>Teléfono *</label>
+            <input type="tel" name="phone" placeholder="+237 6XX XXX XXX" required>
+          </div>
+          <div class="form-group full">
+            <label>Email *</label>
+            <input type="email" name="email" placeholder="juan@email.com" required>
+          </div>
+          <div class="form-group">
+            <label>País *</label>
+            <select name="country" required>
+              <option value="">Seleccionar...</option>
+              <option value="CM">🇨🇲 Camerún</option>
+              <option value="SN">🇸🇳 Senegal</option>
+              <option value="GQ">🇬🇶 Guinea Ecuatorial</option>
+              <option value="CI">🇨🇮 Costa de Marfil</option>
+              <option value="GA">🇬🇦 Gabón</option>
+              <option value="CG">🇨🇬 Congo</option>
+              <option value="ML">🇲🇱 Malí</option>
+              <option value="BF">🇧🇫 Burkina Faso</option>
+              <option value="ES">🇪🇸 España</option>
+              <option value="FR">🇫🇷 Francia</option>
+              <option value="DE">🇩🇪 Alemania</option>
+              <option value="US">🇺🇸 Estados Unidos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ciudad</label>
+            <input type="text" name="city" placeholder="Yaundé, Madrid...">
+          </div>
+          <div class="form-group">
+            <label>Contraseña *</label>
+            <input type="password" name="password" placeholder="Mínimo 8 caracteres" minlength="8" required>
+          </div>
+          <div class="form-group">
+            <label>Confirmar contraseña *</label>
+            <input type="password" name="password2" placeholder="Repetir contraseña" required>
+          </div>
+        </div>
+        <button type="submit" class="form-submit">
+          <span id="btn-cliente-text">Crear cuenta gratis</span>
+          <div id="spinner-cliente" class="spinner"></div>
+        </button>
+      </form>
+      <div class="form-footer">¿Ya tienes cuenta? <a href="#" onclick="switchTab('login')">Inicia sesión</a></div>
+
+      <!-- KYC -->
+      <div id="kyc-cliente" class="kyc-box">
+        <h4>✅ Cuenta creada. Ahora verifica tu identidad (KYC)</h4>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">Para activar pagos y transferencias necesitas verificar tu identidad.</p>
+        <div id="alert-kyc" class="alert"></div>
+        <div class="form-group">
+          <label>Tipo de documento</label>
+          <select id="kyc-doc-type">
+            <option value="national_id">DNI / Cédula nacional</option>
+            <option value="passport">Pasaporte</option>
+            <option value="residence_permit">Permiso de residencia</option>
+            <option value="driving_license">Carnet de conducir</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Número de documento</label>
+          <input type="text" id="kyc-doc-number" placeholder="Ej: 12345678A">
+        </div>
+        <button class="form-submit" onclick="submitKYC()">Enviar para verificación</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB COMERCIO -->
+  <div id="tab-comercio" class="tab-panel">
+    <div class="form-container">
+      <h3 style="margin-bottom:1.5rem">Registro de comercio / empresa</h3>
+      <div id="alert-comercio" class="alert"></div>
+      <form id="form-comercio" onsubmit="registerComercio(event)">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Nombre de la empresa *</label>
+            <input type="text" name="company_name" placeholder="Mi Empresa S.A." required>
+          </div>
+          <div class="form-group">
+            <label>Nombre del responsable *</label>
+            <input type="text" name="name" placeholder="María López" required>
+          </div>
+          <div class="form-group">
+            <label>Email corporativo *</label>
+            <input type="email" name="email" placeholder="info@empresa.com" required>
+          </div>
+          <div class="form-group">
+            <label>Teléfono *</label>
+            <input type="tel" name="phone" placeholder="+34 6XX XXX XXX" required>
+          </div>
+          <div class="form-group">
+            <label>NIF / RUC / Tax ID</label>
+            <input type="text" name="tax_id" placeholder="B12345678">
+          </div>
+          <div class="form-group">
+            <label>Sector / Industria *</label>
+            <select name="industry" required>
+              <option value="">Seleccionar...</option>
+              <option value="retail">Comercio minorista</option>
+              <option value="wholesale">Comercio mayorista</option>
+              <option value="food">Alimentación / Restauración</option>
+              <option value="technology">Tecnología</option>
+              <option value="fashion">Moda / Textil</option>
+              <option value="health">Salud / Farmacia</option>
+              <option value="education">Educación</option>
+              <option value="logistics">Logística / Transporte</option>
+              <option value="agriculture">Agricultura</option>
+              <option value="finance">Servicios financieros</option>
+              <option value="other">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>País *</label>
+            <select name="country" required>
+              <option value="">Seleccionar...</option>
+              <option value="CM">🇨🇲 Camerún</option>
+              <option value="SN">🇸🇳 Senegal</option>
+              <option value="GQ">🇬🇶 Guinea Ecuatorial</option>
+              <option value="CI">🇨🇮 Costa de Marfil</option>
+              <option value="GA">🇬🇦 Gabón</option>
+              <option value="ES">🇪🇸 España</option>
+              <option value="FR">🇫🇷 Francia</option>
+              <option value="DE">🇩🇪 Alemania</option>
+              <option value="US">🇺🇸 Estados Unidos</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Dirección</label>
+            <input type="text" name="address" placeholder="Calle, número, ciudad">
+          </div>
+          <div class="form-group full">
+            <label>Sitio web</label>
+            <input type="url" name="website" placeholder="https://www.miempresa.com">
+          </div>
+          <div class="form-group">
+            <label>Contraseña *</label>
+            <input type="password" name="password" placeholder="Mínimo 8 caracteres" minlength="8" required>
+          </div>
+          <div class="form-group">
+            <label>Confirmar contraseña *</label>
+            <input type="password" name="password2" placeholder="Repetir contraseña" required>
+          </div>
+        </div>
+        <button type="submit" class="form-submit">
+          <span id="btn-comercio-text">Registrar empresa</span>
+          <div id="spinner-comercio" class="spinner"></div>
+        </button>
+      </form>
+      <div class="form-footer">¿Ya tienes cuenta? <a href="#" onclick="switchTab('login')">Inicia sesión</a></div>
+      <div id="success-comercio" class="kyc-box">
+        <h4>🎉 Empresa registrada con éxito</h4>
+        <p style="color:var(--muted);font-size:0.85rem">Tu cuenta empresarial está activa. Nuestro equipo revisará la documentación en 24–48h.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB LOGIN -->
+  <div id="tab-login" class="tab-panel">
+    <div class="form-container">
+      <h3 style="margin-bottom:1.5rem">Iniciar sesión</h3>
+      <div id="alert-login" class="alert"></div>
+      <form id="form-login" onsubmit="doLogin(event)">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="tu@email.com" required>
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" name="password" placeholder="Tu contraseña" required>
+        </div>
+        <button type="submit" class="form-submit">
+          <span id="btn-login-text">Entrar</span>
+          <div id="spinner-login" class="spinner"></div>
+        </button>
+      </form>
+      <div class="form-footer">¿No tienes cuenta? <a href="#" onclick="switchTab('cliente')">Regístrate gratis</a></div>
+      <div id="login-success" class="kyc-box">
+        <h4>✅ Sesión iniciada</h4>
+        <p id="login-welcome" style="color:var(--muted);font-size:0.85rem"></p>
+        <a href="dashboard.html" class="btn-primary" style="margin-top:1rem;display:inline-block">Ir al panel</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIOS -->
+<div style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:5rem 2rem;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="section-title"><h2>Lo que dicen nuestros usuarios</h2><p>Miles de personas confían en INNOVAAFRIC cada día</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-top:2rem">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem">
+        <div style="font-size:1.2rem;color:var(--gold);margin-bottom:1rem">★★★★★</div>
+        <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin-bottom:1.25rem">"Envío dinero a mi familia en Camerún cada mes. Con XenderMoney el tipo de cambio es siempre mejor que el banco y llega al instante."</p>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--green),#00897B);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff">M</div>
+          <div><div style="font-weight:700;font-size:0.9rem">Marie N.</div><div style="font-size:0.75rem;color:var(--muted)">🇫🇷 París → 🇨🇲 Yaundé</div></div>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem">
+        <div style="font-size:1.2rem;color:var(--gold);margin-bottom:1rem">★★★★★</div>
+        <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin-bottom:1.25rem">"Abrir mi tienda en XenderShop fue muy sencillo. En menos de una semana ya tenía clientes de España comprando mi artesanía senegalesa."</p>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#e55a2b);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff">O</div>
+          <div><div style="font-weight:700;font-size:0.9rem">Ousmane D.</div><div style="font-size:0.75rem;color:var(--muted)">🇸🇳 Dakar · Vendedor</div></div>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem">
+        <div style="font-size:1.2rem;color:var(--gold);margin-bottom:1rem">★★★★★</div>
+        <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin-bottom:1.25rem">"Como rider gano dinero extra los fines de semana. La app es fácil de usar y me pagan puntual cada semana."</p>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--teal),#26a69a);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff">J</div>
+          <div><div style="font-weight:700;font-size:0.9rem">Jean-Paul A.</div><div style="font-size:0.75rem;color:var(--muted)">🇨🇲 Duala · Rider</div></div>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem">
+        <div style="font-size:1.2rem;color:var(--gold);margin-bottom:1rem">★★★★★</div>
+        <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin-bottom:1.25rem">"La tontina digital es perfecta para nuestro grupo de amigos. Organizamos todo desde el móvil sin necesidad de reunirnos."</p>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#f59e0b);display:flex;align-items:center;justify-content:center;font-weight:800;color:#000">A</div>
+          <div><div style="font-weight:700;font-size:0.9rem">Aminata K.</div><div style="font-size:0.75rem;color:var(--muted)">🇨🇮 Abidjan · Cliente</div></div>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem">
+        <div style="font-size:1.2rem;color:var(--gold);margin-bottom:1rem">★★★★★</div>
+        <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin-bottom:1.25rem">"Integré la API de INNOVAAFRIC en mi e-commerce en 2 días. La documentación es clara y el soporte responde rápido."</p>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff">C</div>
+          <div><div style="font-weight:700;font-size:0.9rem">Carlos M.</div><div style="font-size:0.75rem;color:var(--muted)">🇪🇸 Madrid · Desarrollador</div></div>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem">
+        <div style="font-size:1.2rem;color:var(--gold);margin-bottom:1rem">★★★★★</div>
+        <p style="color:var(--muted);font-size:0.9rem;line-height:1.6;margin-bottom:1.25rem">"El proceso KYC fue rápido, menos de 24 horas. Ahora puedo enviar hasta 5.000 EUR al mes sin problemas."</p>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--green),#059669);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff">F</div>
+          <div><div style="font-weight:700;font-size:0.9rem">Fatou B.</div><div style="font-size:0.75rem;color:var(--muted)">🇩🇪 Berlín · Cliente</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div style="padding:5rem 2rem;max-width:800px;margin:0 auto;">
+  <div class="section-title"><h2>Preguntas frecuentes</h2><p>Todo lo que necesitas saber antes de empezar</p></div>
+  <div style="margin-top:2rem;display:flex;flex-direction:column;gap:0.75rem;" id="faq-list">
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">¿Es gratuito registrarse? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Sí, el registro es completamente gratuito. Solo pagas cuando realizas transacciones o usas servicios premium. No hay cuotas mensuales ni costes ocultos.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">¿Cuánto tarda una transferencia? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Las transferencias entre wallets INNOVAAFRIC son instantáneas. Las transferencias bancarias y a Mobile Money (MTN, Orange, Wave) tardan entre 0 y 30 minutos dependiendo del operador.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">¿Qué documentos necesito para el KYC? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Solo necesitas un documento de identidad válido: DNI, pasaporte, permiso de residencia o carnet de conducir. El proceso de verificación tarda entre 1 y 24 horas.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">¿En qué divisas puedo operar? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Operamos con EUR (Euro), USD (Dólar), XAF (Franco CFA Central) y XOF (Franco CFA Oeste). Las conversiones se realizan automáticamente al tipo de cambio del mercado.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">¿Cómo abro una tienda en XenderShop? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Crea una cuenta, ve a XenderShop y selecciona "Abrir mi tienda". Rellena el formulario de vendedor, sube tus productos y en menos de 24 horas tu tienda estará activa.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">¿Puedo usar INNOVAAFRIC como empresa? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Sí. Ofrecemos cuentas empresariales con funciones avanzadas: nóminas, facturación, pagos masivos, API de integración y soluciones white-label. Contacta con nuestro equipo B2B.</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACTO -->
+<div style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:5rem 2rem;" id="contacto">
+  <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start">
+    <div>
+      <h2 style="font-size:2rem;font-weight:800;margin-bottom:1rem">¿Tienes alguna pregunta?</h2>
+      <p style="color:var(--muted);line-height:1.6;margin-bottom:2rem">Nuestro equipo está disponible 24/7 para ayudarte. También puedes contactarnos por cualquiera de estos canales.</p>
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+          <span style="font-size:1.5rem">📧</span>
+          <div><div style="font-weight:600;font-size:0.9rem">Email</div><div style="color:var(--muted);font-size:0.85rem">support@innovaafric.com</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+          <span style="font-size:1.5rem">💬</span>
+          <div><div style="font-weight:600;font-size:0.9rem">WhatsApp Business</div><div style="color:var(--muted);font-size:0.85rem">+237 6XX XXX XXX</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+          <span style="font-size:1.5rem">🕐</span>
+          <div><div style="font-weight:600;font-size:0.9rem">Horario de soporte</div><div style="color:var(--muted);font-size:0.85rem">Lunes – Domingo · 7:00 – 23:00</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:2rem">
+      <h3 style="margin-bottom:1.5rem;font-size:1.1rem">Envíanos un mensaje</h3>
+      <div id="alert-contact" style="padding:12px;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;display:none"></div>
+      <div style="margin-bottom:1rem"><label style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:0.4rem">Nombre</label><input type="text" id="c-name" placeholder="Tu nombre" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:0.9rem;outline:none;"></div>
+      <div style="margin-bottom:1rem"><label style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:0.4rem">Email</label><input type="email" id="c-email" placeholder="tu@email.com" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:0.9rem;outline:none;"></div>
+      <div style="margin-bottom:1rem"><label style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:0.4rem">Asunto</label>
+        <select id="c-subject" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:0.9rem;outline:none;">
+          <option value="general">Consulta general</option>
+          <option value="support">Soporte técnico</option>
+          <option value="kyc">Verificación KYC</option>
+          <option value="business">Cuenta empresarial / B2B</option>
+          <option value="partnership">Partnership / Colaboración</option>
+        </select>
+      </div>
+      <div style="margin-bottom:1.25rem"><label style="font-size:0.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:0.4rem">Mensaje</label><textarea id="c-message" placeholder="¿En qué podemos ayudarte?" rows="4" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:0.9rem;outline:none;resize:vertical;"></textarea></div>
+      <button onclick="sendContact()" style="width:100%;padding:13px;background:var(--green);color:#000;border:none;border-radius:10px;font-size:1rem;font-weight:800;cursor:pointer;">📤 Enviar mensaje</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.faq-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color 0.2s;}
+.faq-item:hover{border-color:var(--green);}
+.faq-q{padding:1rem 1.25rem;font-weight:600;font-size:0.95rem;display:flex;justify-content:space-between;align-items:center;}
+.faq-arrow{color:var(--green);transition:transform 0.2s;font-size:1rem;}
+.faq-a{display:none;padding:0 1.25rem 1rem;color:var(--muted);font-size:0.88rem;line-height:1.6;}
+.faq-item.open .faq-a{display:block;}
+.faq-item.open .faq-arrow{transform:rotate(180deg);}
+@media(max-width:700px){#contacto .grid-2{grid-template-columns:1fr;}}
+</style>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brands">
+    <a href="/">INNOVAAFRIC</a>
+    <a href="/money">XenderMoney</a>
+    <a href="/shop">XenderShop</a>
+    <a href="/bigshop">XenderBigShop</a>
+    <a href="/delivery">Xender Delivery</a>
+    <a href="/admin">Admin</a>
+  </div>
+  <p>© 2026 INNOVAAFRIC. Ecosistema financiero tricontinental. Todos los derechos reservados.</p>
+</footer>
+
+<script>
+const API = '';  // mismo origen, o cambia a tu URL de Railway
+
+let currentToken = null;
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['cliente','comercio','login'][i] === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'alert show alert-' + type;
+}
+
+function setLoading(btnId, spinnerId, loading) {
+  document.getElementById(btnId).style.display = loading ? 'none' : 'block';
+  document.getElementById(spinnerId).style.display = loading ? 'block' : 'none';
+}
+
+async function registerCliente(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = Object.fromEntries(fd);
+  if (data.password !== data.password2) return showAlert('alert-cliente', 'Las contraseñas no coinciden', 'error');
+  setLoading('btn-cliente-text','spinner-cliente', true);
+  try {
+    const res = await fetch(API + '/v1/auth/register', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name: data.name, email: data.email, phone: data.phone, password: data.password, country: data.country, city: data.city, role: 'customer' })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || json.error || 'Error en el registro');
+    currentToken = json.token || (json.data && json.data.token);
+    showAlert('alert-cliente', '✅ Cuenta creada. Ahora verifica tu identidad.', 'success');
+    document.getElementById('kyc-cliente').classList.add('show');
+    e.target.style.display = 'none';
+  } catch(err) {
+    showAlert('alert-cliente', '❌ ' + err.message, 'error');
+  } finally {
+    setLoading('btn-cliente-text','spinner-cliente', false);
+  }
+}
+
+async function submitKYC() {
+  const docType = document.getElementById('kyc-doc-type').value;
+  const docNum = document.getElementById('kyc-doc-number').value;
+  if (!docNum) return showAlert('alert-kyc', 'Introduce el número de documento', 'error');
+  try {
+    const res = await fetch(API + '/v1/auth/kyc', {
+      method: 'POST', headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + currentToken},
+      body: JSON.stringify({ document_type: docType, document_number: docNum })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Error KYC');
+    showAlert('alert-kyc', '✅ Documentación enviada. Revisión en 24-48h.', 'success');
+  } catch(err) {
+    showAlert('alert-kyc', '❌ ' + err.message, 'error');
+  }
+}
+
+async function registerComercio(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = Object.fromEntries(fd);
+  if (data.password !== data.password2) return showAlert('alert-comercio', 'Las contraseñas no coinciden', 'error');
+  setLoading('btn-comercio-text','spinner-comercio', true);
+  try {
+    // 1. Crear usuario
+    const res = await fetch(API + '/v1/auth/register', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name: data.name, email: data.email, phone: data.phone, password: data.password, country: data.country, role: 'circular_autorizada' })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || json.error || 'Error en el registro');
+    const token = json.token || (json.data && json.data.token);
+
+    // 2. Crear cuenta empresarial
+    await fetch(API + '/v1/business/accounts', {
+      method: 'POST', headers: {'Content-Type':'application/json', 'Authorization': 'Bearer ' + token},
+      body: JSON.stringify({ company_name: data.company_name, tax_id: data.tax_id, industry: data.industry, country: data.country, address: data.address, website: data.website })
+    });
+
+    showAlert('alert-comercio', '✅ Empresa registrada con éxito', 'success');
+    document.getElementById('success-comercio').classList.add('show');
+    e.target.style.display = 'none';
+  } catch(err) {
+    showAlert('alert-comercio', '❌ ' + err.message, 'error');
+  } finally {
+    setLoading('btn-comercio-text','spinner-comercio', false);
+  }
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = Object.fromEntries(fd);
+  setLoading('btn-login-text','spinner-login', true);
+  try {
+    const res = await fetch(API + '/v1/auth/token', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ grant_type: 'password', email: data.email, password: data.password })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || json.error || 'Credenciales incorrectas');
+    localStorage.setItem('inno_token', json.access_token || json.token);
+    document.getElementById('login-welcome').textContent = 'Bienvenido/a. Redirigiendo al panel...';
+    document.getElementById('login-success').classList.add('show');
+    e.target.style.display = 'none';
+    setTimeout(() => window.location.href = 'dashboard.html', 1500);
+  } catch(err) {
+    showAlert('alert-login', '❌ ' + err.message, 'error');
+  } finally {
+    setLoading('btn-login-text','spinner-login', false);
+  }
+}
+
+function toggleFaq(el) {
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(f => f.classList.remove('open'));
+  if(!isOpen) el.classList.add('open');
+}
+
+async function sendContact() {
+  const name    = document.getElementById('c-name').value.trim();
+  const email   = document.getElementById('c-email').value.trim();
+  const subject = document.getElementById('c-subject').value;
+  const message = document.getElementById('c-message').value.trim();
+  const alert   = document.getElementById('alert-contact');
+  if(!name || !email || !message) {
+    alert.textContent = '❌ Por favor rellena todos los campos';
+    alert.style.cssText = 'display:block;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;padding:12px;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;';
+    return;
+  }
+  try {
+    const res = await fetch(API + '/v1/tickets', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ subject: subject + ' — ' + name, description: message, email, category: subject })
+    });
+    alert.textContent = '✅ Mensaje enviado. Te responderemos en menos de 24h.';
+    alert.style.cssText = 'display:block;background:rgba(0,196,140,0.15);border:1px solid rgba(0,196,140,0.4);color:#00C48C;padding:12px;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;';
+    document.getElementById('c-name').value='';
+    document.getElementById('c-email').value='';
+    document.getElementById('c-message').value='';
+  } catch {
+    alert.textContent = '✅ Mensaje recibido. Te contactaremos pronto.';
+    alert.style.cssText = 'display:block;background:rgba(0,196,140,0.15);border:1px solid rgba(0,196,140,0.4);color:#00C48C;padding:12px;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;';
+  }
+}
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+</body>
+</html>
