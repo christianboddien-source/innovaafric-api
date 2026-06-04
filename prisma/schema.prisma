@@ -89,11 +89,13 @@ model Transaction {
 model Product {
   id           String  @id
   name         String
+  description  String?
   priceEur     Float
   priceXaf     Float
   category     String
   stock        Int     @default(0)
-  origin       String
+  origin       String?
+  imageUrl     String?
   ceCertified  Boolean @default(true)
   deliveryDays Int     @default(5)
   ratingAvg    Float?
@@ -520,7 +522,7 @@ model InvoiceItem {
 }
 
 model Notification {
-  id        String    @id
+  id        String    @id @default(cuid())
   userId    String
   title     String
   body      String
@@ -724,6 +726,20 @@ model CountryConfig {
   repEmail       String?
   repPhone       String?
   updatedAt      DateTime @updatedAt
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  partnerName String
+  keyPrefix   String
+  fullKey     String   @unique
+  environment String   @default("test")
+  permissions String   @default("read")
+  rateLimit   Int      @default(1000)
+  callCount   Int      @default(0)
+  status      String   @default("activa")
+  lastUsedAt  DateTime?
+  createdAt   DateTime @default(now())
 }
 
 model AccountingEntry {

@@ -1259,7 +1259,7 @@ router.post('/notifications/mass', requireAuth, requireLevel(2), async (req, res
     try {
       await prisma.notification.createMany({
         data: chunk.map(uid => ({
-          userId: uid, title: '📢 InnovaAFRIC', message, type: 'mass', read: false, createdAt: now
+          userId: uid, title: '📢 InnovaAFRIC', body: message, type: 'mass', read: false, createdAt: now
         })),
         skipDuplicates: true
       });
