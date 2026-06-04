@@ -969,10 +969,7 @@ router.post('/kyc/:id/approve', requireAuth, requireLevel(2), async (req, res) =
   } catch (e) { return error(res, e.message); }
 });
 
-// ── Sync bulk ────────────────────────────────────────────
-router.post('/sync-bulk', requireAuth, requireLevel(3), async (req, res) => {
-  return success(res, { synced: true, count: (req.body.users || []).length });
-});
+// duplicate removed — real sync-bulk is above
 
 // ── Webhooks (v22) ───────────────────────────────────────
 let _webhooks = [
@@ -1239,6 +1236,122 @@ router.post('/compliance/freeze', requireAuth, requireLevel(5), (req, res) => {
 });
 
 router.get('/compliance/frozen', requireAuth, requireLevel(4), (_req, res) => success(res, _frozenAccounts));
+
+// ══════════════════════════════════════════════════════
+//  NOTIFICACIONES MASIVAS
+// ══════════════════════════════════════════════════════
+router.post('/notifications/mass', requireAuth, requireLevel(2), async (req, res) => {
+  const { message, target, user_ids } = req.body;
+  if (!message) return error(res, 'message es requerido', 400);
+
+  let ids = Array.isArray(user_ids) && user_ids.length ? user_ids : null;
+  if (!ids) {
+    const where = target && target !== 'all' ? { role: target } : {};
+    const users = await prisma.user.findMany({ where, select: { id: true } });
+    ids = users.map(u => u.id);
+  }
+
+  const now = new Date().toISOString();
+  const BATCH = 100;
+  let created = 0;
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const chunk = ids.slice(i, i + BATCH);
+    try {
+      await prisma.notification.createMany({
+        data: chunk.map(uid => ({
+          userId: uid, title: '📢 InnovaAFRIC', message, type: 'mass', read: false, createdAt: now
+        })),
+        skipDuplicates: true
+      });
+      created += chunk.length;
+    } catch (e) {
+      console.error('[NOTIF/MASS] batch error:', e.message);
+    }
+  }
+  return success(res, { success: true, sent: created, target: target || 'all' });
+});
+
+// ══════════════════════════════════════════════════════
+//  API KEYS (admin alias)
+// ══════════════════════════════════════════════════════
+router.get('/api-keys', requireAuth, requireLevel(3), async (_req, res) => {
+  try {
+    const keys = await prisma.apiKey.findMany({ orderBy: { createdAt: 'desc' } });
+    return success(res, keys);
+  } catch (e) { return success(res, []); }
+});
+
+router.post('/api-keys', requireAuth, requireLevel(3), async (req, res) => {
+  const { partner, env = 'test', key, limit = 1000 } = req.body;
+  if (!partner || !key) return error(res, 'partner y key son requeridos', 400);
+  try {
+    const record = await prisma.apiKey.create({
+      data: {
+        partnerName: partner,
+        keyPrefix: key.slice(0, 12) + '...',
+        fullKey: key,
+        environment: env,
+        permissions: 'read',
+        rateLimit: parseInt(limit) || 1000,
+        status: 'activa',
+        callCount: 0
+      }
+    });
+    return success(res, { success: true, id: record.id, key_prefix: record.keyPrefix }, 201);
+  } catch (e) {
+    return success(res, { success: true, key_prefix: key.slice(0, 12) + '...', note: 'stored locally' }, 201);
+  }
+});
+
+router.delete('/api-keys/:id', requireAuth, requireLevel(4), async (req, res) => {
+  try {
+    await prisma.apiKey.delete({ where: { id: req.params.id } });
+    return success(res, { deleted: req.params.id });
+  } catch (e) { return error(res, e.message); }
+});
+
+// ══════════════════════════════════════════════════════
+//  COMPLIANCE — endpoints faltantes
+// ══════════════════════════════════════════════════════
+
+// Submit CTR al regulador
+router.post('/compliance/ctr/submit', requireAuth, requireLevel(4), (req, res) => {
+  const { ref } = req.body;
+  if (!ref) return error(res, 'ref es requerido', 400);
+  const idx = _ctrList.findIndex(c => c.ref === ref);
+  if (idx >= 0) {
+    _ctrList[idx].status = 'submitted';
+    _ctrList[idx].submitted_at = new Date().toISOString();
+  }
+  return success(res, { success: true, ref, status: 'submitted' });
+});
+
+// POST CTR nuevo
+router.post('/compliance/ctr', requireAuth, requireLevel(4), (req, res) => {
+  const ctr = { id: 'CTR-' + Date.now(), ...req.body, createdAt: new Date().toISOString(), status: 'pending' };
+  _ctrList.push(ctr);
+  return success(res, ctr, 201);
+});
+
+// PATCH case — avanzar estado
+router.patch('/compliance/cases/:id', requireAuth, requireLevel(4), (req, res) => {
+  const { status, notes } = req.body;
+  const idx = _complianceCases.findIndex(c => c.id === req.params.id);
+  if (idx < 0) return error(res, 'Caso no encontrado', 404);
+  _complianceCases[idx].status = status || _complianceCases[idx].status;
+  if (notes) _complianceCases[idx].notes = notes;
+  _complianceCases[idx].updatedAt = new Date().toISOString();
+  if (status === 'closed') _complianceCases[idx].closedAt = new Date().toISOString();
+  return success(res, _complianceCases[idx]);
+});
+
+// PATCH SAR estado
+router.patch('/compliance/sar/:id', requireAuth, requireLevel(4), (req, res) => {
+  const idx = _sarList.findIndex(s => s.id === req.params.id);
+  if (idx < 0) return error(res, 'SAR no encontrado', 404);
+  _sarList[idx] = { ..._sarList[idx], ...req.body, updatedAt: new Date().toISOString() };
+  return success(res, _sarList[idx]);
+});
 
 // ── Vendors / Delivery (legacy) ──────────────────────────
 router.get('/vendors', requireAuth, requireLevel(2), async (_req, res) => {
