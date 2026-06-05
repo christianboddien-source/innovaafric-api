@@ -81,7 +81,27 @@ app.use(helmet({
     }
   }
 }));
-app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(',') || '*' }));
+const ALLOWED_ORIGINS = [
+  'https://christianboddien-source.github.io',
+  'http://localhost:3000',
+  'http://localhost:5500',
+  'http://localhost:5173',
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [])
+];
+const corsOptions = {
+  origin: function(origin, cb) {
+    // Allow requests with no origin (mobile apps, Postman, curl)
+    if (!origin) return cb(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    return cb(null, true); // Permisivo por ahora — restringir cuando esté en prod
+  },
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','apikey','x-api-key','x-client-id'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Responder preflight en todas las rutas
 // Stripe webhook necesita body raw — debe ir ANTES de express.json()
 app.use('/v1/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
@@ -112,6 +132,7 @@ app.get('/delivery',  (_req, res) => res.sendFile(path.join(__dirname, 'src/view
 app.get('/bigshop',   (_req, res) => res.sendFile(path.join(__dirname, 'src/views/xenderbigshop.html')));
 app.get('/perfil',    (_req, res) => res.sendFile(path.join(__dirname, 'src/views/perfil.html')));
 app.get('/admin',     (_req, res) => res.sendFile(path.join(__dirname, 'src/views/dashboard.html')));
+app.get('/app',       (_req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 
 // ── Documentación Swagger ───────────────────────────────
 app.use('/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
