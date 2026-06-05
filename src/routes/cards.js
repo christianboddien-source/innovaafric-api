@@ -166,63 +166,75 @@ router.delete('/:id', requireAuth, async (req, res) => {
   });
 });
 
-// ── Tarjetas físicas (admin) ─────────────────────────────
+// ── Tarjetas físicas (admin) — persistidas en DB ─────────────
 const { requireRole } = require('../middleware/auth');
-
-let PHYSICAL_CARDS = [
-  {id:'pc-001',user:'Amara Diallo',email:'amara@test.com',country:'GQ',network:'Visa',last4:'4521',status:'activo',limit:500000,currency:'XAF',requested:'2026-05-10',issued:'2026-05-18'},
-  {id:'pc-002',user:'Carlos Martínez',email:'carlos@test.com',country:'ES',network:'Mastercard',last4:'7823',status:'activo',limit:2000,currency:'EUR',requested:'2026-05-20',issued:'2026-05-28'},
-  {id:'pc-003',user:'Fatou Seck',email:'fatou@test.com',country:'SN',network:'Visa',last4:'3390',status:'bloqueada',limit:250000,currency:'XOF',requested:'2026-04-01',issued:'2026-04-10'},
-  {id:'pc-004',user:'Jean-Pierre N.',email:'jp@test.com',country:'CM',network:'Mastercard',last4:'6641',status:'pendiente',limit:300000,currency:'XAF',requested:'2026-06-01',issued:null}
-];
 
 // GET /v1/cards/physical
 router.get('/physical', requireAuth, requireRole('admin','super_admin','kyc_officer','finance_officer','country_manager','regional_director'), async (req, res) => {
-  return success(res, PHYSICAL_CARDS);
+  try {
+    const { status, country } = req.query;
+    const where = {};
+    if (status)  where.status  = status;
+    if (country) where.country = country;
+    const cards = await prisma.physicalCard.findMany({ where, orderBy: { requestedAt: 'desc' } });
+    return success(res, cards);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 // POST /v1/cards/physical
 router.post('/physical', requireAuth, requireRole('admin','super_admin','kyc_officer','finance_officer'), async (req, res) => {
-  const { user, email, country, network, limit, currency } = req.body;
-  if (!user || !email || !country) return error(res, 'Faltan campos obligatorios', 400);
-  const card = {
-    id: 'pc-'+uuidv4().slice(0,8),
-    user, email, country,
-    network: network||'Visa',
-    last4: String(Math.floor(1000+Math.random()*9000)),
-    status: 'pendiente',
-    limit: limit||100000,
-    currency: currency||'XAF',
-    requested: new Date().toISOString().split('T')[0],
-    issued: null
-  };
-  PHYSICAL_CARDS.push(card);
-  return success(res, card, 201);
+  const { user, email, country, network, limit, currency, userId } = req.body;
+  if (!user || !email || !country) return error(res, 'Faltan campos obligatorios: user, email, country', 400);
+  try {
+    const card = await prisma.physicalCard.create({
+      data: {
+        userId:      userId || null,
+        userName:    user,
+        userEmail:   email,
+        country,
+        network:     network  || 'Visa',
+        limitAmount: limit    || 100000,
+        currency:    currency || 'XAF',
+        status:      'pendiente'
+      }
+    });
+    return success(res, card, 201);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// PATCH /v1/cards/physical/:id — actualizar estado
+// PATCH /v1/cards/physical/:id — actualizar estado/notas
 router.patch('/physical/:id', requireAuth, requireRole('admin','super_admin','kyc_officer','finance_officer','risk_officer'), async (req, res) => {
-  const card = PHYSICAL_CARDS.find(c => c.id === req.params.id);
-  if (!card) return error(res, 'Tarjeta no encontrada', 404);
-  Object.assign(card, req.body);
-  return success(res, card);
+  try {
+    const { status, notes, last4, limitAmount, network } = req.body;
+    const card = await prisma.physicalCard.update({
+      where: { id: req.params.id },
+      data:  { status, notes, last4, limitAmount, network }
+    });
+    return success(res, card);
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
 });
 
 // PUT /v1/cards/physical/:id/block
 router.put('/physical/:id/block', requireAuth, requireRole('admin','super_admin','kyc_officer','finance_officer','risk_officer'), async (req, res) => {
-  const card = PHYSICAL_CARDS.find(c => c.id === req.params.id);
-  if (!card) return error(res, 'Tarjeta no encontrada', 404);
-  card.status = 'bloqueada';
-  return success(res, card);
+  try {
+    const card = await prisma.physicalCard.update({
+      where: { id: req.params.id },
+      data:  { status: 'bloqueada' }
+    });
+    return success(res, card);
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
 });
 
 // PUT /v1/cards/physical/:id/issue
 router.put('/physical/:id/issue', requireAuth, requireRole('admin','super_admin','finance_officer'), async (req, res) => {
-  const card = PHYSICAL_CARDS.find(c => c.id === req.params.id);
-  if (!card) return error(res, 'Tarjeta no encontrada', 404);
-  card.status = 'activo';
-  card.issued = new Date().toISOString().split('T')[0];
-  return success(res, card);
+  try {
+    const { last4 } = req.body;
+    const card = await prisma.physicalCard.update({
+      where: { id: req.params.id },
+      data:  { status: 'activo', issuedAt: new Date(), last4: last4 || null }
+    });
+    return success(res, card);
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
 });
 
 module.exports = router;

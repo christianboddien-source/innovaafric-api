@@ -742,6 +742,24 @@ model ApiKey {
   createdAt   DateTime @default(now())
 }
 
+model PhysicalCard {
+  id          String    @id @default(cuid())
+  userId      String?
+  userName    String
+  userEmail   String
+  country     String
+  network     String    @default("Visa")
+  last4       String?
+  status      String    @default("pendiente")
+  limitAmount Float     @default(100000)
+  currency    String    @default("XAF")
+  notes       String?
+  requestedAt DateTime  @default(now())
+  issuedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model AccountingEntry {
   id          String   @id
   type        String
