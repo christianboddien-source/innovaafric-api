@@ -1167,6 +1167,8 @@ html.light .email-preview{background:#f1f5f9}
           <option value="gas">🔥 Gas</option>
         </select>
         <button class="btn btn-cyan" onclick="openModal('provider',{})">+ Nuevo proveedor</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportProvPDF()" title="Exportar PDF">📄 PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportProvCSV()" title="Exportar CSV">⬇ CSV</button>
       </div>
     </div>
     <!-- Stats strip -->
@@ -4236,6 +4238,58 @@ async function deleteProvider(id){
   const r = await api('/admin/providers/'+id,{method:'DELETE'});
   if(r.success){ loadProv(); toast('Proveedor eliminado'); }
   else toast(r.error||'Error','err');
+}
+
+function exportProvCSV(){
+  if(!ALL_PROV.length) return toast('Sin proveedores para exportar','err');
+  exportCSV(ALL_PROV.map(p=>({
+    ID:p.id, Nombre:p.name, Categoría:p.category, País:p.country,
+    Moneda:p.currency||'XAF', Campo:FIELD_LABELS[p.field]||p.field||'—',
+    'Mín':p.minAmount||0, 'Máx':p.maxAmount||0
+  })), ['ID','Nombre','Categoría','País','Moneda','Campo','Mín','Máx'], 'proveedores');
+}
+
+function exportProvPDF(){
+  if(!ALL_PROV.length) return toast('Sin proveedores para exportar','err');
+  const filterCountry = (document.getElementById('prov-filter-country')||{}).value||'';
+  const filterType    = (document.getElementById('prov-filter-type')||{}).value||'';
+  let prov = ALL_PROV;
+  if(filterCountry) prov = prov.filter(p=>p.country===filterCountry);
+  if(filterType)    prov = prov.filter(p=>p.category===filterType);
+
+  const rows = prov.map(p=>`<tr>
+    <td>${CAT_ICONS[p.category]||''} ${p.name}</td>
+    <td>${p.category}</td>
+    <td>${FLAG[p.country]||''} ${p.country}</td>
+    <td>${p.currency||'XAF'}</td>
+    <td>${FIELD_LABELS[p.field]||p.field||'—'}</td>
+    <td>${(p.minAmount||0).toLocaleString()}</td>
+    <td>${(p.maxAmount||0).toLocaleString()}</td>
+  </tr>`).join('');
+
+  const w = window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Proveedores INNOVAAFRIC</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:30px;color:#111}
+    h2{color:#1a1a2e;margin-bottom:4px}
+    .sub{color:#666;font-size:13px;margin-bottom:20px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#1a1a2e;color:#fff;padding:9px 12px;text-align:left}
+    td{padding:8px 12px;border-bottom:1px solid #e5e7eb}
+    tr:nth-child(even) td{background:#f9fafb}
+    .footer{margin-top:20px;font-size:11px;color:#999;text-align:right}
+    @media print{button{display:none}}
+  </style></head><body>
+  <h2>⚡ Proveedores de Servicios — INNOVAAFRIC</h2>
+  <div class="sub">Exportado el ${new Date().toLocaleString('es')} · ${prov.length} proveedores${filterCountry?' · '+filterCountry:''}${filterType?' · '+filterType:''}</div>
+  <table><thead><tr>
+    <th>Nombre</th><th>Categoría</th><th>País</th><th>Moneda</th><th>Campo</th><th>Mín</th><th>Máx</th>
+  </tr></thead><tbody>${rows}</tbody></table>
+  <div class="footer">INNOVAAFRIC · api.innovaafric.com</div>
+  <br><button onclick="window.print()" style="padding:8px 20px;background:#1a1a2e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨️ Imprimir / Guardar PDF</button>
+  </body></html>`);
+  w.document.close();
 }
 
 /* ═══ ADMIN BILL PAY ─────────────────────────────── */
