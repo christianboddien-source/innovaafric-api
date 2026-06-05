@@ -73,11 +73,37 @@ router.post('/token', async (req, res) => {
 
     // Find Railway user by email, supabase UUID, or generated id
     const shortId = 'usr_' + sbUser.id.slice(0, 8);
-    const user = await prisma.user.findFirst({
+    let user = await prisma.user.findFirst({
       where: { OR: [{ email: sbUser.email }, { id: sbUser.id }, { id: shortId }] },
       include: { wallet: true }
     });
-    if (!user) return error(res, 'Usuario no registrado en el sistema Railway', 404);
+
+    // Auto-create Railway user if they exist in Supabase but not in Railway
+    if (!user && sbUser.email) {
+      const meta = sbUser.user_metadata || {};
+      const newId = shortId;
+      const [created] = await prisma.$transaction([
+        prisma.user.create({
+          data: {
+            id: newId,
+            name: meta.full_name || meta.name || sbUser.email.split('@')[0],
+            email: sbUser.email,
+            phone: meta.phone || '',
+            country: meta.country || 'CM',
+            role: meta.role || 'customer',
+            passwordHash: bcrypt.hashSync(uuidv4(), 10), // random password — login via Supabase
+            kycStatus: 'pending',
+            referralCode: 'IA-' + newId.replace('usr_','').slice(0,6).toUpperCase()
+          }
+        }),
+        prisma.wallet.create({
+          data: { userId: newId, balanceEur: 0, balanceUsd: 0, balanceXaf: 0, balanceXof: 0 }
+        })
+      ]);
+      user = await prisma.user.findUnique({ where: { id: newId }, include: { wallet: true } });
+    }
+
+    if (!user) return error(res, 'No se pudo encontrar ni crear usuario', 500);
 
     const token = jwt.sign(
       { sub: user.id, email: user.email, role: user.role, country: user.country,
@@ -155,6 +181,71 @@ router.post('/register', async (req, res) => {
     kyc_status: 'pending',
     message: 'Cuenta creada. Complete la verificación KYC para activar pagos.'
   }, 201);
+});
+
+// GET /v1/auth/sync — Lista todos los usuarios Railway + estado Supabase
+router.get('/sync', requireAuth, async (req, res) => {
+  const callerUser = await prisma.user.findUnique({ where: { id: req.user.sub } });
+  if (!callerUser || !['admin','ceo'].includes(callerUser.role)) {
+    return error(res, 'Solo admins pueden sincronizar usuarios', 403);
+  }
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true, role: true, country: true, kycStatus: true, createdAt: true },
+    orderBy: { createdAt: 'desc' }
+  });
+  return success(res, { total: users.length, users });
+});
+
+// POST /v1/auth/sync — Sincroniza un usuario de Supabase a Railway (upsert)
+router.post('/sync', requireAuth, async (req, res) => {
+  const callerUser = await prisma.user.findUnique({ where: { id: req.user.sub } });
+  if (!callerUser || !['admin','ceo'].includes(callerUser.role)) {
+    return error(res, 'Solo admins pueden sincronizar usuarios', 403);
+  }
+  const { supabase_token } = req.body;
+  if (!supabase_token) return error(res, 'supabase_token requerido', 400);
+
+  const sbUrl  = process.env.SUPABASE_URL || 'https://spnfvmvrlexyiljwyola.supabase.co';
+  const sbAnon = process.env.SUPABASE_ANON_KEY || 'sb_publishable_Aqe-VLEi6MfY8AvlpRfnLQ_OAom278u';
+
+  // Fetch all users from Supabase admin API
+  const sbResp = await fetch(`${sbUrl}/auth/v1/admin/users`, {
+    headers: { 'Authorization': `Bearer ${supabase_token}`, 'apikey': sbAnon }
+  });
+  if (!sbResp.ok) return error(res, 'Error al obtener usuarios de Supabase', 400);
+  const { users: sbUsers } = await sbResp.json();
+  if (!sbUsers) return error(res, 'Sin usuarios en Supabase', 400);
+
+  let synced = 0, skipped = 0;
+  for (const sbUser of sbUsers) {
+    if (!sbUser.email) { skipped++; continue; }
+    const shortId = 'usr_' + sbUser.id.slice(0, 8);
+    const existing = await prisma.user.findFirst({
+      where: { OR: [{ email: sbUser.email }, { id: shortId }] }
+    });
+    if (existing) { skipped++; continue; }
+    const meta = sbUser.user_metadata || {};
+    await prisma.$transaction([
+      prisma.user.create({
+        data: {
+          id: shortId,
+          name: meta.full_name || meta.name || sbUser.email.split('@')[0],
+          email: sbUser.email,
+          phone: meta.phone || '',
+          country: meta.country || 'CM',
+          role: meta.role || 'customer',
+          passwordHash: bcrypt.hashSync(uuidv4(), 10),
+          kycStatus: 'pending',
+          referralCode: 'IA-' + shortId.replace('usr_','').slice(0,6).toUpperCase()
+        }
+      }),
+      prisma.wallet.create({
+        data: { userId: shortId, balanceEur: 0, balanceUsd: 0, balanceXaf: 0, balanceXof: 0 }
+      })
+    ]);
+    synced++;
+  }
+  return success(res, { message: `Sincronización completada: ${synced} creados, ${skipped} ya existentes`, synced, skipped });
 });
 
 // POST /v1/auth/kyc
