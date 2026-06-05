@@ -31,7 +31,7 @@ router.post('/token', async (req, res) => {
   }
 
   if (grant_type === 'password') {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email }, include: { wallet: true } });
     if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
       return error(res, 'Email o contraseña incorrectos', 401);
     }
@@ -41,12 +41,19 @@ router.post('/token', async (req, res) => {
       JWT_SECRET, { expiresIn: '8h' }
     );
     const refresh = jwt.sign({ sub: user.id, type: 'refresh' }, JWT_SECRET, { expiresIn: '30d' });
+    const wallet = user.wallet;
     return success(res, {
       access_token: token, refresh_token: refresh,
       token_type: 'Bearer', expires_in: 28800,
       user: { id: user.id, name: user.name, email: user.email, role: user.role,
-              country: user.country, scope: user.scope, city: user.city,
-              department: user.department, kyc_status: user.kycStatus }
+              country: user.country, city: user.city, phone: user.phone,
+              kyc_status: user.kycStatus, ia_code: user.referralCode || null },
+      wallet: wallet ? {
+        balanceXaf: wallet.balanceXaf || 0,
+        balanceEur: wallet.balanceEur || 0,
+        balanceUsd: wallet.balanceUsd || 0,
+        balanceXof: wallet.balanceXof || 0
+      } : null
     });
   }
 
