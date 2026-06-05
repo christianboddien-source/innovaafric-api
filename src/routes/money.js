@@ -11,7 +11,7 @@ const { notify } = require('../helpers/notify');
 
 const CURRENCY_FIELD = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
 
-// GET /v1/money/balance
+// GET /v1/money/balance — requiere KYC aprobado
 router.get('/balance', requireAuth, requireKYC, async (req, res) => {
   const wallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
   if (!wallet) return error(res, 'Wallet no encontrado', 404);
@@ -23,6 +23,19 @@ router.get('/balance', requireAuth, requireKYC, async (req, res) => {
       XAF: { amount: wallet.balanceXaf, symbol: 'XAF' },
       XOF: { amount: wallet.balanceXof, symbol: 'XOF' }
     },
+    updated_at: new Date().toISOString()
+  });
+});
+
+// GET /v1/money/wallet — saldo en tiempo real sin bloqueo KYC
+router.get('/wallet', requireAuth, async (req, res) => {
+  const wallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
+  if (!wallet) return error(res, 'Wallet no encontrado', 404);
+  return success(res, {
+    balanceXaf: wallet.balanceXaf || 0,
+    balanceEur: wallet.balanceEur || 0,
+    balanceUsd: wallet.balanceUsd || 0,
+    balanceXof: wallet.balanceXof || 0,
     updated_at: new Date().toISOString()
   });
 });
