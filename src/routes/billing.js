@@ -2,45 +2,92 @@
 const express = require('express');
 const router  = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const ADMIN = ['admin','super_admin','business_developer','finance_officer','country_manager','regional_director'];
 
-let INVOICES = [
-  {id:'inv-001',partner:'Wave Sénégal',amount:310000,currency:'XOF',period:'Mayo 2026',due:'2026-06-15',status:'pendiente',date:'2026-06-01'},
-  {id:'inv-002',partner:'Jumia Camerún',amount:267000,currency:'XAF',period:'Mayo 2026',due:'2026-06-15',status:'pagada',date:'2026-06-01'},
-  {id:'inv-003',partner:'Orange Fintech',amount:378000,currency:'XOF',period:'Abril 2026',due:'2026-05-15',status:'pagada',date:'2026-05-01'},
-  {id:'inv-004',partner:'Shopify ES',amount:224000,currency:'EUR',period:'Abril 2026',due:'2026-05-15',status:'vencida',date:'2026-05-01'}
-];
-
-// GET /v1/billing/invoices
+// GET /v1/billing/invoices — facturas emitidas (admin)
 router.get('/invoices', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  return success(res, INVOICES);
+  try {
+    const { status, limit = 50 } = req.query;
+    const where = {};
+    if (status) where.status = status;
+    const invoices = await prisma.invoice.findMany({
+      where,
+      include: { issuer: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit)
+    });
+    return success(res, invoices);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 // POST /v1/billing/invoices
 router.post('/invoices', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const { partner, amount, currency, period, due } = req.body;
-  if (!partner || !amount) return error(res, 'Faltan campos obligatorios', 400);
-  const inv = {
-    id: 'inv-'+uuidv4().slice(0,8),
-    partner, amount, currency: currency||'XAF',
-    period: period||new Date().toLocaleDateString('es',{month:'long',year:'numeric'}),
-    due: due||new Date(Date.now()+15*86400000).toISOString().split('T')[0],
-    status: 'pendiente',
-    date: new Date().toISOString().split('T')[0]
-  };
-  INVOICES.push(inv);
-  return success(res, inv, 201);
+  try {
+    const { clientName, clientEmail, currency, subtotal, taxRate, notes, dueDate, issuerId } = req.body;
+    if (!clientName || !subtotal) return error(res, 'clientName y subtotal son obligatorios', 400);
+    const sub   = parseFloat(subtotal);
+    const tax   = parseFloat(taxRate || 0);
+    const total = sub + (sub * tax / 100);
+    const num   = `INV-${Date.now()}`;
+
+    const invoice = await prisma.invoice.create({ data: {
+      id:            uuidv4(),
+      invoiceNumber: num,
+      issuerId:      issuerId || req.user.sub,
+      issuerName:    'INNOVAAFRIC',
+      clientName,
+      clientEmail:   clientEmail || null,
+      currency:      currency || 'EUR',
+      subtotal:      sub,
+      taxRate:       tax,
+      taxAmount:     sub * tax / 100,
+      totalEur:      total,
+      notes:         notes || null,
+      dueDate:       dueDate ? new Date(dueDate) : null,
+      status:        'draft'
+    }});
+    return success(res, invoice, 201);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// PUT /v1/billing/invoices/:id/pay
-router.put('/invoices/:id/pay', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const inv = INVOICES.find(i => i.id === req.params.id);
-  if (!inv) return error(res, 'Factura no encontrada', 404);
-  inv.status = 'pagada';
-  return success(res, inv);
+// PATCH /v1/billing/invoices/:id/send
+router.patch('/invoices/:id/send', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const inv = await prisma.invoice.update({
+      where: { id: req.params.id },
+      data:  { status: 'sent', sentAt: new Date() }
+    });
+    return success(res, { id: inv.id, status: inv.status });
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
+});
+
+// PATCH /v1/billing/invoices/:id/pay
+router.patch('/invoices/:id/pay', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const inv = await prisma.invoice.update({
+      where: { id: req.params.id },
+      data:  { status: 'paid', paidAt: new Date() }
+    });
+    return success(res, { id: inv.id, status: inv.status });
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
+});
+
+// GET /v1/billing/stats
+router.get('/stats', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const [total, paid, pending, overdue, vol] = await Promise.all([
+      prisma.invoice.count(),
+      prisma.invoice.count({ where: { status: 'paid' } }),
+      prisma.invoice.count({ where: { status: { in: ['draft', 'sent'] } } }),
+      prisma.invoice.count({ where: { status: 'sent', dueDate: { lt: new Date() } } }),
+      prisma.invoice.aggregate({ _sum: { totalEur: true }, where: { status: 'paid' } })
+    ]);
+    return success(res, { total, paid, pending, overdue, totalVolume: vol._sum.totalEur || 0 });
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 module.exports = router;

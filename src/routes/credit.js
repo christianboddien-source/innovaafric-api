@@ -1,37 +1,96 @@
 'use strict';
 const express = require('express');
 const router  = express.Router();
+const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const ADMIN = ['admin','super_admin','loan_officer','finance_officer','risk_officer','compliance_officer','country_manager','regional_director'];
 
-let SCORES = [
-  {userId:'usr-001',user:'Amara Diallo',email:'amara@test.com',score:742,rating:'A',history:24,onTime:23,defaults:0,income:350000,txCount:142,lastUpdate:'2026-06-01',approved:true},
-  {userId:'usr-002',user:'Carlos Martínez',email:'carlos@test.com',score:618,rating:'B',history:12,onTime:11,defaults:1,income:220000,txCount:87,lastUpdate:'2026-05-28',approved:true},
-  {userId:'usr-003',user:'Fatou Seck',email:'fatou@test.com',score:531,rating:'C',history:6,onTime:5,defaults:1,income:180000,txCount:45,lastUpdate:'2026-05-15',approved:false},
-  {userId:'usr-004',user:'Jean-Pierre N.',email:'jp@test.com',score:412,rating:'D',history:3,onTime:2,defaults:2,income:120000,txCount:21,lastUpdate:'2026-04-10',approved:false}
-];
-
 // GET /v1/credit/scores
 router.get('/scores', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  return success(res, SCORES);
+  try {
+    const scores = await prisma.creditScore.findMany({
+      orderBy: { score: 'desc' },
+      include: { user: { select: { id: true, name: true, email: true, country: true } } }
+    });
+    return success(res, scores);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 // GET /v1/credit/scores/:userId
 router.get('/scores/:userId', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const s = SCORES.find(x => x.userId === req.params.userId || x.email === req.params.userId);
-  if (!s) return error(res, 'Score no encontrado', 404);
-  return success(res, s);
+  try {
+    const score = await prisma.creditScore.findFirst({
+      where: { userId: req.params.userId },
+      include: { user: { select: { id: true, name: true, email: true, country: true } } }
+    });
+    if (!score) return error(res, 'Score no encontrado', 404);
+    return success(res, score);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// POST /v1/credit/scores/:userId/recalculate
-router.post('/scores/:userId/recalculate', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const s = SCORES.find(x => x.userId === req.params.userId);
-  if (!s) return error(res, 'Usuario no encontrado', 404);
-  s.score = Math.min(850, s.score + Math.floor(Math.random()*20));
-  s.lastUpdate = new Date().toISOString().split('T')[0];
-  return success(res, s);
+// POST /v1/credit/scores — crear o actualizar score manualmente
+router.post('/scores', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const { userId, score, rating, historyMonths, onTimePayments, defaults, txCount, approved, notes } = req.body;
+    if (!userId || !score) return error(res, 'userId y score son obligatorios', 400);
+
+    const creditScore = await prisma.creditScore.upsert({
+      where:  { userId },
+      create: { userId, score: parseInt(score), rating: rating || 'C', historyMonths: historyMonths || 0, onTimePayments: onTimePayments || 0, defaults: defaults || 0, txCount: txCount || 0, approved: !!approved, notes: notes || null },
+      update: { score: parseInt(score), rating: rating || 'C', historyMonths, onTimePayments, defaults, txCount, approved: !!approved, notes }
+    });
+    return success(res, creditScore, 201);
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// POST /v1/credit/scores/:userId/calculate — calcula score desde historial real
+router.post('/scores/:userId/calculate', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Obtener datos reales del usuario
+    const [txAll, txCompleted, loans, billPayments] = await Promise.all([
+      prisma.transaction.count({ where: { userId } }),
+      prisma.transaction.count({ where: { userId, status: 'completed' } }),
+      prisma.loan.findMany({ where: { userId } }),
+      prisma.billPayment.count({ where: { userId } })
+    ]);
+
+    const loanDefaults = loans.filter(l => l.status === 'overdue').length;
+    const onTime       = loans.filter(l => l.status === 'paid').length + billPayments;
+    const txCountAll   = txAll + billPayments;
+
+    // Fórmula simple (0-1000)
+    let score = 300;
+    score += Math.min(txCountAll * 2, 200);           // historial de actividad
+    score += Math.min(onTime * 10, 200);               // pagos puntuales
+    score -= loanDefaults * 50;                        // penalización impagos
+    score += txCompleted > 0 ? 100 : 0;               // transacciones completadas
+    score = Math.max(0, Math.min(1000, score));
+
+    const rating = score >= 800 ? 'A+' : score >= 700 ? 'A' : score >= 600 ? 'B' : score >= 500 ? 'C' : score >= 400 ? 'D' : 'E';
+
+    const creditScore = await prisma.creditScore.upsert({
+      where:  { userId },
+      create: { userId, score, rating, txCount: txCountAll, onTimePayments: onTime, defaults: loanDefaults, approved: score >= 600 },
+      update: { score, rating, txCount: txCountAll, onTimePayments: onTime, defaults: loanDefaults, approved: score >= 600 }
+    });
+    return success(res, creditScore);
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// GET /v1/credit/stats
+router.get('/stats', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const [total, approved, avg] = await Promise.all([
+      prisma.creditScore.count(),
+      prisma.creditScore.count({ where: { approved: true } }),
+      prisma.creditScore.aggregate({ _avg: { score: true } })
+    ]);
+    return success(res, { total, approved, rejected: total - approved, avgScore: Math.round(avg._avg.score || 0) });
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 module.exports = router;

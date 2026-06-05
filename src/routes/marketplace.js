@@ -2,48 +2,82 @@
 const express = require('express');
 const router  = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const ADMIN = ['admin','super_admin','business_developer','country_manager','regional_director'];
 
-let PRODUCTS = [
-  {id:'mp-001',name:'iPhone 15 Pro (usado)',merchant:'TechShop Malabo',category:'electronica',price:320000,currency:'XAF',stock:3,rating:4.8,sales:12,status:'activo'},
-  {id:'mp-002',name:'Arroz Basmati 25kg',merchant:'AgroMarket Yaundé',category:'alimentacion',price:18500,currency:'XAF',stock:50,rating:4.6,sales:89,status:'activo'},
-  {id:'mp-003',name:'Boubou tradicional',merchant:'FashionHub Dakar',category:'moda',price:35000,currency:'XOF',stock:8,rating:4.4,sales:34,status:'activo'},
-  {id:'mp-004',name:'Panel solar 200W',merchant:'EcoShop GQ',category:'energia',price:85000,currency:'XAF',stock:0,rating:4.9,sales:7,status:'agotado'}
-];
-
 // GET /v1/marketplace/products
 router.get('/products', requireAuth, async (req, res) => {
-  const { category, status } = req.query;
-  let list = PRODUCTS;
-  if (category) list = list.filter(p => p.category === category);
-  if (status) list = list.filter(p => p.status === status);
-  return success(res, list);
+  try {
+    const { category, limit = 50, offset = 0 } = req.query;
+    const where = {};
+    if (category) where.category = category;
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({ where, orderBy: { ratingAvg: 'desc' }, take: parseInt(limit), skip: parseInt(offset) }),
+      prisma.product.count({ where })
+    ]);
+    return success(res, { products: products.map(p => ({
+      id: p.id, name: p.name, description: p.description,
+      priceEur: p.priceEur, priceXaf: p.priceXaf,
+      category: p.category, stock: p.stock,
+      status: p.stock > 0 ? 'activo' : 'agotado',
+      rating: p.ratingAvg, sales: p.ratingCount,
+      imageUrl: p.imageUrl, origin: p.origin
+    })), total });
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// POST /v1/marketplace/products
+// POST /v1/marketplace/products — admin crea producto
 router.post('/products', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const { name, merchant, category, price, currency, stock } = req.body;
-  if (!name || !price || !merchant) return error(res, 'Faltan campos obligatorios', 400);
-  const p = {
-    id: 'mp-'+uuidv4().slice(0,8),
-    name, merchant, category: category||'general',
-    price, currency: currency||'XAF',
-    stock: stock||0, rating: 5.0, sales: 0,
-    status: stock > 0 ? 'activo' : 'agotado'
-  };
-  PRODUCTS.push(p);
-  return success(res, p, 201);
+  try {
+    const { name, description, priceEur, priceXaf, category, stock, origin, imageUrl } = req.body;
+    if (!name || !priceEur || !priceXaf || !category) return error(res, 'name, priceEur, priceXaf, category son obligatorios', 400);
+    const product = await prisma.product.create({ data: {
+      id: 'prod_' + uuidv4().slice(0, 8),
+      name, description: description || null,
+      priceEur: parseFloat(priceEur), priceXaf: parseFloat(priceXaf),
+      category, stock: stock ? parseInt(stock) : 0,
+      origin: origin || null, imageUrl: imageUrl || null
+    }});
+    return success(res, product, 201);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// PUT /v1/marketplace/products/:id
-router.put('/products/:id', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const p = PRODUCTS.find(x => x.id === req.params.id);
-  if (!p) return error(res, 'Producto no encontrado', 404);
-  Object.assign(p, req.body);
-  return success(res, p);
+// PATCH /v1/marketplace/products/:id
+router.patch('/products/:id', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const { name, priceEur, priceXaf, stock, description, imageUrl } = req.body;
+    const product = await prisma.product.update({
+      where: { id: req.params.id },
+      data: { name, priceEur: priceEur ? parseFloat(priceEur) : undefined,
+              priceXaf: priceXaf ? parseFloat(priceXaf) : undefined,
+              stock: stock !== undefined ? parseInt(stock) : undefined,
+              description, imageUrl }
+    });
+    return success(res, product);
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
+});
+
+// DELETE /v1/marketplace/products/:id
+router.delete('/products/:id', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    await prisma.product.delete({ where: { id: req.params.id } });
+    return success(res, { message: 'Producto eliminado.' });
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
+});
+
+// GET /v1/marketplace/stats
+router.get('/stats', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const [total, outOfStock, byCategory] = await Promise.all([
+      prisma.product.count(),
+      prisma.product.count({ where: { stock: 0 } }),
+      prisma.product.groupBy({ by: ['category'], _count: { id: true } })
+    ]);
+    return success(res, { total, outOfStock, inStock: total - outOfStock, byCategory });
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 module.exports = router;

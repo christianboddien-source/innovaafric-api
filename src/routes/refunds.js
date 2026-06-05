@@ -1,60 +1,100 @@
 'use strict';
 const express = require('express');
 const router  = express.Router();
-const { v4: uuidv4 } = require('uuid');
+const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const ADMIN = ['admin','super_admin','support_agent','support_supervisor','country_manager','regional_director'];
 
-let REFUNDS = [
-  {id:'ref-001',orderId:'ORD-2026-0412',user:'amara@test.com',merchant:'TechShop Malabo',amount:45000,currency:'XAF',reason:'producto_defectuoso',status:'pendiente',date:'2026-06-01',notes:''},
-  {id:'ref-002',orderId:'ORD-2026-0389',user:'carlos@test.com',merchant:'AgroMarket Yaundé',amount:12000,currency:'XAF',reason:'no_recibido',status:'aprobada',date:'2026-05-28',notes:'Confirmado por rider'},
-  {id:'ref-003',orderId:'ORD-2026-0301',user:'fatou@test.com',merchant:'FashionHub Dakar',amount:25000,currency:'XOF',reason:'talla_incorrecta',status:'completada',date:'2026-05-20',notes:'Reembolsado'},
-  {id:'ref-004',orderId:'ORD-2026-0280',user:'test@test.com',merchant:'HomeDecor Madrid',amount:89000,currency:'EUR',reason:'arrepentimiento',status:'rechazada',date:'2026-05-15',notes:'Fuera del plazo de 14 días'}
-];
-
 // GET /v1/refunds
 router.get('/', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const { status } = req.query;
-  const list = status ? REFUNDS.filter(r => r.status === status) : REFUNDS;
-  return success(res, list);
+  try {
+    const { status } = req.query;
+    const where = status ? { status } : {};
+    const refunds = await prisma.refundRequest.findMany({ where, orderBy: { createdAt: 'desc' } });
+    return success(res, refunds);
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// POST /v1/refunds — usuario crea solicitud
+router.post('/', requireAuth, async (req, res) => {
+  try {
+    const { orderId, merchantName, amount, currency, reason } = req.body;
+    if (!amount || !reason) return error(res, 'amount y reason son obligatorios', 400);
+    const userId = req.user.sub || req.user.id;
+    const user   = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+
+    const refund = await prisma.refundRequest.create({ data: {
+      orderId: orderId || null, userId,
+      userEmail: user?.email || req.user.email || '',
+      merchantName: merchantName || null,
+      amount: parseFloat(amount), currency: currency || 'XAF',
+      reason, status: 'pendiente'
+    }});
+    return success(res, refund, 201);
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// PATCH /v1/refunds/:id/approve
+router.patch('/:id/approve', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const { notes } = req.body;
+    const refund = await prisma.refundRequest.findUnique({ where: { id: req.params.id } });
+    if (!refund) return error(res, 'Reembolso no encontrado', 404);
+    if (refund.status !== 'pendiente') return error(res, 'Solo se pueden aprobar solicitudes pendientes', 400);
+
+    // Devolver saldo al wallet del usuario si existe
+    if (refund.userId) {
+      const curr = refund.currency.toUpperCase();
+      const balanceField = `balance${curr.charAt(0)}${curr.slice(1).toLowerCase()}`;
+      await prisma.wallet.upsert({
+        where:  { userId: refund.userId },
+        update: { [balanceField]: { increment: refund.amount } },
+        create: { userId: refund.userId, [balanceField]: refund.amount }
+      });
+    }
+
+    const updated = await prisma.refundRequest.update({
+      where: { id: req.params.id },
+      data:  { status: 'aprobada', notes: notes || null, processedBy: req.user.sub, processedAt: new Date() }
+    });
+    return success(res, updated);
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// PATCH /v1/refunds/:id/reject
+router.patch('/:id/reject', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const { notes } = req.body;
+    const updated = await prisma.refundRequest.update({
+      where: { id: req.params.id },
+      data:  { status: 'rechazada', notes: notes || 'Rechazado por support', processedBy: req.user.sub, processedAt: new Date() }
+    });
+    return success(res, updated);
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
 });
 
 // PATCH /v1/refunds/:id — actualizar estado genérico
 router.patch('/:id', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const r = REFUNDS.find(x => x.id === req.params.id);
-  if (!r) return error(res, 'Devolución no encontrada', 404);
-  Object.assign(r, req.body);
-  return success(res, r);
+  try {
+    const refund = await prisma.refundRequest.update({ where: { id: req.params.id }, data: { status: req.body.status, notes: req.body.notes } });
+    return success(res, refund);
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
 });
 
-// POST /v1/refunds/:id/approve
-router.post('/:id/approve', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const r = REFUNDS.find(x => x.id === req.params.id);
-  if (!r) return error(res, 'Devolución no encontrada', 404);
-  r.status = 'aprobada';
-  r.notes = req.body.notes || r.notes;
-  return success(res, r);
-});
-
-// POST /v1/refunds/:id/reject
-router.post('/:id/reject', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const r = REFUNDS.find(x => x.id === req.params.id);
-  if (!r) return error(res, 'Devolución no encontrada', 404);
-  r.status = 'rechazada';
-  r.notes = req.body.notes || r.notes;
-  return success(res, r);
-});
-
-// POST /v1/refunds/:id/process
-router.post('/:id/process', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const r = REFUNDS.find(x => x.id === req.params.id);
-  if (!r) return error(res, 'Devolución no encontrada', 404);
-  if (r.status !== 'aprobada') return error(res, 'Solo se pueden procesar devoluciones aprobadas', 400);
-  r.status = 'completada';
-  r.notes = 'Reembolsado el ' + new Date().toLocaleDateString('es');
-  return success(res, r);
+// GET /v1/refunds/stats
+router.get('/stats', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const [total, pendiente, aprobada, rechazada, vol] = await Promise.all([
+      prisma.refundRequest.count(),
+      prisma.refundRequest.count({ where: { status: 'pendiente' } }),
+      prisma.refundRequest.count({ where: { status: 'aprobada' } }),
+      prisma.refundRequest.count({ where: { status: 'rechazada' } }),
+      prisma.refundRequest.aggregate({ _sum: { amount: true }, where: { status: 'aprobada' } })
+    ]);
+    return success(res, { total, pendiente, aprobada, rechazada, totalRefunded: vol._sum.amount || 0 });
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 module.exports = router;

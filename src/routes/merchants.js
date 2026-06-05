@@ -1,58 +1,78 @@
 'use strict';
 const express = require('express');
 const router  = express.Router();
-const { v4: uuidv4 } = require('uuid');
+const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const ADMIN = ['admin','super_admin','business_developer','country_manager','regional_director'];
 
-let MERCHANTS = [
-  {id:'mer-001',name:'TechShop Malabo',category:'electronica',country:'GQ',city:'Malabo',contact:'techshop@gq.com',phone:'+240 222 100 001',revenue:4200000,currency:'XAF',orders:142,rating:4.7,status:'activo',joined:'2025-09-01'},
-  {id:'mer-002',name:'AgroMarket Yaundé',category:'alimentacion',country:'CM',city:'Yaundé',contact:'agro@cm.com',phone:'+237 222 200 002',revenue:2800000,currency:'XAF',orders:89,rating:4.3,status:'activo',joined:'2025-11-15'},
-  {id:'mer-003',name:'FashionHub Dakar',category:'moda',country:'SN',city:'Dakar',contact:'fashion@sn.com',phone:'+221 77 300 003',revenue:1900000,currency:'XOF',orders:67,rating:4.5,status:'activo',joined:'2026-01-10'},
-  {id:'mer-004',name:'HomeDecor Madrid',category:'hogar',country:'ES',city:'Madrid',contact:'home@es.com',phone:'+34 91 400 004',revenue:3100000,currency:'EUR',orders:112,rating:4.1,status:'suspendido',joined:'2025-06-20'}
-];
-
 // GET /v1/merchants
 router.get('/', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const { status, country } = req.query;
-  let list = MERCHANTS;
-  if (status) list = list.filter(m => m.status === status);
-  if (country) list = list.filter(m => m.country === country);
-  return success(res, list);
+  try {
+    const { status, country } = req.query;
+    const where = {};
+    if (status)  where.status  = status;
+    if (country) where.country = country;
+    const merchants = await prisma.merchantProfile.findMany({ where, orderBy: { joinedAt: 'desc' } });
+    return success(res, merchants);
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// GET /v1/merchants/:id
+router.get('/:id', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const m = await prisma.merchantProfile.findUnique({ where: { id: req.params.id } });
+    if (!m) return error(res, 'Merchant no encontrado', 404);
+    return success(res, m);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 // POST /v1/merchants
 router.post('/', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const { name, category, country, city, contact, phone } = req.body;
-  if (!name || !country || !contact) return error(res, 'Faltan campos obligatorios', 400);
-  const m = {
-    id: 'mer-'+uuidv4().slice(0,8),
-    name, category: category||'general', country, city: city||'—',
-    contact, phone: phone||'—',
-    revenue: 0, currency: country==='ES'||country==='FR'||country==='DE'?'EUR':country==='NG'?'USD':'XAF',
-    orders: 0, rating: 5.0, status: 'activo',
-    joined: new Date().toISOString().split('T')[0]
-  };
-  MERCHANTS.push(m);
-  return success(res, m, 201);
+  try {
+    const { name, category, country, city, contact, phone, currency } = req.body;
+    if (!name || !category || !country) return error(res, 'name, category y country son obligatorios', 400);
+    const m = await prisma.merchantProfile.create({ data: {
+      name, category, country,
+      city: city || null, contact: contact || null, phone: phone || null,
+      currency: currency || 'XAF', status: 'activo'
+    }});
+    return success(res, m, 201);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// PATCH /v1/merchants/:id — actualizar datos
+// PATCH /v1/merchants/:id
 router.patch('/:id', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const m = MERCHANTS.find(x => x.id === req.params.id);
-  if (!m) return error(res, 'Merchant no encontrado', 404);
-  Object.assign(m, req.body);
-  return success(res, m);
+  try {
+    const { name, category, status, city, contact, phone, currency } = req.body;
+    const m = await prisma.merchantProfile.update({
+      where: { id: req.params.id },
+      data:  { name, category, status, city, contact, phone, currency }
+    });
+    return success(res, m);
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
 });
 
-// PUT /v1/merchants/:id/status
-router.put('/:id/status', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const m = MERCHANTS.find(x => x.id === req.params.id);
-  if (!m) return error(res, 'Merchant no encontrado', 404);
-  m.status = req.body.status || m.status;
-  return success(res, m);
+// PUT /v1/merchants/:id/suspend
+router.put('/:id/suspend', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const m = await prisma.merchantProfile.update({ where: { id: req.params.id }, data: { status: 'suspendido' } });
+    return success(res, { id: m.id, status: m.status });
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
+});
+
+// GET /v1/merchants/stats
+router.get('/stats/summary', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const [total, activo, suspendido, byCountry] = await Promise.all([
+      prisma.merchantProfile.count(),
+      prisma.merchantProfile.count({ where: { status: 'activo' } }),
+      prisma.merchantProfile.count({ where: { status: 'suspendido' } }),
+      prisma.merchantProfile.groupBy({ by: ['country'], _count: { id: true } })
+    ]);
+    return success(res, { total, activo, suspendido, byCountry });
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 module.exports = router;

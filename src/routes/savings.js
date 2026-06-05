@@ -1,43 +1,94 @@
 'use strict';
 const express = require('express');
 const router  = express.Router();
-const { v4: uuidv4 } = require('uuid');
+const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const ADMIN = ['admin','super_admin','finance_officer','country_manager','regional_director'];
 
-let GOALS = [
-  {id:'sav-001',user:'amara@test.com',name:'Fondo de emergencia',target:500000,current:210000,currency:'XAF',deadline:'2026-12-31',autoSave:5000,status:'activo',progress:42},
-  {id:'sav-002',user:'carlos@test.com',name:'Vacaciones Europa',target:800000,current:680000,currency:'XAF',deadline:'2026-08-01',autoSave:20000,status:'activo',progress:85},
-  {id:'sav-003',user:'test@test.com',name:'Negocio propio',target:2000000,current:450000,currency:'XAF',deadline:'2027-06-01',autoSave:30000,status:'activo',progress:22}
-];
-
-// GET /v1/savings/goals
-router.get('/goals', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  return success(res, GOALS);
+// GET /v1/savings/goals — admin ve todos, usuario ve los suyos
+router.get('/goals', requireAuth, async (req, res) => {
+  try {
+    const isAdmin = ADMIN.includes(req.user.role);
+    const where   = isAdmin ? {} : { userId: req.user.sub || req.user.id };
+    const goals   = await prisma.savingsGoal.findMany({ where, orderBy: { createdAt: 'desc' } });
+    return success(res, goals.map(g => ({ ...g, remaining: g.target - g.current, progress: g.target > 0 ? Math.round((g.current / g.target) * 100) : 0 })));
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 // POST /v1/savings/goals
 router.post('/goals', requireAuth, async (req, res) => {
-  const { name, target, currency, deadline, autoSave } = req.body;
-  if (!name || !target) return error(res, 'Nombre y objetivo son obligatorios', 400);
-  const goal = {
-    id: 'sav-'+uuidv4().slice(0,8),
-    user: req.user?.email || 'user',
-    name, target, current: 0, currency: currency||'XAF',
-    deadline: deadline||null, autoSave: autoSave||0,
-    status: 'activo', progress: 0
-  };
-  GOALS.push(goal);
-  return success(res, goal, 201);
+  try {
+    const { name, target, currency, deadline, autoSave } = req.body;
+    if (!name || !target) return error(res, 'name y target son obligatorios', 400);
+    const userId = req.user.sub || req.user.id;
+    const goal = await prisma.savingsGoal.create({ data: {
+      userId, name, target: parseFloat(target),
+      currency: currency || 'XAF',
+      deadline: deadline ? new Date(deadline) : null,
+      autoSave: parseFloat(autoSave || 0)
+    }});
+    return success(res, { ...goal, remaining: goal.target, progress: 0 }, 201);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// GET /v1/savings/goals/:id
-router.get('/goals/:id', requireAuth, async (req, res) => {
-  const goal = GOALS.find(g => g.id === req.params.id);
-  if (!goal) return error(res, 'Meta no encontrada', 404);
-  return success(res, goal);
+// POST /v1/savings/goals/:id/deposit — depositar en objetivo
+router.post('/goals/:id/deposit', requireAuth, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || parseFloat(amount) <= 0) return error(res, 'amount requerido y > 0', 400);
+    const userId = req.user.sub || req.user.id;
+    const goal = await prisma.savingsGoal.findFirst({ where: { id: req.params.id, userId } });
+    if (!goal) return error(res, 'Objetivo no encontrado', 404);
+
+    const amountF = parseFloat(amount);
+    const curr = goal.currency.toUpperCase();
+    const balanceField = `balance${curr.charAt(0)}${curr.slice(1).toLowerCase()}`;
+    const wallet = await prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet || (wallet[balanceField] ?? 0) < amountF) return error(res, `Saldo ${curr} insuficiente`, 400);
+
+    const newCurrent = Math.min(goal.current + amountF, goal.target);
+    const status     = newCurrent >= goal.target ? 'completado' : 'activo';
+
+    await prisma.$transaction([
+      prisma.wallet.update({ where: { userId }, data: { [balanceField]: { decrement: amountF } } }),
+      prisma.savingsGoal.update({ where: { id: goal.id }, data: { current: newCurrent, status } })
+    ]);
+
+    return success(res, { goalId: goal.id, deposited: amountF, current: newCurrent, target: goal.target, progress: Math.round((newCurrent / goal.target) * 100), status });
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// DELETE /v1/savings/goals/:id — cancelar objetivo y devolver al wallet
+router.delete('/goals/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub || req.user.id;
+    const goal = await prisma.savingsGoal.findFirst({ where: { id: req.params.id, userId } });
+    if (!goal) return error(res, 'Objetivo no encontrado', 404);
+
+    const curr = goal.currency.toUpperCase();
+    const balanceField = `balance${curr.charAt(0)}${curr.slice(1).toLowerCase()}`;
+
+    await prisma.$transaction([
+      prisma.wallet.update({ where: { userId }, data: { [balanceField]: { increment: goal.current } } }),
+      prisma.savingsGoal.update({ where: { id: goal.id }, data: { status: 'cancelado' } })
+    ]);
+    return success(res, { message: 'Objetivo cancelado.', refunded: goal.current, currency: goal.currency });
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// GET /v1/savings/stats
+router.get('/stats', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const [total, activo, completado, vol] = await Promise.all([
+      prisma.savingsGoal.count(),
+      prisma.savingsGoal.count({ where: { status: 'activo' } }),
+      prisma.savingsGoal.count({ where: { status: 'completado' } }),
+      prisma.savingsGoal.aggregate({ _sum: { target: true, current: true } })
+    ]);
+    return success(res, { total, activo, completado, totalTarget: vol._sum.target || 0, totalSaved: vol._sum.current || 0 });
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 module.exports = router;

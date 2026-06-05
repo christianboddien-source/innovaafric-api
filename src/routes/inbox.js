@@ -2,46 +2,65 @@
 const express = require('express');
 const router  = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const ADMIN = ['admin','super_admin','marketing_manager','support_agent','support_supervisor','country_manager','regional_director'];
 
-let MESSAGES = [
-  {id:'msg-001',from:'sistema',to:'all',subject:'Actualización de tarifas',body:'Estimado usuario, hemos actualizado nuestras tarifas de transferencia internacional. Consulta los nuevos precios en la app.',type:'transaccional',channel:'in-app',read:false,date:'2026-06-02T10:00:00Z'},
-  {id:'msg-002',from:'promo',to:'role:customer',subject:'¡Oferta especial de junio!',body:'Transfiere gratis este mes con el código INNOVA2026.',type:'promo',channel:'in-app',read:false,date:'2026-06-01T09:00:00Z'},
-  {id:'msg-003',from:'sistema',to:'country:SN',subject:'Nuevo operador Wave disponible',body:'Ya puedes recargar tu wallet con Wave en Sénégal.',type:'info',channel:'in-app',read:true,date:'2026-05-28T14:00:00Z'}
-];
-
-// GET /v1/messages/inbox
+// GET /v1/messages/inbox — admin ve todas las notificaciones
 router.get('/inbox', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const { read, type } = req.query;
-  let list = MESSAGES;
-  if (read !== undefined) list = list.filter(m => String(m.read) === read);
-  if (type) list = list.filter(m => m.type === type);
-  return success(res, list);
+  try {
+    const { read, type, channel, limit = 100 } = req.query;
+    const where = {};
+    if (read !== undefined) where.read = read === 'true';
+    if (type)    where.type    = type;
+    if (channel) where.channel = channel;
+    const messages = await prisma.notification.findMany({
+      where, orderBy: { createdAt: 'desc' }, take: parseInt(limit),
+      include: { user: { select: { id: true, name: true, email: true } } }
+    });
+    return success(res, messages.map(m => ({
+      id: m.id, from: 'sistema', to: m.userId, subject: m.title,
+      body: m.body, type: m.type, channel: m.channel,
+      read: m.read, date: m.createdAt, user: m.user
+    })));
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// POST /v1/messages/inbox
+// POST /v1/messages/inbox — envío masivo de mensajes in-app
 router.post('/inbox', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const { to, subject, body, type, channel } = req.body;
-  if (!to || !subject || !body) return error(res, 'Destinatario, asunto y cuerpo son obligatorios', 400);
-  const msg = {
-    id: 'msg-'+uuidv4().slice(0,8),
-    from: 'admin', to, subject, body,
-    type: type||'info', channel: channel||'in-app',
-    read: false, date: new Date().toISOString()
-  };
-  MESSAGES.push(msg);
-  return success(res, msg, 201);
+  try {
+    const { subject, body, type = 'info', channel = 'in_app', target } = req.body;
+    if (!subject || !body) return error(res, 'subject y body son obligatorios', 400);
+
+    let where = {};
+    if (target && target.startsWith('role:'))    where.role    = target.split(':')[1];
+    if (target && target.startsWith('country:')) where.country = target.split(':')[1];
+
+    const users = await prisma.user.findMany({ where, select: { id: true } });
+    if (!users.length) return error(res, 'Sin destinatarios', 400);
+
+    await prisma.notification.createMany({
+      data: users.map(u => ({
+        id: uuidv4(), userId: u.id,
+        title: subject, body, type, channel, read: false
+      }))
+    });
+    return success(res, { sent: users.length, target: target || 'all', subject }, 201);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// PUT /v1/messages/inbox/:id/read
-router.put('/inbox/:id/read', requireAuth, async (req, res) => {
-  const m = MESSAGES.find(x => x.id === req.params.id);
-  if (!m) return error(res, 'Mensaje no encontrado', 404);
-  m.read = true;
-  return success(res, m);
+// GET /v1/messages/inbox/stats
+router.get('/stats', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const [total, unread, byType] = await Promise.all([
+      prisma.notification.count(),
+      prisma.notification.count({ where: { read: false } }),
+      prisma.notification.groupBy({ by: ['type'], _count: { id: true } })
+    ]);
+    return success(res, { total, unread, read: total - unread, byType });
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 module.exports = router;

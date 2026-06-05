@@ -1,50 +1,94 @@
 'use strict';
 const express = require('express');
 const router  = express.Router();
-const { v4: uuidv4 } = require('uuid');
+const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const ADMIN = ['admin','super_admin','finance_officer','risk_officer','country_manager','regional_director'];
 
-let FUNDS = [
-  {id:'fund-001',name:'Fondo Agricola África Oeste',category:'agricultura',target:50000000,raised:32400000,currency:'XAF',investors:128,minInvest:25000,return:8.5,duration:24,status:'activo',progress:64},
-  {id:'fund-002',name:'Fondo Energías Renovables',category:'energia',target:80000000,raised:80000000,currency:'XAF',investors:215,minInvest:50000,return:11.2,duration:36,status:'completo',progress:100},
-  {id:'fund-003',name:'Fondo Inmobiliario Malabo',category:'inmobiliario',target:120000000,raised:45000000,currency:'XAF',investors:67,minInvest:100000,return:9.8,duration:48,status:'activo',progress:37}
-];
-
 // GET /v1/invest/funds
 router.get('/funds', requireAuth, async (req, res) => {
-  return success(res, FUNDS);
+  try {
+    const { status } = req.query;
+    const where = status ? { status } : {};
+    const funds = await prisma.investmentFund.findMany({
+      where, orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { investments: true } } }
+    });
+    return success(res, funds.map(f => ({
+      ...f, investors: f._count.investments,
+      progress: f.target > 0 ? Math.round((f.raised / f.target) * 100) : 0
+    })));
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// POST /v1/invest/funds
+// POST /v1/invest/funds — admin crea fondo
 router.post('/funds', requireAuth, requireRole(...ADMIN), async (req, res) => {
-  const { name, category, target, currency, minInvest, return: ret, duration } = req.body;
-  if (!name || !target) return error(res, 'Nombre y objetivo son obligatorios', 400);
-  const fund = {
-    id: 'fund-'+uuidv4().slice(0,8),
-    name, category: category||'general',
-    target, raised: 0, currency: currency||'XAF',
-    investors: 0, minInvest: minInvest||10000,
-    return: ret||5.0, duration: duration||12,
-    status: 'activo', progress: 0
-  };
-  FUNDS.push(fund);
-  return success(res, fund, 201);
+  try {
+    const { name, category, target, currency, minInvest, returnRate, durationMonths } = req.body;
+    if (!name || !target) return error(res, 'name y target son obligatorios', 400);
+    const fund = await prisma.investmentFund.create({ data: {
+      name, category: category || 'general',
+      target: parseFloat(target), currency: currency || 'XAF',
+      minInvest: parseFloat(minInvest || 25000),
+      returnRate: parseFloat(returnRate || 8),
+      durationMonths: parseInt(durationMonths || 24)
+    }});
+    return success(res, fund, 201);
+  } catch (e) { return error(res, e.message, 500); }
 });
 
-// POST /v1/invest/funds/:id/invest
+// POST /v1/invest/funds/:id/invest — usuario invierte
 router.post('/funds/:id/invest', requireAuth, async (req, res) => {
-  const fund = FUNDS.find(f => f.id === req.params.id);
-  if (!fund) return error(res, 'Fondo no encontrado', 404);
-  const { amount } = req.body;
-  if (!amount || amount < fund.minInvest) return error(res, `Inversión mínima: ${fund.minInvest} ${fund.currency}`, 400);
-  fund.raised = Math.min(fund.target, fund.raised + amount);
-  fund.investors += 1;
-  fund.progress = Math.round((fund.raised / fund.target) * 100);
-  if (fund.raised >= fund.target) fund.status = 'completo';
-  return success(res, fund);
+  try {
+    const { amount, currency } = req.body;
+    if (!amount) return error(res, 'amount es obligatorio', 400);
+    const fund = await prisma.investmentFund.findUnique({ where: { id: req.params.id } });
+    if (!fund)               return error(res, 'Fondo no encontrado', 404);
+    if (fund.status !== 'activo') return error(res, 'Fondo cerrado', 400);
+    if (parseFloat(amount) < fund.minInvest) return error(res, `Mínimo de inversión: ${fund.minInvest} ${fund.currency}`, 400);
+
+    const userId = req.user.sub || req.user.id;
+    // Descontar del wallet
+    const curr = (currency || fund.currency).toUpperCase();
+    const balanceField = `balance${curr.charAt(0)}${curr.slice(1).toLowerCase()}`;
+    const wallet = await prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet || (wallet[balanceField] ?? 0) < parseFloat(amount)) return error(res, `Saldo ${curr} insuficiente`, 400);
+
+    await prisma.$transaction([
+      prisma.wallet.update({ where: { userId }, data: { [balanceField]: { decrement: parseFloat(amount) } } }),
+      prisma.fundInvestment.create({ data: { fundId: fund.id, userId, amount: parseFloat(amount), currency: curr } }),
+      prisma.investmentFund.update({ where: { id: fund.id }, data: { raised: { increment: parseFloat(amount) } } })
+    ]);
+
+    return success(res, { fundId: fund.id, fundName: fund.name, amount: parseFloat(amount), currency: curr, returnRate: fund.returnRate, message: '¡Inversión registrada!' }, 201);
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// GET /v1/invest/my — inversiones del usuario
+router.get('/my', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.sub || req.user.id;
+    const investments = await prisma.fundInvestment.findMany({
+      where: { userId }, orderBy: { createdAt: 'desc' },
+      include: { fund: { select: { id: true, name: true, category: true, returnRate: true, durationMonths: true, status: true } } }
+    });
+    return success(res, { investments, total: investments.length });
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// GET /v1/invest/stats
+router.get('/stats', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const [totalFunds, activeFunds, vol, totalInvestors] = await Promise.all([
+      prisma.investmentFund.count(),
+      prisma.investmentFund.count({ where: { status: 'activo' } }),
+      prisma.investmentFund.aggregate({ _sum: { raised: true } }),
+      prisma.fundInvestment.count()
+    ]);
+    return success(res, { totalFunds, activeFunds, totalRaised: vol._sum.raised || 0, totalInvestors });
+  } catch (e) { return error(res, e.message, 500); }
 });
 
 module.exports = router;

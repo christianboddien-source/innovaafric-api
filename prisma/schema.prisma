@@ -49,6 +49,10 @@ model User {
   loans           Loan[]
   chatMessages    ChatMessage[]       @relation("ChatSent")
   bankTransfers   BankTransfer[]
+  creditScore     CreditScore?
+  installments    Installment[]
+  savingsGoals    SavingsGoal[]
+  fundInvestments FundInvestment[]
 }
 
 model Wallet {
@@ -740,6 +744,204 @@ model ApiKey {
   status      String   @default("activa")
   lastUsedAt  DateTime?
   createdAt   DateTime @default(now())
+}
+
+// ── Partners (socios de negocio) ──────────────────────────────
+model Partner {
+  id         String   @id @default(cuid())
+  name       String
+  type       String   // fintech, ecommerce, telecom, bank...
+  country    String
+  contact    String?
+  phone      String?
+  share      Float    @default(2.5)   // % comisión
+  status     String   @default("activo")
+  joinedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  invoices PartnerInvoice[]
+}
+
+model PartnerInvoice {
+  id        String   @id @default(cuid())
+  partnerId String
+  amount    Float
+  currency  String   @default("XAF")
+  period    String
+  dueDate   DateTime
+  status    String   @default("pendiente")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partner Partner @relation(fields: [partnerId], references: [id])
+}
+
+// ── Credit scores ─────────────────────────────────────────────
+model CreditScore {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  score        Int      @default(500)
+  rating       String   @default("C")
+  historyMonths Int     @default(0)
+  onTimePayments Int    @default(0)
+  defaults     Int      @default(0)
+  txCount      Int      @default(0)
+  approved     Boolean  @default(false)
+  notes        String?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ── Installments (compras a plazos) ──────────────────────────
+model Installment {
+  id          String    @id @default(cuid())
+  userId      String
+  productName String
+  total       Float
+  currency    String    @default("XAF")
+  paid        Float     @default(0)
+  months      Int
+  monthlyFee  Float
+  nextDueDate DateTime?
+  status      String    @default("activo")
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ── Insurance ─────────────────────────────────────────────────
+model InsurancePlan {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // vida, salud, agricola, vehiculo...
+  coverage    Float
+  premium     Float
+  currency    String   @default("XAF")
+  duration    Int      // meses
+  provider    String
+  status      String   @default("activo")
+  subscribers Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  claims InsuranceClaim[]
+}
+
+model InsuranceClaim {
+  id          String   @id @default(cuid())
+  planId      String
+  userId      String?
+  userEmail   String
+  amount      Float
+  currency    String   @default("XAF")
+  description String
+  status      String   @default("pendiente")
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  plan InsurancePlan @relation(fields: [planId], references: [id])
+}
+
+// ── Investment funds ──────────────────────────────────────────
+model InvestmentFund {
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  target      Float
+  raised      Float    @default(0)
+  currency    String   @default("XAF")
+  minInvest   Float    @default(25000)
+  returnRate  Float    @default(8.0)
+  durationMonths Int   @default(24)
+  status      String   @default("activo")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  investments FundInvestment[]
+}
+
+model FundInvestment {
+  id       String   @id @default(cuid())
+  fundId   String
+  userId   String
+  amount   Float
+  currency String   @default("XAF")
+  status   String   @default("activo")
+  createdAt DateTime @default(now())
+
+  fund InvestmentFund @relation(fields: [fundId], references: [id])
+  user User           @relation(fields: [userId],  references: [id])
+}
+
+// ── Savings goals ─────────────────────────────────────────────
+model SavingsGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  target      Float
+  current     Float     @default(0)
+  currency    String    @default("XAF")
+  deadline    DateTime?
+  autoSave    Float     @default(0)
+  status      String    @default("activo")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ── White-label instances ─────────────────────────────────────
+model WhiteLabelInstance {
+  id         String   @id @default(cuid())
+  name       String
+  partnerId  String?
+  domain     String   @unique
+  colorPrimary String @default("#00AEEF")
+  status     String   @default("activo")
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ── Refund requests ───────────────────────────────────────────
+model RefundRequest {
+  id          String   @id @default(cuid())
+  orderId     String?
+  userId      String?
+  userEmail   String
+  merchantName String?
+  amount      Float
+  currency    String   @default("XAF")
+  reason      String
+  status      String   @default("pendiente")
+  notes       String?
+  processedBy String?
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── Merchant profiles (extended info for admin) ───────────────
+model MerchantProfile {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  country   String
+  city      String?
+  contact   String?
+  phone     String?
+  currency  String   @default("XAF")
+  status    String   @default("activo")
+  joinedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model PhysicalCard {
