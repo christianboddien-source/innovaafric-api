@@ -1137,22 +1137,44 @@ html.light .email-preview{background:#f1f5f9}
 
   <!-- ── PROVIDERS ── -->
   <div class="page" id="page-providers">
-    <div class="sec-hd">
-      <span data-i18n="providers_title">Proveedores de Facturas</span>
-      <button class="btn btn-cyan" onclick="openModal('provider',{})">+ <span data-i18n="new_provider">Nuevo Proveedor</span></button>
+    <div class="sec-hd" style="flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:18px;font-weight:800">⚡ Proveedores de servicios</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Electricidad, agua, internet, móvil y más</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="prov-filter-country" onchange="renderProv()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--text);outline:none">
+          <option value="">Todos los países</option>
+          <option value="ALL">🌐 Internacional</option>
+          <option value="CM">🇨🇲 Camerún</option>
+          <option value="GQ">🇬🇶 Guinea Ecuatorial</option>
+          <option value="SN">🇸🇳 Senegal</option>
+          <option value="CI">🇨🇮 Costa de Marfil</option>
+          <option value="GH">🇬🇭 Ghana</option>
+          <option value="NG">🇳🇬 Nigeria</option>
+          <option value="ES">🇪🇸 España</option>
+          <option value="FR">🇫🇷 Francia</option>
+        </select>
+        <select id="prov-filter-type" onchange="renderProv()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--text);outline:none">
+          <option value="">Todos los tipos</option>
+          <option value="electricity">⚡ Electricidad</option>
+          <option value="water">💧 Agua</option>
+          <option value="airtime">📱 Airtime</option>
+          <option value="internet">🌐 Internet</option>
+          <option value="tv">📺 TV</option>
+          <option value="streaming">🎬 Streaming</option>
+          <option value="phone">☎️ Teléfono</option>
+          <option value="gas">🔥 Gas</option>
+        </select>
+        <button class="btn btn-cyan" onclick="openModal('provider',{})">+ Nuevo proveedor</button>
+      </div>
     </div>
-    <div class="fb" id="prov-cat-fb">
-      <button class="fb-btn active" onclick="filterProv(this,'')">Todos</button>
-      <button class="fb-btn" onclick="filterProv(this,'electricity')">⚡ Electricidad</button>
-      <button class="fb-btn" onclick="filterProv(this,'water')">💧 Agua</button>
-      <button class="fb-btn" onclick="filterProv(this,'airtime')">📱 Airtime</button>
-      <button class="fb-btn" onclick="filterProv(this,'internet')">🌐 Internet</button>
-      <button class="fb-btn" onclick="filterProv(this,'tv')">📺 TV</button>
+    <!-- Stats strip -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap" id="prov-stats-strip"></div>
+    <!-- Cards grid -->
+    <div id="prov-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">
+      <div style="text-align:center;padding:40px;color:var(--text3);grid-column:1/-1">Cargando proveedores…</div>
     </div>
-    <div class="tw"><table>
-      <thead><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>País</th><th>Campo</th><th>Mín</th><th>Máx</th><th>Acciones</th></tr></thead>
-      <tbody id="tb-prov"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
-    </table></div>
   </div>
 
   <!-- ── RATES ── -->
@@ -2193,25 +2215,61 @@ html.light .email-preview{background:#f1f5f9}
     <h3 id="modal-prov-title">Nuevo Proveedor</h3>
     <input type="hidden" id="pv-id">
     <div class="form-row">
-      <div class="fg"><label>Nombre *</label><input id="pv-name" placeholder="MTN Cameroun"></div>
+      <div class="fg"><label>Nombre *</label><input id="pv-name" placeholder="MTN Cameroun, ENEO, Netflix…"></div>
       <div class="fg"><label>Categoría *</label>
         <select id="pv-cat">
           <option value="electricity">⚡ Electricidad</option>
           <option value="water">💧 Agua</option>
-          <option value="airtime">📱 Airtime</option>
+          <option value="airtime">📱 Airtime / Recargas</option>
           <option value="internet">🌐 Internet</option>
-          <option value="tv">📺 TV</option>
+          <option value="tv">📺 TV / Cable</option>
+          <option value="streaming">🎬 Streaming</option>
+          <option value="phone">☎️ Teléfono fijo</option>
+          <option value="gas">🔥 Gas</option>
+          <option value="transport">🚌 Transporte</option>
+          <option value="rent">🏠 Alquiler</option>
         </select>
       </div>
     </div>
     <div class="form-row">
       <div class="fg"><label>País *</label>
-        <select id="pv-country"><option value="">-- Seleccionar --</option></select>
+        <select id="pv-country">
+          <option value="">-- Seleccionar --</option>
+          <option value="ALL">🌐 Internacional</option>
+          <option value="CM">🇨🇲 Camerún</option>
+          <option value="GQ">🇬🇶 Guinea Ecuatorial</option>
+          <option value="SN">🇸🇳 Senegal</option>
+          <option value="CI">🇨🇮 Costa de Marfil</option>
+          <option value="GH">🇬🇭 Ghana</option>
+          <option value="NG">🇳🇬 Nigeria</option>
+          <option value="ES">🇪🇸 España</option>
+          <option value="FR">🇫🇷 Francia</option>
+          <option value="GB">🇬🇧 Reino Unido</option>
+          <option value="GA">🇬🇦 Gabón</option>
+          <option value="CD">🇨🇩 Congo RDC</option>
+        </select>
       </div>
-      <div class="fg"><label>Campo requerido *</label>
+      <div class="fg"><label>Moneda</label>
+        <select id="pv-currency">
+          <option value="XAF">XAF — Franco CFA BEAC</option>
+          <option value="XOF">XOF — Franco CFA BCEAO</option>
+          <option value="EUR">EUR — Euro</option>
+          <option value="USD">USD — Dólar</option>
+          <option value="GHS">GHS — Cedi</option>
+          <option value="NGN">NGN — Naira</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Campo de referencia *</label>
         <select id="pv-field">
-          <option value="phone">📱 Teléfono</option>
+          <option value="phone">📱 Número de teléfono</option>
           <option value="account_number">🔢 Número de cuenta</option>
+          <option value="meter_number">⚡ Número de contador</option>
+          <option value="contract_number">📋 Número de contrato</option>
+          <option value="subscriber_id">👤 ID suscriptor</option>
+          <option value="customer_id">🪪 ID cliente</option>
+          <option value="email">📧 Email</option>
         </select>
       </div>
     </div>
@@ -2221,7 +2279,55 @@ html.light .email-preview{background:#f1f5f9}
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('provider')">Cancelar</button>
-      <button class="btn btn-cyan" onclick="saveProvider()">💾 Guardar</button>
+      <button class="btn btn-cyan" onclick="saveProvider()">💾 Guardar proveedor</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Pagar Factura (Admin) -->
+<div class="modal-bg" id="modal-bill-pay">
+  <div class="modal" style="max-width:440px">
+    <h3>💳 Procesar Pago de Factura</h3>
+    <input type="hidden" id="bp-provider-id">
+    <!-- Provider info -->
+    <div id="bp-prov-info" style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <div id="bp-prov-icon" style="font-size:28px">⚡</div>
+      <div>
+        <div id="bp-prov-name" style="font-size:14px;font-weight:700;color:var(--text)">—</div>
+        <div id="bp-prov-cat" style="font-size:11px;color:var(--text3)">—</div>
+      </div>
+    </div>
+    <!-- User selector -->
+    <div class="fg" style="margin-bottom:12px">
+      <label>Email o ID del usuario *</label>
+      <input id="bp-user-email" placeholder="usuario@email.com o usr_xxxxxxxx" style="width:100%" oninput="searchBillUser()">
+      <div id="bp-user-found" style="font-size:11px;margin-top:4px;min-height:16px"></div>
+    </div>
+    <!-- Reference number -->
+    <div class="fg" style="margin-bottom:12px">
+      <label id="bp-field-label">Número de referencia *</label>
+      <input id="bp-reference" placeholder="Introduce el número de referencia">
+    </div>
+    <!-- Amount presets -->
+    <div class="fg" style="margin-bottom:12px">
+      <label>Importe *</label>
+      <div id="bp-amount-presets" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="number" id="bp-amount" placeholder="0" style="flex:1">
+        <span id="bp-currency-lbl" style="font-size:12px;font-weight:700;color:var(--text3)">XAF</span>
+      </div>
+    </div>
+    <!-- Note -->
+    <div class="fg" style="margin-bottom:14px">
+      <label>Nota (opcional)</label>
+      <input id="bp-note" placeholder="Ej: Pago de enero 2026">
+    </div>
+    <!-- Summary -->
+    <div id="bp-summary" style="display:none;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.8"></div>
+    <div id="bp-err" style="color:#ef4444;font-size:12px;min-height:16px;margin-bottom:8px"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('bill-pay')">Cancelar</button>
+      <button class="btn btn-cyan" id="bp-btn" onclick="processAdminBillPay()">💳 Procesar pago</button>
     </div>
   </div>
 </div>
@@ -3469,13 +3575,14 @@ function openModal(name, data){
   if(name==='provider'){
     const editing = !!data.id;
     document.getElementById('modal-prov-title').textContent = editing ? '✏️ Editar Proveedor' : '📋 Nuevo Proveedor';
-    document.getElementById('pv-id').value     = data.id||'';
-    document.getElementById('pv-name').value   = data.name||'';
-    document.getElementById('pv-cat').value    = data.category||'electricity';
-    document.getElementById('pv-country').value = data.country||'';
-    document.getElementById('pv-field').value  = data.field||'phone';
-    document.getElementById('pv-min').value    = data.minAmount||100;
-    document.getElementById('pv-max').value    = data.maxAmount||500000;
+    document.getElementById('pv-id').value       = data.id||'';
+    document.getElementById('pv-name').value     = data.name||'';
+    document.getElementById('pv-cat').value      = data.category||'electricity';
+    document.getElementById('pv-country').value  = data.country||'';
+    document.getElementById('pv-currency').value = data.currency||'XAF';
+    document.getElementById('pv-field').value    = data.field||'phone';
+    document.getElementById('pv-min').value      = data.minAmount||100;
+    document.getElementById('pv-max').value      = data.maxAmount||500000;
   }
   if(name==='rate'){
     document.getElementById('rt-pair').value     = data.pair||'';
@@ -4032,52 +4139,96 @@ async function deleteRider(id){
 }
 
 /* ═══ PROVIDERS ─────────────────────────────────── */
+const CAT_ICONS = { electricity:'⚡', water:'💧', airtime:'📱', internet:'🌐', tv:'📺',
+  streaming:'🎬', phone:'☎️', gas:'🔥', transport:'🚌', rent:'🏠' };
+const CAT_COLORS = { electricity:'#f59e0b', water:'#06b6d4', airtime:'#22c55e', internet:'#8b5cf6',
+  tv:'#ec4899', streaming:'#ef4444', phone:'#3b82f6', gas:'#f97316', transport:'#10b981', rent:'#6366f1' };
+const FIELD_LABELS = { phone:'Nº Teléfono', account_number:'Nº Cuenta', meter_number:'Nº Contador',
+  contract_number:'Nº Contrato', subscriber_id:'ID Suscriptor', customer_id:'ID Cliente', email:'Email' };
+const FLAG = { CM:'🇨🇲', GQ:'🇬🇶', SN:'🇸🇳', CI:'🇨🇮', GH:'🇬🇭', NG:'🇳🇬', ES:'🇪🇸',
+  FR:'🇫🇷', GB:'🇬🇧', GA:'🇬🇦', CD:'🇨🇩', ALL:'🌐', MA:'🇲🇦', ML:'🇲🇱' };
+
 async function loadProv(){
   const r = await api('/admin/providers');
   if(!r.success){
-    document.getElementById('tb-prov').innerHTML='<tr><td colspan="8" class="misc">⚠️ Sin datos — verifica la conexión o inicia sesión</td></tr>';
+    document.getElementById('prov-cards').innerHTML='<div style="text-align:center;padding:40px;color:var(--text3)">⚠️ Sin datos — verifica la conexión</div>';
     return;
   }
   ALL_PROV = r.data.providers||[];
+  renderProvStats();
   renderProv();
 }
 
-function renderProv(){
-  let prov = ALL_PROV;
-  if(provFilter) prov = prov.filter(p=>p.category===provFilter);
-  if(!prov.length){ document.getElementById('tb-prov').innerHTML='<tr><td colspan="8" class="misc">Sin proveedores</td></tr>'; return; }
-  document.getElementById('tb-prov').innerHTML = prov.map(p=>`
-    <tr>
-      <td style="font-size:10px;color:#475569">${p.id}</td>
-      <td style="font-weight:600">${p.name}</td>
-      <td><span class="b ${catClass(p.category)}">${p.category}</span></td>
-      <td>${p.country}</td>
-      <td style="color:#94a3b8">${p.field}</td>
-      <td>${(p.minAmount||0).toLocaleString()}</td>
-      <td>${(p.maxAmount||0).toLocaleString()}</td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-ghost btn-sm" onclick="openModal('provider',${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn btn-red btn-sm" onclick="confirmDelete('proveedor','${p.id}','deleteProvider')">🗑</button>
-      </td>
-    </tr>`).join('');
+function renderProvStats(){
+  const cats = {};
+  ALL_PROV.forEach(p=>{ cats[p.category]=(cats[p.category]||0)+1; });
+  const strip = document.getElementById('prov-stats-strip');
+  if(!strip) return;
+  strip.innerHTML = `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12px;color:var(--text3)">
+    <span style="font-weight:700;color:var(--text)">${ALL_PROV.length}</span> proveedores totales</div>` +
+    Object.entries(cats).map(([c,n])=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12px;display:flex;align-items:center;gap:6px">
+      <span>${CAT_ICONS[c]||'📋'}</span><span style="font-weight:700;color:var(--text)">${n}</span> <span style="color:var(--text3)">${c}</span></div>`).join('');
 }
 
-function filterProv(btn,v){ document.querySelectorAll('#prov-cat-fb .fb-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); provFilter=v; renderProv(); }
+function renderProv(){
+  const filterCountry = (document.getElementById('prov-filter-country')||{}).value || '';
+  const filterType    = (document.getElementById('prov-filter-type')||{}).value || '';
+  let prov = ALL_PROV;
+  if(filterCountry) prov = prov.filter(p=>p.country===filterCountry);
+  if(filterType)    prov = prov.filter(p=>p.category===filterType);
+
+  const el = document.getElementById('prov-cards');
+  if(!prov.length){ el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);grid-column:1/-1">Sin proveedores para este filtro</div>'; return; }
+
+  el.innerHTML = prov.map(p=>{
+    const icon  = CAT_ICONS[p.category]||'📋';
+    const color = CAT_COLORS[p.category]||'#64748b';
+    const flag  = FLAG[p.country]||'🌐';
+    const fieldLbl = FIELD_LABELS[p.field]||p.field||'—';
+    // Generate preset amounts: min, ×2, ×5, max
+    const min = p.minAmount||0, max = p.maxAmount||0;
+    const presets = [min, Math.round(min*2), Math.round(min*5), max].filter((v,i,a)=>v<=max&&a.indexOf(v)===i);
+    const amtStr = presets.map(v=>v.toLocaleString()).join(', ');
+    const pJson = JSON.stringify(p).replace(/"/g,'&quot;');
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;align-items:flex-start;gap:14px;transition:border-color .2s" onmouseover="this.style.borderColor='${color}44'" onmouseout="this.style.borderColor=''">
+      <div style="width:44px;height:44px;border-radius:12px;background:${color}22;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+          <span style="font-size:14px;font-weight:700;color:var(--text)">${p.name}</span>
+          <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--surface3);color:var(--text3)">${flag} ${p.country}</span>
+          <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:${color}22;color:${color}">▸ ${p.category}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">🔑 ${fieldLbl}</div>
+        <div style="font-size:10px;color:#06b6d4">importes: ${amtStr} ${p.currency||'XAF'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;background:rgba(34,197,94,.12);color:#22c55e">● Activo</span>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-cyan btn-sm" title="Pagar factura" onclick="openBillPayModal(${pJson})">💳 Pagar</button>
+          <button class="btn btn-ghost btn-sm" title="Editar" onclick="openModal('provider',${pJson})">✏️</button>
+          <button class="btn btn-red btn-sm" title="Eliminar" onclick="confirmDelete('proveedor','${p.id}','deleteProvider')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 async function saveProvider(){
   const id   = document.getElementById('pv-id').value;
   const body = {
-    name:    document.getElementById('pv-name').value,
-    category:document.getElementById('pv-cat').value,
-    country: document.getElementById('pv-country').value,
-    field:   document.getElementById('pv-field').value,
-    minAmount:parseFloat(document.getElementById('pv-min').value)||100,
-    maxAmount:parseFloat(document.getElementById('pv-max').value)||500000
+    name:      document.getElementById('pv-name').value.trim(),
+    category:  document.getElementById('pv-cat').value,
+    country:   document.getElementById('pv-country').value,
+    currency:  document.getElementById('pv-currency').value,
+    field:     document.getElementById('pv-field').value,
+    minAmount: parseFloat(document.getElementById('pv-min').value)||100,
+    maxAmount: parseFloat(document.getElementById('pv-max').value)||500000
   };
+  if(!body.name||!body.country) return toast('Nombre y país son obligatorios','err');
   const r = id
-    ? await api('/admin/providers/'+id,{method:'PUT',body:JSON.stringify(body)})
-    : await api('/admin/providers',    {method:'POST',body:JSON.stringify(body)});
-  if(r.success){ closeModal('provider'); loadProv(); toast(id?'Proveedor actualizado':'Proveedor creado'); }
+    ? await api('/admin/providers/'+id, {method:'PUT', body:JSON.stringify(body)})
+    : await api('/admin/providers',     {method:'POST', body:JSON.stringify(body)});
+  if(r.success){ closeModal('provider'); loadProv(); toast(id?'Proveedor actualizado ✓':'Proveedor creado ✓'); }
   else toast(r.error||r.message||'Error','err');
 }
 
@@ -4085,6 +4236,98 @@ async function deleteProvider(id){
   const r = await api('/admin/providers/'+id,{method:'DELETE'});
   if(r.success){ loadProv(); toast('Proveedor eliminado'); }
   else toast(r.error||'Error','err');
+}
+
+/* ═══ ADMIN BILL PAY ─────────────────────────────── */
+let _billPayProv = null;
+let _billPayUser = null;
+
+function openBillPayModal(p){
+  _billPayProv = p;
+  _billPayUser = null;
+  document.getElementById('bp-provider-id').value = p.id;
+  document.getElementById('bp-prov-icon').textContent = CAT_ICONS[p.category]||'📋';
+  document.getElementById('bp-prov-name').textContent = p.name;
+  document.getElementById('bp-prov-cat').textContent  = (FLAG[p.country]||'') + ' ' + p.country + ' · ' + p.category + ' · ' + (p.currency||'XAF');
+  const fieldLbl = FIELD_LABELS[p.field]||p.field||'Referencia';
+  document.getElementById('bp-field-label').textContent = fieldLbl + ' *';
+  document.getElementById('bp-reference').placeholder  = 'Introduce el ' + fieldLbl.toLowerCase();
+  document.getElementById('bp-currency-lbl').textContent = p.currency||'XAF';
+  // Preset amounts
+  const min = p.minAmount||0, max = p.maxAmount||0;
+  const presets = [min, Math.round(min*2), Math.round(min*5), max].filter((v,i,a)=>v<=max&&a.indexOf(v)===i);
+  document.getElementById('bp-amount-presets').innerHTML = presets.map(v=>
+    `<button class="btn btn-ghost btn-sm" onclick="document.getElementById('bp-amount').value=${v};updateBillSummary()">${v.toLocaleString()}</button>`
+  ).join('');
+  document.getElementById('bp-user-email').value = '';
+  document.getElementById('bp-amount').value = min;
+  document.getElementById('bp-note').value = '';
+  document.getElementById('bp-err').textContent = '';
+  document.getElementById('bp-summary').style.display = 'none';
+  document.getElementById('bp-user-found').textContent = '';
+  openModal('bill-pay');
+}
+
+let _billUserTimer = null;
+async function searchBillUser(){
+  clearTimeout(_billUserTimer);
+  _billPayUser = null;
+  const val = document.getElementById('bp-user-email').value.trim();
+  if(!val){ document.getElementById('bp-user-found').textContent=''; return; }
+  _billUserTimer = setTimeout(async()=>{
+    const r = await api('/admin/users?search='+encodeURIComponent(val));
+    const users = (r.success&&r.data&&r.data.users)||[];
+    const found = users.find(u=>u.email===val||u.id===val)||users[0];
+    const el = document.getElementById('bp-user-found');
+    if(found){ _billPayUser=found; el.style.color='#22c55e'; el.textContent='✓ '+found.name+' ('+found.id+') · Saldo verificado en pago'; }
+    else { el.style.color='#ef4444'; el.textContent='Usuario no encontrado'; }
+  },500);
+}
+
+function updateBillSummary(){
+  if(!_billPayProv) return;
+  const amt = parseFloat(document.getElementById('bp-amount').value)||0;
+  const cur = _billPayProv.currency||'XAF';
+  const el  = document.getElementById('bp-summary');
+  if(amt>0){
+    el.style.display='block';
+    el.innerHTML = `<b>Resumen del pago</b><br>
+      Proveedor: <b>${_billPayProv.name}</b><br>
+      Importe: <b>${amt.toLocaleString()} ${cur}</b><br>
+      Referencia: <b>${document.getElementById('bp-reference').value||'—'}</b><br>
+      Usuario: <b>${_billPayUser?_billPayUser.name:'(pendiente)'}</b>`;
+  } else el.style.display='none';
+}
+
+async function processAdminBillPay(){
+  const ref  = document.getElementById('bp-reference').value.trim();
+  const amt  = parseFloat(document.getElementById('bp-amount').value);
+  const note = document.getElementById('bp-note').value.trim();
+  const err  = document.getElementById('bp-err');
+  const btn  = document.getElementById('bp-btn');
+  if(!_billPayUser){ err.textContent='Busca y selecciona un usuario válido'; return; }
+  if(!ref){ err.textContent='Introduce el número de referencia'; return; }
+  if(!amt||amt<=0){ err.textContent='Introduce un importe válido'; return; }
+  if(_billPayProv&&(amt<_billPayProv.minAmount||amt>_billPayProv.maxAmount)){
+    err.textContent=`Importe fuera de rango. Mín: ${_billPayProv.minAmount.toLocaleString()} · Máx: ${_billPayProv.maxAmount.toLocaleString()}`;
+    return;
+  }
+  err.textContent=''; btn.disabled=true; btn.textContent='Procesando…';
+  const r = await api('/admin/bills/pay',{method:'POST', body:JSON.stringify({
+    user_id: _billPayUser.id,
+    provider_id: _billPayProv.id,
+    amount: amt,
+    reference_number: ref,
+    note: note||undefined
+  })});
+  btn.disabled=false; btn.textContent='💳 Procesar pago';
+  if(r.success){
+    closeModal('bill-pay');
+    toast(`✓ Pago procesado — ${_billPayProv.name} · ${amt.toLocaleString()} ${_billPayProv.currency||'XAF'} · Código: ${r.data.confirmation_code}`,'ok');
+    loadBills();
+  } else {
+    err.textContent = r.error||r.message||'Error al procesar el pago';
+  }
 }
 
 /* ═══ RATES ──────────────────────────────────────── */

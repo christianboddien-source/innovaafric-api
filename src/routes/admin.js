@@ -359,8 +359,9 @@ router.put('/providers/:id', requireAuth, requireLevel(2), async (req, res) => {
   if (!await prisma.billProvider.findUnique({ where: { id: req.params.id } }))
     return error(res, 'Proveedor no encontrado', 404);
 
-  const { name, category, country, field, minAmount, maxAmount } = req.body;
+  const { name, category, country, field, currency, minAmount, maxAmount } = req.body;
   const data = {};
+  if (currency)  data.currency = currency;
   if (name)                data.name = name;
   if (category)            data.category = category;
   if (country)             data.country = country.toUpperCase();
@@ -380,6 +381,66 @@ router.delete('/providers/:id', requireAuth, requireLevel(2), async (req, res) =
   } catch {
     return error(res, 'No se puede eliminar: tiene pagos asociados', 409);
   }
+});
+
+// ══════════════════════════════════════════════════════
+//  PAGO DE FACTURAS — ADMIN (en nombre de usuario)
+// ══════════════════════════════════════════════════════
+const CURRENCY_FIELD_ADMIN = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof', GHS: 'balanceGhs', NGN: 'balanceNgn' };
+
+router.post('/bills/pay', requireAuth, requireLevel(2), async (req, res) => {
+  const { user_id, provider_id, amount, reference_number, note } = req.body;
+  if (!user_id || !provider_id || !amount || !reference_number) {
+    return error(res, 'Campos requeridos: user_id, provider_id, amount, reference_number', 400);
+  }
+
+  const provider = await prisma.billProvider.findUnique({ where: { id: provider_id } });
+  if (!provider) return error(res, 'Proveedor no encontrado', 404);
+
+  const targetUser = await prisma.user.findFirst({ where: { OR: [{ id: user_id }, { email: user_id }] } });
+  if (!targetUser) return error(res, 'Usuario no encontrado', 404);
+
+  if (amount < provider.minAmount || amount > provider.maxAmount) {
+    return error(res, `Importe fuera de rango. Mín: ${provider.minAmount} ${provider.currency}, Máx: ${provider.maxAmount} ${provider.currency}`, 422);
+  }
+
+  const balanceField = CURRENCY_FIELD_ADMIN[provider.currency] || 'balanceXaf';
+  const wallet = await prisma.wallet.findUnique({ where: { userId: targetUser.id } });
+  if (!wallet) return error(res, 'Usuario sin wallet', 404);
+
+  const currentBalance = wallet[balanceField] || 0;
+  if (currentBalance < amount) {
+    return error(res, `Saldo ${provider.currency} insuficiente. Disponible: ${currentBalance.toLocaleString()} ${provider.currency}`, 422);
+  }
+
+  await prisma.wallet.update({ where: { userId: targetUser.id }, data: { [balanceField]: { decrement: amount } } });
+
+  const { v4: uuidv4 } = require('uuid');
+  const payment = await prisma.billPayment.create({
+    data: {
+      id: `bill_${uuidv4().slice(0, 8)}`,
+      userId: targetUser.id,
+      providerId: provider_id,
+      amount,
+      currency: provider.currency,
+      referenceNumber: reference_number,
+      note: note ? `[ADMIN] ${note}` : '[Procesado por admin]',
+      status: 'completed',
+      confirmationCode: `CONF_${uuidv4().slice(0, 10).toUpperCase()}`
+    }
+  });
+
+  return success(res, {
+    id: payment.id,
+    status: 'completed',
+    provider: { id: provider.id, name: provider.name, category: provider.category },
+    user:     { id: targetUser.id, name: targetUser.name, email: targetUser.email },
+    amount,
+    currency: provider.currency,
+    reference_number,
+    confirmation_code: payment.confirmationCode,
+    message: `Pago procesado por admin: ${provider.name} · ${amount.toLocaleString()} ${provider.currency}`
+  });
 });
 
 // ══════════════════════════════════════════════════════
