@@ -50,7 +50,56 @@ router.post('/token', async (req, res) => {
     });
   }
 
-  return error(res, 'grant_type no soportado. Use client_credentials o password', 400);
+  if (grant_type === 'supabase_exchange') {
+    const { supabase_token } = req.body;
+    if (!supabase_token) return error(res, 'supabase_token requerido', 400);
+
+    // Verify token with Supabase
+    const sbUrl  = process.env.SUPABASE_URL || 'https://spnfvmvrlexyiljwyola.supabase.co';
+    const sbAnon = process.env.SUPABASE_ANON_KEY || 'sb_publishable_Aqe-VLEi6MfY8AvlpRfnLQ_OAom278u';
+    const sbResp = await fetch(`${sbUrl}/auth/v1/user`, {
+      headers: { 'Authorization': `Bearer ${supabase_token}`, 'apikey': sbAnon }
+    });
+    if (!sbResp.ok) return error(res, 'Token de Supabase inválido o expirado', 401);
+    const sbUser = await sbResp.json();
+    if (!sbUser || !sbUser.id) return error(res, 'No se pudo verificar usuario Supabase', 401);
+
+    // Find Railway user by email, supabase UUID, or generated id
+    const shortId = 'usr_' + sbUser.id.slice(0, 8);
+    const user = await prisma.user.findFirst({
+      where: { OR: [{ email: sbUser.email }, { id: sbUser.id }, { id: shortId }] },
+      include: { wallet: true }
+    });
+    if (!user) return error(res, 'Usuario no registrado en el sistema Railway', 404);
+
+    const token = jwt.sign(
+      { sub: user.id, email: user.email, role: user.role, country: user.country,
+        scope: user.scope || null, city: user.city || null },
+      JWT_SECRET, { expiresIn: '8h' }
+    );
+    const refresh = jwt.sign({ sub: user.id, type: 'refresh' }, JWT_SECRET, { expiresIn: '30d' });
+
+    // Return wallet data alongside token
+    const wallet = user.wallet;
+    return success(res, {
+      access_token: token, refresh_token: refresh,
+      token_type: 'Bearer', expires_in: 28800,
+      user: {
+        id: user.id, name: user.name, email: user.email, role: user.role,
+        country: user.country, city: user.city, phone: user.phone,
+        kyc_status: user.kycStatus, referral_code: user.referralCode,
+        ia_code: (sbUser.user_metadata && sbUser.user_metadata.ia_code) || user.referralCode || null
+      },
+      wallet: wallet ? {
+        balanceXaf: wallet.balanceXaf || 0,
+        balanceEur: wallet.balanceEur || 0,
+        balanceUsd: wallet.balanceUsd || 0,
+        balanceXof: wallet.balanceXof || 0
+      } : null
+    });
+  }
+
+  return error(res, 'grant_type no soportado. Use client_credentials, password o supabase_exchange', 400);
 });
 
 // POST /v1/auth/refresh
