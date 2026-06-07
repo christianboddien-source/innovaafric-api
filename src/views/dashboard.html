@@ -812,6 +812,7 @@ html.light .email-preview{background:#f1f5f9}
       <div class="ni" data-tip="Nómina" onclick="gp('payroll')"><span class="ic">💼</span> <span>Nómina Riders</span></div>
       <div class="ni" data-tip="Comisiones" onclick="gp('fees')"><span class="ic">⚙️</span> <span>Comisiones</span></div>
       <div class="ni" data-tip="Transf. Bancaria" onclick="gp('banktransfer')"><span class="ic">🏦</span> <span>Transf. Bancaria</span><span class="ni-badge" id="badge-transfers" style="display:none"></span></div>
+      <div class="ni" data-tip="Saldos & Sync" onclick="gp('wallets')"><span class="ic">🔄</span> <span>Saldos & Sync</span><span class="ni-badge" id="badge-wallets-sync" style="display:none"></span></div>
     </div>
 
     <!-- SERVICIOS -->
@@ -2113,6 +2114,60 @@ html.light .email-preview{background:#f1f5f9}
     </div>
   </div>
 
+  <!-- ── SALDOS & SYNC ── -->
+  <div class="page" id="page-wallets">
+    <div class="sec-hd" style="flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:18px;font-weight:800">🔄 Saldos & Sincronización</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Saldos reales en Railway · Reconciliación con Supabase</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="loadWallets()">↺ Actualizar</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportWalletsCSV()">⬇ CSV</button>
+        <button class="btn btn-cyan btn-sm" onclick="pushAllToSupabase()" id="btn-sync-all">🔄 Sync todos → Supabase</button>
+      </div>
+    </div>
+
+    <!-- Agregados globales -->
+    <div class="sg" id="wallets-stats" style="margin-bottom:16px">
+      <div class="sc c-yellow"><div class="lbl">Total EUR</div><div class="val" id="ws-eur">—</div></div>
+      <div class="sc c-cyan"><div class="lbl">Total XAF</div><div class="val" id="ws-xaf">—</div></div>
+      <div class="sc c-blue"><div class="lbl">Total USD</div><div class="val" id="ws-usd">—</div></div>
+      <div class="sc c-green"><div class="lbl">Total XOF</div><div class="val" id="ws-xof">—</div></div>
+    </div>
+
+    <!-- Reconciliación individual -->
+    <div class="info-card" style="margin-bottom:16px;padding:16px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text)">🔍 Reconciliar usuario individual</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div class="fg" style="flex:1;min-width:200px;margin:0">
+          <label style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">ID o Email del usuario</label>
+          <input id="rec-user-input" class="search-bar" placeholder="usr_xxxxxxxx o email@..." style="width:100%;margin:0" list="rec-users-list">
+          <datalist id="rec-users-list"></datalist>
+        </div>
+        <button class="btn btn-cyan" onclick="reconcileUser()" style="height:38px;white-space:nowrap">🔍 Reconciliar</button>
+      </div>
+      <div id="rec-result" style="margin-top:14px;display:none"></div>
+    </div>
+
+    <!-- Tabla de wallets -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <input class="search-bar" id="wallets-search" placeholder="🔍 Buscar usuario..." oninput="renderWallets()" style="flex:1;min-width:200px">
+      <select id="wallets-filter-currency" onchange="renderWallets()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--text);outline:none">
+        <option value="">Todas las divisas</option>
+        <option value="eur">EUR &gt; 0</option>
+        <option value="xaf">XAF &gt; 0</option>
+        <option value="usd">USD &gt; 0</option>
+        <option value="xof">XOF &gt; 0</option>
+      </select>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Usuario</th><th>País</th><th>Rol</th><th>EUR</th><th>XAF</th><th>USD</th><th>XOF</th><th>Acciones</th></tr></thead>
+      <tbody id="tb-wallets"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table></div>
+    <div id="wallets-pagination" style="display:flex;gap:6px;justify-content:center;margin-top:12px;flex-wrap:wrap"></div>
+  </div>
+
 </div><!-- /main -->
 </div><!-- /layout -->
 </div><!-- /app -->
@@ -2998,7 +3053,7 @@ const TR = {
   es:{
     nav_principal:'PRINCIPAL',nav_dashboard:'Dashboard',nav_charts:'Gráficos',
     nav_users_sec:'USUARIOS',nav_users:'Usuarios',nav_reps:'Representantes',nav_roles:'Roles',
-    nav_finance_sec:'FINANZAS',nav_txns:'Transacciones',nav_topup:'Recargas',nav_withdraw:'Reintegros',
+    nav_finance_sec:'FINANZAS',nav_txns:'Transacciones',nav_topup:'Recargas',nav_withdraw:'Reintegros',nav_wallets:'Saldos & Sync',
     nav_services_sec:'SERVICIOS',nav_riders:'Riders',nav_providers:'Proveedores',nav_rates:'Tasas de cambio',
     nav_system_sec:'SISTEMA',nav_countries:'Países',nav_reports:'Informes',nav_settings:'Configuración',nav_system:'Sistema',
     nav_loans:'Préstamos',nav_tontines:'Tontinas',nav_cards:'Tarjetas',nav_accounting:'Contabilidad',
@@ -3023,7 +3078,7 @@ const TR = {
   en:{
     nav_principal:'MAIN',nav_dashboard:'Dashboard',nav_charts:'Charts',
     nav_users_sec:'USERS',nav_users:'Users',nav_reps:'Representatives',nav_roles:'Roles',
-    nav_finance_sec:'FINANCE',nav_txns:'Transactions',nav_topup:'Top-ups',nav_withdraw:'Withdrawals',
+    nav_finance_sec:'FINANCE',nav_txns:'Transactions',nav_topup:'Top-ups',nav_withdraw:'Withdrawals',nav_wallets:'Balances & Sync',
     nav_services_sec:'SERVICES',nav_riders:'Riders',nav_providers:'Providers',nav_rates:'Exchange Rates',
     nav_system_sec:'SYSTEM',nav_countries:'Countries',nav_reports:'Reports',nav_settings:'Settings',nav_system:'System',
     nav_loans:'Loans',nav_tontines:'Tontines',nav_cards:'Cards',nav_accounting:'Accounting',
@@ -3048,7 +3103,7 @@ const TR = {
   fr:{
     nav_principal:'PRINCIPAL',nav_dashboard:'Tableau de bord',nav_charts:'Graphiques',
     nav_users_sec:'UTILISATEURS',nav_users:'Utilisateurs',nav_reps:'Représentants',nav_roles:'Rôles',
-    nav_finance_sec:'FINANCES',nav_txns:'Transactions',nav_topup:'Recharges',nav_withdraw:'Retraits',
+    nav_finance_sec:'FINANCES',nav_txns:'Transactions',nav_topup:'Recharges',nav_withdraw:'Retraits',nav_wallets:'Soldes & Sync',
     nav_services_sec:'SERVICES',nav_riders:'Livreurs',nav_providers:'Fournisseurs',nav_rates:'Taux de change',
     nav_system_sec:'SYSTÈME',nav_countries:'Pays',nav_reports:'Rapports',nav_settings:'Paramètres',nav_system:'Système',
     nav_loans:'Prêts',nav_tontines:'Tontines',nav_cards:'Cartes',nav_accounting:'Comptabilité',
@@ -3215,7 +3270,8 @@ const PG_TITLES = {
   limits:'Límites de Transacción',notifications:'Notificaciones del Sistema',
   security:'Seguridad y Fraude',campaigns:'Campañas de Marketing',apikeys:'API Keys',
   tickets:'Tickets de Soporte',countryconfig:'Configuración por País',analytics:'Analytics BI',
-  payroll:'Nómina de Riders',alerts:'Alertas del Sistema',ranking:'Ranking de Países'
+  payroll:'Nómina de Riders',alerts:'Alertas del Sistema',ranking:'Ranking de Países',
+  wallets:'Saldos & Sincronización'
 };
 
 function refresh(){
@@ -3275,6 +3331,7 @@ function gp(name){
   if(name==='ranking') loadRanking();
   if(name==='roles') loadRolesPage();
   // módulos que necesitan trigger explícito al navegar
+  if(name==='wallets') loadWallets();
   if(name==='riders') loadRiders();
   if(name==='providers') loadProv();
   if(name==='shop') loadShop();
@@ -7730,6 +7787,183 @@ function buildTrendChart(){
       }
     }
   });
+}
+
+/* ═══ SALDOS & SYNC ══════════════════════════════════════ */
+let ALL_WALLETS = [], _walletsPage = 1;
+
+async function loadWallets() {
+  document.getElementById('tb-wallets').innerHTML = '<tr><td colspan="8" class="loading">Cargando...</td></tr>';
+  try {
+    const r = await api('/admin/wallets?limit=200');
+    if (!r.ok) throw new Error('Error API');
+    const d = await r.json();
+    ALL_WALLETS = d.data?.wallets || d.wallets || [];
+    const agg = d.data?.aggregates || d.aggregates || {};
+    document.getElementById('ws-eur').textContent = '€' + (agg.total_eur || 0).toFixed(2);
+    document.getElementById('ws-xaf').textContent = (agg.total_xaf || 0).toLocaleString() + ' XAF';
+    document.getElementById('ws-usd').textContent = '$' + (agg.total_usd || 0).toFixed(2);
+    document.getElementById('ws-xof').textContent = (agg.total_xof || 0).toLocaleString() + ' XOF';
+
+    // Poblar datalist de reconciliación
+    const dl = document.getElementById('rec-users-list');
+    dl.innerHTML = ALL_WALLETS.slice(0,100).map(w =>
+      `<option value="${w.user?.id || w.userId}">${w.user?.name || ''} — ${w.user?.email || ''}</option>`
+    ).join('');
+
+    _walletsPage = 1;
+    renderWallets();
+  } catch(e) {
+    document.getElementById('tb-wallets').innerHTML = `<tr><td colspan="8" style="color:#f87171;text-align:center;padding:20px">Error al cargar saldos: ${e.message}</td></tr>`;
+  }
+}
+
+function renderWallets() {
+  const q    = (document.getElementById('wallets-search')?.value || '').toLowerCase();
+  const curr = document.getElementById('wallets-filter-currency')?.value || '';
+  const PER  = 30;
+
+  let list = ALL_WALLETS.filter(w => {
+    const u = w.user || {};
+    const match = !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || (w.userId||'').toLowerCase().includes(q);
+    const cf =
+      !curr ? true :
+      curr === 'eur' ? w.balanceEur > 0 :
+      curr === 'xaf' ? w.balanceXaf > 0 :
+      curr === 'usd' ? w.balanceUsd > 0 :
+      curr === 'xof' ? w.balanceXof > 0 : true;
+    return match && cf;
+  });
+
+  const pages = Math.max(1, Math.ceil(list.length / PER));
+  if (_walletsPage > pages) _walletsPage = 1;
+  const slice = list.slice((_walletsPage - 1) * PER, _walletsPage * PER);
+
+  document.getElementById('tb-wallets').innerHTML = slice.length ? slice.map(w => {
+    const u = w.user || {};
+    const uid = w.userId || w.id;
+    return `<tr>
+      <td><div style="font-weight:600">${u.name||uid}</div><div style="font-size:10px;color:var(--text3)">${u.email||''}</div></td>
+      <td>${u.country||'—'}</td>
+      <td><span class="badge">${u.role||'—'}</span></td>
+      <td style="color:#fbbf24;font-weight:600">${w.balanceEur > 0 ? '€'+w.balanceEur.toFixed(2) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="color:#00AEEF;font-weight:600">${w.balanceXaf > 0 ? w.balanceXaf.toLocaleString() : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="color:#60a5fa;font-weight:600">${w.balanceUsd > 0 ? '$'+w.balanceUsd.toFixed(2) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="color:#10b981;font-weight:600">${w.balanceXof > 0 ? w.balanceXof.toLocaleString() : '<span style="color:var(--text3)">—</span>'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="reconcileUserId('${uid}')" title="Reconciliar con Supabase">🔍</button>
+        <button class="btn btn-cyan btn-sm" onclick="pushOneToSupabase('${uid}')" title="Sync → Supabase">🔄</button>
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">Sin resultados</td></tr>';
+
+  // Paginación
+  const pg = document.getElementById('wallets-pagination');
+  pg.innerHTML = '';
+  for (let i = 1; i <= pages; i++) {
+    const b = document.createElement('button');
+    b.className = 'btn btn-sm ' + (i === _walletsPage ? 'btn-cyan' : 'btn-ghost');
+    b.textContent = i;
+    b.onclick = () => { _walletsPage = i; renderWallets(); };
+    pg.appendChild(b);
+  }
+}
+
+async function reconcileUser() {
+  const val = document.getElementById('rec-user-input').value.trim();
+  if (!val) return;
+  // Buscar ID real si se ingresó email
+  let uid = val;
+  const found = ALL_WALLETS.find(w => w.user?.email === val || w.userId === val);
+  if (found) uid = found.userId;
+  await reconcileUserId(uid);
+}
+
+async function reconcileUserId(uid) {
+  const box = document.getElementById('rec-result');
+  box.style.display = 'block';
+  box.innerHTML = '<div style="color:var(--text2);font-size:12px">Comparando Railway vs Supabase...</div>';
+
+  try {
+    const r = await api('/admin/balance/reconcile', { method: 'POST', body: JSON.stringify({ user_id: uid }) });
+    const d = await r.json();
+    const data = d.data || d;
+
+    if (!r.ok) {
+      box.innerHTML = `<div style="color:#f87171;padding:10px;background:rgba(248,113,113,.08);border-radius:8px;border:1px solid rgba(248,113,113,.2)">${data.error || 'Error al reconciliar'}</div>`;
+      return;
+    }
+
+    const disc = data.discrepancies || [];
+    const inSync = data.in_sync;
+    const rw = data.railway || {};
+    const sb = data.supabase || {};
+
+    box.innerHTML = `
+      <div style="background:${inSync?'rgba(16,185,129,.08)':'rgba(251,191,36,.08)'};border:1px solid ${inSync?'rgba(16,185,129,.3)':'rgba(251,191,36,.3)'};border-radius:10px;padding:14px">
+        <div style="font-weight:700;margin-bottom:10px;color:${inSync?'#10b981':'#fbbf24'}">${inSync ? '✅ Saldos sincronizados' : '⚠️ Discrepancias detectadas'} — ${uid}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px;font-size:11px">
+          ${['EUR','XAF','USD','XOF'].map(c => {
+            const rv = rw[c] ?? 0, sv = sb ? (sb[c] ?? 0) : null;
+            const diff = sv !== null ? rv - sv : null;
+            const color = diff === null ? '#8da0b8' : Math.abs(diff) < 0.01 ? '#10b981' : '#f87171';
+            return `<div style="background:var(--surface2);padding:8px;border-radius:7px;border:1px solid var(--border)">
+              <div style="color:var(--text3);font-size:10px;margin-bottom:4px">${c}</div>
+              <div style="color:#60a5fa;font-weight:600">Railway: ${c==='EUR'||c==='USD'?rv.toFixed(2):rv.toLocaleString()}</div>
+              ${sv !== null ? `<div style="color:#a78bfa">Supabase: ${c==='EUR'||c==='USD'?sv.toFixed(2):sv.toLocaleString()}</div>` : '<div style="color:var(--text3)">Supabase: N/A</div>'}
+              ${diff !== null ? `<div style="color:${color};font-size:10px;margin-top:3px">Diff: ${diff > 0 ? '+' : ''}${c==='EUR'||c==='USD'?diff.toFixed(2):diff.toLocaleString()}</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+        ${!inSync ? `<button class="btn btn-cyan btn-sm" onclick="pushOneToSupabase('${uid}')">🔄 Sincronizar ahora Railway → Supabase</button>` : ''}
+      </div>`;
+  } catch(e) {
+    box.innerHTML = `<div style="color:#f87171">${e.message}</div>`;
+  }
+}
+
+async function pushOneToSupabase(uid) {
+  const btn = event?.target;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const r = await api('/admin/balance/push-supabase', { method: 'POST', body: JSON.stringify({ user_id: uid }) });
+    const d = await r.json();
+    if (r.ok) {
+      toast('✅ Saldo sincronizado con Supabase');
+      // Refrescar reconciliación si está abierta
+      const box = document.getElementById('rec-result');
+      if (box?.style.display !== 'none') reconcileUserId(uid);
+    } else {
+      toast('❌ ' + (d.data?.error || d.error || 'Error al sincronizar'), 'error');
+    }
+  } catch(e) { toast('❌ ' + e.message, 'error'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '🔄'; } }
+}
+
+async function pushAllToSupabase() {
+  const btn = document.getElementById('btn-sync-all');
+  if (!confirm('¿Sincronizar TODOS los saldos de Railway → Supabase? Esta acción sobreescribirá los saldos en Supabase.')) return;
+  btn.disabled = true; btn.textContent = '⏳ Sincronizando...';
+  try {
+    const r = await api('/admin/balance/push-supabase-all', { method: 'POST' });
+    const d = await r.json();
+    const data = d.data || d;
+    if (r.ok) {
+      toast(`✅ Sync completado: ${data.synced} ok, ${data.failed} errores`);
+    } else {
+      toast('❌ Error: ' + (data.error || 'desconocido'), 'error');
+    }
+  } catch(e) { toast('❌ ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = '🔄 Sync todos → Supabase'; }
+}
+
+function exportWalletsCSV() {
+  if (!ALL_WALLETS.length) return;
+  const rows = ALL_WALLETS.map(w => [
+    w.userId, w.user?.name||'', w.user?.email||'', w.user?.country||'',
+    w.balanceEur, w.balanceXaf, w.balanceUsd, w.balanceXof
+  ]);
+  exportCSV(rows, ['ID','Nombre','Email','País','EUR','XAF','USD','XOF'], 'wallets');
 }
 </script>
 <!-- ── NOTES PANEL ── -->
