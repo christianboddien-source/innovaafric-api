@@ -11,6 +11,13 @@ const { notify } = require('../helpers/notify');
 
 const CURRENCY_FIELD = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
 
+const WALLET_LIMITS = {
+  EUR: { cap: 3000,    reloadThreshold: 2800 },
+  USD: { cap: 3000,    reloadThreshold: 2800 },
+  XAF: { cap: 2000000, reloadThreshold: 1800000 },
+  XOF: { cap: 2000000, reloadThreshold: 1800000 }
+};
+
 // GET /v1/money/balance — requiere KYC aprobado
 router.get('/balance', requireAuth, requireKYC, async (req, res) => {
   const wallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
@@ -293,6 +300,23 @@ router.post('/topup', requireAuth, requireKYC, async (req, res) => {
   }
 
   const balanceField = CURRENCY_FIELD[currency];
+  const limits = WALLET_LIMITS[currency];
+
+  // Verificar límites de wallet
+  if (limits) {
+    const currentWallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
+    const currentBalance = currentWallet ? (currentWallet[balanceField] || 0) : 0;
+
+    if (currentBalance > limits.reloadThreshold) {
+      return error(res, `No puedes recargar todavía. Tu saldo ${currency} es ${currentBalance.toLocaleString()} ${currency}. Podrás recargar cuando baje a ${limits.reloadThreshold.toLocaleString()} ${currency} o menos.`, 422);
+    }
+
+    const maxAllowed = limits.cap - currentBalance;
+    if (amount > maxAllowed) {
+      return error(res, `Importe máximo permitido: ${maxAllowed.toLocaleString()} ${currency} (techo de ${limits.cap.toLocaleString()} ${currency}).`, 422);
+    }
+  }
+
   const txnId = `top_${uuidv4().slice(0, 8)}`;
 
   const [wallet, txn] = await prisma.$transaction([

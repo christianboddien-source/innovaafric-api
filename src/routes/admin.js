@@ -214,6 +214,20 @@ router.post('/wallet/topup', requireAuth, requireLevel(2), async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: user_id } });
   if (!user) return error(res, 'Usuario no encontrado', 404);
 
+  // Verificar límites de wallet (aplica también al topup admin)
+  const wl = WALLET_LIMITS[currency];
+  if (wl) {
+    const existing = await prisma.wallet.findUnique({ where: { userId: user_id } });
+    const currentBal = existing ? (existing[CF[currency]] || 0) : 0;
+    if (currentBal > wl.reloadThreshold) {
+      return error(res, `Saldo ${currency} actual (${currentBal.toLocaleString()}) supera el umbral de recarga (${wl.reloadThreshold.toLocaleString()}). No se puede recargar.`, 422);
+    }
+    const maxAllowed = wl.cap - currentBal;
+    if (Number(amount) > maxAllowed) {
+      return error(res, `Importe máximo permitido: ${maxAllowed.toLocaleString()} ${currency} (techo ${wl.cap.toLocaleString()}).`, 422);
+    }
+  }
+
   const wallet = await prisma.wallet.upsert({
     where: { userId: user_id },
     update: { [CF[currency]]: { increment: Number(amount) } },
@@ -1621,5 +1635,61 @@ router.post('/balance/audit-all', requireAuth, requireLevel(3), async (req, res)
   } catch (e) { return error(res, e.message); }
 });
 
+// ══════════════════════════════════════════════════════
+//  RESET TOTAL DE SALDOS (operación irreversible)
+// ══════════════════════════════════════════════════════
+
+// POST /v1/admin/reset-all-balances
+// Pone todos los wallets a 0 y anula todas las transacciones
+router.post('/reset-all-balances', requireAuth, requireLevel(5), async (req, res) => {
+  const { confirm } = req.body;
+  if (confirm !== 'RESET_CONFIRMED') {
+    return error(res, 'Debes enviar { "confirm": "RESET_CONFIRMED" } para ejecutar esta operación', 400);
+  }
+
+  try {
+    const [walletsReset, txnsVoided] = await Promise.all([
+      prisma.wallet.updateMany({
+        data: { balanceEur: 0, balanceUsd: 0, balanceXaf: 0, balanceXof: 0 }
+      }),
+      prisma.transaction.updateMany({
+        where: { status: { not: 'voided' } },
+        data: { status: 'voided', note: 'Anulado en reset general de producción' }
+      })
+    ]);
+
+    return success(res, {
+      message: 'Reset total completado',
+      wallets_reset: walletsReset.count,
+      transactions_voided: txnsVoided.count
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
+// ══════════════════════════════════════════════════════
+//  LÍMITES DE WALLET POR DIVISA
+// ══════════════════════════════════════════════════════
+
+// Techo máximo y umbral mínimo para poder recargar
+const WALLET_LIMITS = {
+  EUR: { cap: 3000,       reloadThreshold: 2800 },
+  USD: { cap: 3000,       reloadThreshold: 2800 },
+  XAF: { cap: 2000000,    reloadThreshold: 1800000 },
+  XOF: { cap: 2000000,    reloadThreshold: 1800000 }
+};
+
+// GET /v1/money/limits — Consultar los límites vigentes
+router.get('/limits', async (req, res) => {
+  return success(res, {
+    limits: Object.entries(WALLET_LIMITS).map(([currency, l]) => ({
+      currency,
+      cap: l.cap,
+      reload_threshold: l.reloadThreshold,
+      description: `Máximo ${l.cap.toLocaleString()} ${currency}. Puedes recargar cuando tu saldo sea ≤ ${l.reloadThreshold.toLocaleString()} ${currency}`
+    }))
+  });
+});
+
 module.exports = router;
+module.exports.WALLET_LIMITS = WALLET_LIMITS;
 
