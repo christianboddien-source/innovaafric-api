@@ -1016,7 +1016,7 @@ router.post('/transactions/:id/void', requireAuth, requireLevel(3), async (req, 
     const { reason, refund } = req.body;
     const tx = await prisma.transaction.update({
       where: { id: req.params.id },
-      data: { status: 'voided', notes: reason || 'Anulada por admin' }
+      data: { status: 'voided', note: reason || 'Anulada por admin' }
     }).catch(() => null);
     return success(res, { id: req.params.id, status: 'voided', refund: !!refund, reason });
   } catch (e) { return error(res, e.message); }
