@@ -1492,16 +1492,19 @@ router.get('/wallets/:userId', requireAuth, requireLevel(2), async (req, res) =>
 // ══════════════════════════════════════════════════════
 
 const SUPABASE_URL         = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY; // sb_secret_* (nueva) o service_role JWT (legacy)
+const SUPABASE_ANON_KEY    = process.env.SUPABASE_ANON_KEY;    // sb_publishable_* o anon JWT
 
 async function pushBalanceToSupabase(supabaseUserId, balances) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return { ok: false, reason: 'SUPABASE_URL/KEY no configurados' };
+  // apikey usa la publishable/anon key si existe, si no usa la secret key
+  const apiKey = SUPABASE_ANON_KEY || SUPABASE_SERVICE_KEY;
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${supabaseUserId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_SERVICE_KEY,
+        'apikey': apiKey,
         'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
         'Prefer': 'return=minimal'
       },
@@ -1581,7 +1584,7 @@ router.post('/balance/reconcile', requireAuth, requireLevel(3), async (req, res)
       prisma.wallet.findUnique({ where: { userId: user_id } }),
       fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user_id}&select=id,email,eur,xaf,usd,xof`, {
         headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
+          'apikey': SUPABASE_ANON_KEY || SUPABASE_SERVICE_KEY,
           'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
         }
       })
