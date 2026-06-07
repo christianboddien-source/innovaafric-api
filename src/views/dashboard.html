@@ -2124,6 +2124,8 @@ html.light .email-preview{background:#f1f5f9}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm" onclick="loadWallets()">↺ Actualizar</button>
         <button class="btn btn-ghost btn-sm" onclick="exportWalletsCSV()">⬇ CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportWalletsExcel()">⬇ Excel</button>
+        <button class="btn btn-ghost btn-sm" onclick="printWallets()">🖨️ Imprimir / PDF</button>
         <button class="btn btn-cyan btn-sm" onclick="pushAllToSupabase()" id="btn-sync-all">🔄 Sync todos → Supabase</button>
       </div>
     </div>
@@ -7958,12 +7960,129 @@ async function pushAllToSupabase() {
 }
 
 function exportWalletsCSV() {
-  if (!ALL_WALLETS.length) return;
-  const rows = ALL_WALLETS.map(w => [
-    w.userId, w.user?.name||'', w.user?.email||'', w.user?.country||'',
-    w.balanceEur, w.balanceXaf, w.balanceUsd, w.balanceXof
-  ]);
-  exportCSV(rows, ['ID','Nombre','Email','País','EUR','XAF','USD','XOF'], 'wallets');
+  if (!ALL_WALLETS.length) { toast('Sin datos para exportar','err'); return; }
+  const headers = ['ID','Nombre','Email','País','Rol','EUR','XAF','USD','XOF'];
+  const rows = [headers.join(',')].concat(ALL_WALLETS.map(w => {
+    const u = w.user || {};
+    return [w.userId, u.name||'', u.email||'', u.country||'', u.role||'',
+            w.balanceEur, w.balanceXaf, w.balanceUsd, w.balanceXof].map(v => {
+      const s = String(v ?? '');
+      return s.includes(',') || s.includes('"') ? '"'+s.replace(/"/g,'""')+'"' : s;
+    }).join(',');
+  }));
+  const blob = new Blob(['﻿'+rows.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'wallets_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  toast(`✅ ${ALL_WALLETS.length} wallets exportados en CSV`);
+}
+
+function exportWalletsExcel() {
+  if (!ALL_WALLETS.length) { toast('Sin datos para exportar','err'); return; }
+  // Genera XML compatible con Excel (SpreadsheetML)
+  const headers = ['ID','Nombre','Email','País','Rol','EUR','XAF','USD','XOF'];
+  const rows = ALL_WALLETS.map(w => {
+    const u = w.user || {};
+    return [w.userId, u.name||'', u.email||'', u.country||'', u.role||'',
+            w.balanceEur, w.balanceXaf, w.balanceUsd, w.balanceXof];
+  });
+  const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cell = (v, isNum) => isNum
+    ? `<Cell ss:StyleID="num"><Data ss:Type="Number">${v}</Data></Cell>`
+    : `<Cell><Data ss:Type="String">${esc(v)}</Data></Cell>`;
+  const hdrRow = headers.map(h => `<Cell ss:StyleID="hdr"><Data ss:Type="String">${h}</Data></Cell>`).join('');
+  const dataRows = rows.map(r =>
+    '<Row>'+r.map((v,i) => cell(v, i>=5)).join('')+'</Row>'
+  ).join('');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="hdr"><Font ss:Bold="1"/><Interior ss:Color="#00AEEF" ss:Pattern="Solid"/><Font ss:Color="#FFFFFF" ss:Bold="1"/></Style>
+    <Style ss:ID="num"><NumberFormat ss:Format="#,##0.00"/></Style>
+  </Styles>
+  <Worksheet ss:Name="Wallets">
+    <Table>
+      <Row>${hdrRow}</Row>
+      ${dataRows}
+    </Table>
+  </Worksheet>
+</Workbook>`;
+  const blob = new Blob([xml], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'wallets_'+new Date().toISOString().slice(0,10)+'.xls';
+  a.click();
+  toast(`✅ ${ALL_WALLETS.length} wallets exportados en Excel`);
+}
+
+function printWallets() {
+  if (!ALL_WALLETS.length) { toast('Sin datos para imprimir','err'); return; }
+  const now = new Date().toLocaleDateString('es',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const totalEur = ALL_WALLETS.reduce((s,w)=>s+w.balanceEur,0);
+  const totalXaf = ALL_WALLETS.reduce((s,w)=>s+w.balanceXaf,0);
+  const totalUsd = ALL_WALLETS.reduce((s,w)=>s+w.balanceUsd,0);
+  const totalXof = ALL_WALLETS.reduce((s,w)=>s+w.balanceXof,0);
+
+  const filas = ALL_WALLETS.map((w,i) => {
+    const u = w.user || {};
+    return `<tr style="background:${i%2===0?'#f8fafc':'#ffffff'}">
+      <td>${u.name||w.userId}</td>
+      <td>${u.email||'—'}</td>
+      <td>${u.country||'—'}</td>
+      <td>${u.role||'—'}</td>
+      <td style="text-align:right;color:#b45309">${w.balanceEur>0?'€'+w.balanceEur.toFixed(2):'—'}</td>
+      <td style="text-align:right;color:#0369a1">${w.balanceXaf>0?w.balanceXaf.toLocaleString()+' XAF':'—'}</td>
+      <td style="text-align:right;color:#1d4ed8">${w.balanceUsd>0?'$'+w.balanceUsd.toFixed(2):'—'}</td>
+      <td style="text-align:right;color:#065f46">${w.balanceXof>0?w.balanceXof.toLocaleString()+' XOF':'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8"><title>Wallets — InnovaAFRIC</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:11px;margin:20px;color:#1e293b}
+  h1{font-size:18px;color:#0369a1;margin-bottom:2px}
+  .sub{font-size:11px;color:#64748b;margin-bottom:16px}
+  .kpis{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+  .kpi{background:#f1f5f9;border-radius:8px;padding:10px 16px;min-width:130px}
+  .kpi .label{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+  .kpi .val{font-size:15px;font-weight:700;color:#0369a1;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:10px}
+  thead tr{background:#0369a1;color:#fff}
+  th{padding:6px 8px;text-align:left;font-weight:600}
+  td{padding:5px 8px;border-bottom:1px solid #e2e8f0}
+  tfoot tr{background:#f1f5f9;font-weight:700}
+  @media print{body{margin:10px}.kpis{page-break-inside:avoid}}
+</style></head><body>
+<h1>🔄 Informe de Wallets — InnovaAFRIC</h1>
+<div class="sub">Generado: ${now} · Total usuarios: ${ALL_WALLETS.length}</div>
+<div class="kpis">
+  <div class="kpi"><div class="label">Total EUR</div><div class="val">€${totalEur.toFixed(2)}</div></div>
+  <div class="kpi"><div class="label">Total XAF</div><div class="val">${totalXaf.toLocaleString()} XAF</div></div>
+  <div class="kpi"><div class="label">Total USD</div><div class="val">$${totalUsd.toFixed(2)}</div></div>
+  <div class="kpi"><div class="label">Total XOF</div><div class="val">${totalXof.toLocaleString()} XOF</div></div>
+</div>
+<table>
+  <thead><tr><th>Nombre</th><th>Email</th><th>País</th><th>Rol</th><th>EUR</th><th>XAF</th><th>USD</th><th>XOF</th></tr></thead>
+  <tbody>${filas}</tbody>
+  <tfoot><tr>
+    <td colspan="4">TOTALES (${ALL_WALLETS.length} wallets)</td>
+    <td style="text-align:right">€${totalEur.toFixed(2)}</td>
+    <td style="text-align:right">${totalXaf.toLocaleString()} XAF</td>
+    <td style="text-align:right">$${totalUsd.toFixed(2)}</td>
+    <td style="text-align:right">${totalXof.toLocaleString()} XOF</td>
+  </tr></tfoot>
+</table>
+</body></html>`;
+
+  const w = window.open('','_blank','width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 400);
 }
 </script>
 <!-- ── NOTES PANEL ── -->
