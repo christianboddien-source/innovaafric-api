@@ -50,19 +50,20 @@ router.post('/pay', requireAuth, requireKYC, async (req, res) => {
     return error(res, `Saldo ${provider.currency} insuficiente`, 422);
   }
 
-  await prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: amount } } });
-
-  const payment = await prisma.billPayment.create({
-    data: {
-      id: `bill_${uuidv4().slice(0, 8)}`,
-      userId: req.user.sub, providerId: provider_id,
-      amount, currency: provider.currency,
-      referenceNumber: reference_number,
-      note: note || null,
-      status: 'completed',
-      confirmationCode: `CONF_${uuidv4().slice(0, 10).toUpperCase()}`
-    }
-  });
+  const [, payment] = await prisma.$transaction([
+    prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: amount } } }),
+    prisma.billPayment.create({
+      data: {
+        id: `bill_${uuidv4().slice(0, 8)}`,
+        userId: req.user.sub, providerId: provider_id,
+        amount, currency: provider.currency,
+        referenceNumber: reference_number,
+        note: note || null,
+        status: 'completed',
+        confirmationCode: `CONF_${uuidv4().slice(0, 10).toUpperCase()}`
+      }
+    })
+  ]);
 
   await triggerWebhook('bill.paid', { id: payment.id, provider: provider.name, amount, category: provider.category });
 

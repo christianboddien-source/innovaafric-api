@@ -1429,5 +1429,192 @@ router.get('/delivery', requireAuth, requireLevel(2), async (_req, res) => {
   } catch (e) { return success(res, []); }
 });
 
+// ══════════════════════════════════════════════════════
+//  WALLETS — VER SALDOS REALES (RAILWAY)
+// ══════════════════════════════════════════════════════
+
+// GET /v1/admin/wallets — Lista todos los wallets con su usuario
+router.get('/wallets', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const { page = 1, limit = 50, country, min_eur, min_xaf } = req.query;
+    const wallets = await prisma.wallet.findMany({
+      include: {
+        user: { select: { id: true, name: true, email: true, country: true, role: true, kycStatus: true } }
+      },
+      orderBy: { user: { createdAt: 'desc' } }
+    });
+
+    let filtered = wallets;
+    if (country) filtered = filtered.filter(w => w.user?.country === country.toUpperCase());
+    if (min_eur) filtered = filtered.filter(w => w.balanceEur >= Number(min_eur));
+    if (min_xaf) filtered = filtered.filter(w => w.balanceXaf >= Number(min_xaf));
+
+    const total_eur = filtered.reduce((s, w) => s + w.balanceEur, 0);
+    const total_xaf = filtered.reduce((s, w) => s + w.balanceXaf, 0);
+    const total_usd = filtered.reduce((s, w) => s + w.balanceUsd, 0);
+    const total_xof = filtered.reduce((s, w) => s + w.balanceXof, 0);
+
+    const p = Number(page), l = Number(limit);
+    const items = filtered.slice((p - 1) * l, p * l);
+
+    return success(res, {
+      wallets: items,
+      total_wallets: filtered.length,
+      aggregates: { total_eur, total_xaf, total_usd, total_xof },
+      page: p, limit: l,
+      pages: Math.ceil(filtered.length / l)
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
+// GET /v1/admin/wallets/:userId — Saldo de un usuario específico
+router.get('/wallets/:userId', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: req.params.userId },
+      include: { user: { select: { id: true, name: true, email: true, country: true, role: true, kycStatus: true } } }
+    });
+    if (!wallet) return error(res, 'Wallet no encontrado', 404);
+
+    const txns = await prisma.transaction.findMany({
+      where: { OR: [{ userId: req.params.userId }, { recipientId: req.params.userId }] },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: { id: true, type: true, amountSent: true, currencySent: true, fee: true, status: true, createdAt: true }
+    });
+
+    return success(res, { wallet, recent_transactions: txns });
+  } catch (e) { return error(res, e.message); }
+});
+
+// ══════════════════════════════════════════════════════
+//  SINCRONIZACIÓN RAILWAY → SUPABASE
+// ══════════════════════════════════════════════════════
+
+const SUPABASE_URL         = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+async function pushBalanceToSupabase(supabaseUserId, balances) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return { ok: false, reason: 'SUPABASE_URL/KEY no configurados' };
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${supabaseUserId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        eur: balances.balanceEur,
+        xaf: balances.balanceXaf,
+        usd: balances.balanceUsd,
+        xof: balances.balanceXof
+      })
+    });
+    return { ok: res.ok, status: res.status };
+  } catch (e) {
+    return { ok: false, reason: e.message };
+  }
+}
+
+// POST /v1/admin/balance/push-supabase — Sincronizar saldo de un usuario Railway → Supabase
+router.post('/balance/push-supabase', requireAuth, requireLevel(3), async (req, res) => {
+  const { user_id } = req.body;
+  if (!user_id) return error(res, 'user_id requerido', 400);
+
+  try {
+    const wallet = await prisma.wallet.findUnique({ where: { userId: user_id } });
+    if (!wallet) return error(res, 'Wallet no encontrado en Railway', 404);
+
+    const result = await pushBalanceToSupabase(user_id, wallet);
+    if (!result.ok) return error(res, `No se pudo actualizar Supabase: ${result.reason || result.status}`, 502);
+
+    return success(res, {
+      message: 'Saldo sincronizado Railway → Supabase',
+      user_id,
+      balanceEur: wallet.balanceEur,
+      balanceXaf: wallet.balanceXaf,
+      balanceUsd: wallet.balanceUsd,
+      balanceXof: wallet.balanceXof
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
+// POST /v1/admin/balance/push-supabase-all — Sincronizar TODOS los saldos Railway → Supabase
+router.post('/balance/push-supabase-all', requireAuth, requireLevel(4), async (req, res) => {
+  try {
+    const wallets = await prisma.wallet.findMany();
+    let synced = 0, failed = 0, errors = [];
+
+    for (const wallet of wallets) {
+      const result = await pushBalanceToSupabase(wallet.userId, wallet);
+      if (result.ok) {
+        synced++;
+      } else {
+        failed++;
+        errors.push({ userId: wallet.userId, reason: result.reason || result.status });
+      }
+    }
+
+    return success(res, {
+      message: 'Sincronización masiva Railway → Supabase completada',
+      total: wallets.length,
+      synced,
+      failed,
+      errors: errors.slice(0, 20)
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
+// POST /v1/admin/balance/reconcile — Comparar Railway vs Supabase para un usuario
+router.post('/balance/reconcile', requireAuth, requireLevel(3), async (req, res) => {
+  const { user_id } = req.body;
+  if (!user_id) return error(res, 'user_id requerido', 400);
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    return error(res, 'Variables SUPABASE_URL y SUPABASE_SERVICE_KEY no configuradas en Railway', 500);
+  }
+
+  try {
+    const [wallet, supaResp] = await Promise.all([
+      prisma.wallet.findUnique({ where: { userId: user_id } }),
+      fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user_id}&select=id,email,eur,xaf,usd,xof`, {
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+        }
+      })
+    ]);
+
+    if (!wallet) return error(res, 'Wallet no encontrado en Railway', 404);
+
+    const supaData = await supaResp.json();
+    const supaUser = Array.isArray(supaData) ? supaData[0] : null;
+
+    const railway = { EUR: wallet.balanceEur, XAF: wallet.balanceXaf, USD: wallet.balanceUsd, XOF: wallet.balanceXof };
+    const supabase = supaUser
+      ? { EUR: supaUser.eur || 0, XAF: supaUser.xaf || 0, USD: supaUser.usd || 0, XOF: supaUser.xof || 0 }
+      : null;
+
+    const discrepancies = supabase
+      ? Object.keys(railway).filter(k => Math.abs(railway[k] - supabase[k]) > 0.01).map(k => ({
+          currency: k, railway: railway[k], supabase: supabase[k], diff: railway[k] - supabase[k]
+        }))
+      : [];
+
+    return success(res, {
+      user_id,
+      railway,
+      supabase,
+      in_sync: discrepancies.length === 0,
+      discrepancies,
+      recommendation: discrepancies.length > 0
+        ? 'Ejecuta POST /v1/admin/balance/push-supabase con este user_id para sincronizar'
+        : 'Saldos coinciden — no se necesita acción'
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
 module.exports = router;
 

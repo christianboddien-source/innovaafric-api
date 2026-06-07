@@ -146,16 +146,17 @@ router.post('/withdraw', requireAuth, requireKYC, async (req, res) => {
   const fee = calcFee(amount, 'withdraw');
   const amount_net = Math.round((amount - fee) * 100) / 100;
 
-  await prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: amount } } });
-
-  const txn = await prisma.transaction.create({
-    data: {
-      id: `wth_${uuidv4().slice(0, 8)}`,
-      type: 'withdraw', userId: req.user.sub,
-      amountSent: amount, currencySent: currency, fee, status: 'processing',
-      reference: JSON.stringify({ method, destination, amount_net })
-    }
-  });
+  const [, txn] = await prisma.$transaction([
+    prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: amount } } }),
+    prisma.transaction.create({
+      data: {
+        id: `wth_${uuidv4().slice(0, 8)}`,
+        type: 'withdraw', userId: req.user.sub,
+        amountSent: amount, currencySent: currency, fee, status: 'processing',
+        reference: JSON.stringify({ method, destination, amount_net })
+      }
+    })
+  ]);
 
   await triggerWebhook('withdrawal.completed', { id: txn.id, amount, currency, method });
 
@@ -292,21 +293,24 @@ router.post('/topup', requireAuth, requireKYC, async (req, res) => {
   }
 
   const balanceField = CURRENCY_FIELD[currency];
-  const wallet = await prisma.wallet.upsert({
-    where: { userId: req.user.sub },
-    update: { [balanceField]: { increment: amount } },
-    create: { userId: req.user.sub, [balanceField]: amount }
-  });
+  const txnId = `top_${uuidv4().slice(0, 8)}`;
 
-  const txn = await prisma.transaction.create({
-    data: {
-      id: `top_${uuidv4().slice(0, 8)}`,
-      type: 'topup', userId: req.user.sub,
-      amountSent: amount, currencySent: currency,
-      fee: 0, status: 'completed',
-      reference: reference || null
-    }
-  });
+  const [wallet, txn] = await prisma.$transaction([
+    prisma.wallet.upsert({
+      where: { userId: req.user.sub },
+      update: { [balanceField]: { increment: amount } },
+      create: { userId: req.user.sub, [balanceField]: amount }
+    }),
+    prisma.transaction.create({
+      data: {
+        id: txnId,
+        type: 'topup', userId: req.user.sub,
+        amountSent: amount, currencySent: currency,
+        fee: 0, status: 'completed',
+        reference: reference || null
+      }
+    })
+  ]);
 
   await triggerWebhook('topup.completed', { id: txn.id, amount, currency, method });
 
