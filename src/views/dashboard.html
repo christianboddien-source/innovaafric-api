@@ -2126,7 +2126,7 @@ html.light .email-preview{background:#f1f5f9}
         <button class="btn btn-ghost btn-sm" onclick="exportWalletsCSV()">⬇ CSV</button>
         <button class="btn btn-ghost btn-sm" onclick="exportWalletsExcel()">⬇ Excel</button>
         <button class="btn btn-ghost btn-sm" onclick="printWallets()">🖨️ Imprimir / PDF</button>
-        <button class="btn btn-cyan btn-sm" onclick="pushAllToSupabase()" id="btn-sync-all">🔄 Sync todos → Supabase</button>
+        <button class="btn btn-cyan btn-sm" onclick="auditAllWallets()" id="btn-audit-all">🔍 Auditar todos los saldos</button>
       </div>
     </div>
 
@@ -7853,8 +7853,7 @@ function renderWallets() {
       <td style="color:#60a5fa;font-weight:600">${w.balanceUsd > 0 ? '$'+w.balanceUsd.toFixed(2) : '<span style="color:var(--text3)">—</span>'}</td>
       <td style="color:#10b981;font-weight:600">${w.balanceXof > 0 ? w.balanceXof.toLocaleString() : '<span style="color:var(--text3)">—</span>'}</td>
       <td>
-        <button class="btn btn-ghost btn-sm" onclick="reconcileUserId('${uid}')" title="Reconciliar con Supabase">🔍</button>
-        <button class="btn btn-cyan btn-sm" onclick="pushOneToSupabase('${uid}')" title="Sync → Supabase">🔄</button>
+        <button class="btn btn-cyan btn-sm" onclick="reconcileUserId('${uid}')" title="Auditar saldo">🔍 Auditar</button>
       </td>
     </tr>`;
   }).join('') : '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">Sin resultados</td></tr>';
@@ -7884,7 +7883,7 @@ async function reconcileUser() {
 async function reconcileUserId(uid) {
   const box = document.getElementById('rec-result');
   box.style.display = 'block';
-  box.innerHTML = '<div style="color:var(--text2);font-size:12px">Comparando Railway vs Supabase...</div>';
+  box.innerHTML = '<div style="color:var(--text2);font-size:12px">⏳ Auditando saldo vs historial de transacciones...</div>';
 
   try {
     const r = await api('/admin/balance/reconcile', { method: 'POST', body: JSON.stringify({ user_id: uid }) });
@@ -7892,71 +7891,59 @@ async function reconcileUserId(uid) {
     const data = d.data || d;
 
     if (!r.ok) {
-      box.innerHTML = `<div style="color:#f87171;padding:10px;background:rgba(248,113,113,.08);border-radius:8px;border:1px solid rgba(248,113,113,.2)">${data.error || 'Error al reconciliar'}</div>`;
+      box.innerHTML = `<div style="color:#f87171;padding:10px;background:rgba(248,113,113,.08);border-radius:8px;border:1px solid rgba(248,113,113,.2)">${data.error || 'Error al auditar'}</div>`;
       return;
     }
 
     const disc = data.discrepancies || [];
-    const inSync = data.in_sync;
-    const rw = data.railway || {};
-    const sb = data.supabase || {};
+    const ok = data.is_consistent;
+    const cur = data.current_balance || {};
+    const exp = data.computed_from_history || {};
 
     box.innerHTML = `
-      <div style="background:${inSync?'rgba(16,185,129,.08)':'rgba(251,191,36,.08)'};border:1px solid ${inSync?'rgba(16,185,129,.3)':'rgba(251,191,36,.3)'};border-radius:10px;padding:14px">
-        <div style="font-weight:700;margin-bottom:10px;color:${inSync?'#10b981':'#fbbf24'}">${inSync ? '✅ Saldos sincronizados' : '⚠️ Discrepancias detectadas'} — ${uid}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px;font-size:11px">
+      <div style="background:${ok?'rgba(16,185,129,.08)':'rgba(251,191,36,.08)'};border:1px solid ${ok?'rgba(16,185,129,.3)':'rgba(251,191,36,.3)'};border-radius:10px;padding:14px">
+        <div style="font-weight:700;margin-bottom:4px;color:${ok?'#10b981':'#fbbf24'}">${ok ? '✅ Saldo consistente' : '⚠️ Inconsistencia detectada'}</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:12px">${data.user?.name||uid} · ${data.completed_transactions||0} transacciones completadas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;font-size:11px">
           ${['EUR','XAF','USD','XOF'].map(c => {
-            const rv = rw[c] ?? 0, sv = sb ? (sb[c] ?? 0) : null;
-            const diff = sv !== null ? rv - sv : null;
-            const color = diff === null ? '#8da0b8' : Math.abs(diff) < 0.01 ? '#10b981' : '#f87171';
+            const cv = cur[c] ?? 0, ev = exp[c] ?? 0;
+            const diff = cv - ev;
+            const color = Math.abs(diff) < 0.01 ? '#10b981' : '#f87171';
+            const fmt = v => c==='EUR'||c==='USD' ? v.toFixed(2) : v.toLocaleString();
             return `<div style="background:var(--surface2);padding:8px;border-radius:7px;border:1px solid var(--border)">
               <div style="color:var(--text3);font-size:10px;margin-bottom:4px">${c}</div>
-              <div style="color:#60a5fa;font-weight:600">Railway: ${c==='EUR'||c==='USD'?rv.toFixed(2):rv.toLocaleString()}</div>
-              ${sv !== null ? `<div style="color:#a78bfa">Supabase: ${c==='EUR'||c==='USD'?sv.toFixed(2):sv.toLocaleString()}</div>` : '<div style="color:var(--text3)">Supabase: N/A</div>'}
-              ${diff !== null ? `<div style="color:${color};font-size:10px;margin-top:3px">Diff: ${diff > 0 ? '+' : ''}${c==='EUR'||c==='USD'?diff.toFixed(2):diff.toLocaleString()}</div>` : ''}
+              <div style="color:#60a5fa;font-weight:600">Actual: ${fmt(cv)}</div>
+              <div style="color:#a78bfa">Esperado: ${fmt(ev)}</div>
+              <div style="color:${color};font-size:10px;margin-top:3px">${Math.abs(diff)<0.01?'✓ OK':`Diff: ${diff>0?'+':''}${fmt(diff)}`}</div>
             </div>`;
           }).join('')}
         </div>
-        ${!inSync ? `<button class="btn btn-cyan btn-sm" onclick="pushOneToSupabase('${uid}')">🔄 Sincronizar ahora Railway → Supabase</button>` : ''}
+        ${!ok ? `<div style="margin-top:10px;font-size:11px;color:#fbbf24">⚠️ ${data.note}</div>` : ''}
       </div>`;
   } catch(e) {
     box.innerHTML = `<div style="color:#f87171">${e.message}</div>`;
   }
 }
 
-async function pushOneToSupabase(uid) {
-  const btn = event?.target;
-  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+async function auditAllWallets() {
+  const btn = document.getElementById('btn-audit-all');
+  btn.disabled = true; btn.textContent = '⏳ Auditando...';
   try {
-    const r = await api('/admin/balance/push-supabase', { method: 'POST', body: JSON.stringify({ user_id: uid }) });
-    const d = await r.json();
-    if (r.ok) {
-      toast('✅ Saldo sincronizado con Supabase');
-      // Refrescar reconciliación si está abierta
-      const box = document.getElementById('rec-result');
-      if (box?.style.display !== 'none') reconcileUserId(uid);
-    } else {
-      toast('❌ ' + (d.data?.error || d.error || 'Error al sincronizar'), 'error');
-    }
-  } catch(e) { toast('❌ ' + e.message, 'error'); }
-  finally { if (btn) { btn.disabled = false; btn.textContent = '🔄'; } }
-}
-
-async function pushAllToSupabase() {
-  const btn = document.getElementById('btn-sync-all');
-  if (!confirm('¿Sincronizar TODOS los saldos de Railway → Supabase? Esta acción sobreescribirá los saldos en Supabase.')) return;
-  btn.disabled = true; btn.textContent = '⏳ Sincronizando...';
-  try {
-    const r = await api('/admin/balance/push-supabase-all', { method: 'POST' });
+    const r = await api('/admin/balance/audit-all', { method: 'POST' });
     const d = await r.json();
     const data = d.data || d;
     if (r.ok) {
-      toast(`✅ Sync completado: ${data.synced} ok, ${data.failed} errores`);
+      const msg = `✅ Auditoría: ${data.ok} saldos correctos${data.issues > 0 ? `, ⚠️ ${data.issues} con inconsistencias` : ' — todo correcto'}`;
+      toast(msg, data.issues > 0 ? 'warn' : 'ok');
+      if (data.issues > 0) {
+        console.warn('[AUDIT] Wallets con problemas:', data.flagged_wallets);
+        alert(`⚠️ ${data.issues} wallets con inconsistencias. Ver consola del navegador para detalles.`);
+      }
     } else {
-      toast('❌ Error: ' + (data.error || 'desconocido'), 'error');
+      toast('❌ Error en auditoría: ' + (data.error || 'desconocido'), 'err');
     }
-  } catch(e) { toast('❌ ' + e.message, 'error'); }
-  finally { btn.disabled = false; btn.textContent = '🔄 Sync todos → Supabase'; }
+  } catch(e) { toast('❌ ' + e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = '🔍 Auditar todos los saldos'; }
 }
 
 function exportWalletsCSV() {

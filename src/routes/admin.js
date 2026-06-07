@@ -1488,133 +1488,126 @@ router.get('/wallets/:userId', requireAuth, requireLevel(2), async (req, res) =>
 });
 
 // ══════════════════════════════════════════════════════
-//  SINCRONIZACIÓN RAILWAY → SUPABASE
+//  AUDITORÍA INTERNA DE SALDOS
+//  Los saldos viven SOLO en Railway. Supabase gestiona
+//  identidad de usuarios pero no tiene campos de saldo.
+//  La reconciliación verifica consistencia interna:
+//  wallet actual vs suma histórica de transacciones.
 // ══════════════════════════════════════════════════════
 
-const SUPABASE_URL         = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY; // sb_secret_* (nueva) o service_role JWT (legacy)
-const SUPABASE_ANON_KEY    = process.env.SUPABASE_ANON_KEY;    // sb_publishable_* o anon JWT
-
-async function pushBalanceToSupabase(supabaseUserId, balances) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return { ok: false, reason: 'SUPABASE_URL/KEY no configurados' };
-  // apikey usa la publishable/anon key si existe, si no usa la secret key
-  const apiKey = SUPABASE_ANON_KEY || SUPABASE_SERVICE_KEY;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${supabaseUserId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': apiKey,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({
-        eur: balances.balanceEur,
-        xaf: balances.balanceXaf,
-        usd: balances.balanceUsd,
-        xof: balances.balanceXof
-      })
-    });
-    return { ok: res.ok, status: res.status };
-  } catch (e) {
-    return { ok: false, reason: e.message };
-  }
-}
-
-// POST /v1/admin/balance/push-supabase — Sincronizar saldo de un usuario Railway → Supabase
-router.post('/balance/push-supabase', requireAuth, requireLevel(3), async (req, res) => {
-  const { user_id } = req.body;
-  if (!user_id) return error(res, 'user_id requerido', 400);
-
-  try {
-    const wallet = await prisma.wallet.findUnique({ where: { userId: user_id } });
-    if (!wallet) return error(res, 'Wallet no encontrado en Railway', 404);
-
-    const result = await pushBalanceToSupabase(user_id, wallet);
-    if (!result.ok) return error(res, `No se pudo actualizar Supabase: ${result.reason || result.status}`, 502);
-
-    return success(res, {
-      message: 'Saldo sincronizado Railway → Supabase',
-      user_id,
-      balanceEur: wallet.balanceEur,
-      balanceXaf: wallet.balanceXaf,
-      balanceUsd: wallet.balanceUsd,
-      balanceXof: wallet.balanceXof
-    });
-  } catch (e) { return error(res, e.message); }
-});
-
-// POST /v1/admin/balance/push-supabase-all — Sincronizar TODOS los saldos Railway → Supabase
-router.post('/balance/push-supabase-all', requireAuth, requireLevel(4), async (req, res) => {
-  try {
-    const wallets = await prisma.wallet.findMany();
-    let synced = 0, failed = 0, errors = [];
-
-    for (const wallet of wallets) {
-      const result = await pushBalanceToSupabase(wallet.userId, wallet);
-      if (result.ok) {
-        synced++;
-      } else {
-        failed++;
-        errors.push({ userId: wallet.userId, reason: result.reason || result.status });
-      }
-    }
-
-    return success(res, {
-      message: 'Sincronización masiva Railway → Supabase completada',
-      total: wallets.length,
-      synced,
-      failed,
-      errors: errors.slice(0, 20)
-    });
-  } catch (e) { return error(res, e.message); }
-});
-
-// POST /v1/admin/balance/reconcile — Comparar Railway vs Supabase para un usuario
+// POST /v1/admin/balance/reconcile — Auditoría interna de un usuario
 router.post('/balance/reconcile', requireAuth, requireLevel(3), async (req, res) => {
   const { user_id } = req.body;
   if (!user_id) return error(res, 'user_id requerido', 400);
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    return error(res, 'Variables SUPABASE_URL y SUPABASE_SERVICE_KEY no configuradas en Railway', 500);
-  }
-
   try {
-    const [wallet, supaResp] = await Promise.all([
+    const [wallet, user, txns] = await Promise.all([
       prisma.wallet.findUnique({ where: { userId: user_id } }),
-      fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user_id}&select=id,email,eur,xaf,usd,xof`, {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY || SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
+      prisma.user.findUnique({ where: { id: user_id }, select: { id: true, name: true, email: true, role: true } }),
+      prisma.transaction.findMany({
+        where: { OR: [{ userId: user_id }, { recipientId: user_id }] },
+        select: { type: true, userId: true, recipientId: true, amountSent: true, currencySent: true,
+                  amountReceived: true, currencyReceived: true, fee: true, status: true }
       })
     ]);
 
-    if (!wallet) return error(res, 'Wallet no encontrado en Railway', 404);
+    if (!wallet) return error(res, 'Wallet no encontrado', 404);
 
-    const supaData = await supaResp.json();
-    const supaUser = Array.isArray(supaData) ? supaData[0] : null;
+    const FIELDS = { EUR: 'balanceEur', XAF: 'balanceXaf', USD: 'balanceUsd', XOF: 'balanceXof' };
 
-    const railway = { EUR: wallet.balanceEur, XAF: wallet.balanceXaf, USD: wallet.balanceUsd, XOF: wallet.balanceXof };
-    const supabase = supaUser
-      ? { EUR: supaUser.eur || 0, XAF: supaUser.xaf || 0, USD: supaUser.usd || 0, XOF: supaUser.xof || 0 }
-      : null;
+    // Calcular saldo esperado a partir del historial de transacciones
+    const expected = { EUR: 0, XAF: 0, USD: 0, XOF: 0 };
+    const completedTxns = txns.filter(t => t.status === 'completed' || t.status === 'processing');
 
-    const discrepancies = supabase
-      ? Object.keys(railway).filter(k => Math.abs(railway[k] - supabase[k]) > 0.01).map(k => ({
-          currency: k, railway: railway[k], supabase: supabase[k], diff: railway[k] - supabase[k]
-        }))
-      : [];
+    for (const t of completedTxns) {
+      const cur = t.currencySent;
+      const recvCur = t.currencyReceived || cur;
+      if (!expected.hasOwnProperty(cur) && !expected.hasOwnProperty(recvCur)) continue;
+
+      const isSender = t.userId === user_id;
+      const isRecipient = t.recipientId === user_id;
+
+      if (isSender && expected.hasOwnProperty(cur)) {
+        expected[cur] -= (t.amountSent || 0);
+      }
+      if (isRecipient && expected.hasOwnProperty(recvCur)) {
+        expected[recvCur] += (t.amountReceived || t.amountSent || 0);
+      }
+    }
+
+    const current = { EUR: wallet.balanceEur, XAF: wallet.balanceXaf, USD: wallet.balanceUsd, XOF: wallet.balanceXof };
+
+    const discrepancies = Object.keys(current).filter(k =>
+      Math.abs(current[k] - expected[k]) > 0.01
+    ).map(k => ({
+      currency: k,
+      wallet_balance: current[k],
+      computed_from_txns: Math.round(expected[k] * 100) / 100,
+      diff: Math.round((current[k] - expected[k]) * 100) / 100
+    }));
 
     return success(res, {
       user_id,
-      railway,
-      supabase,
-      in_sync: discrepancies.length === 0,
+      user: user || { id: user_id },
+      total_transactions: txns.length,
+      completed_transactions: completedTxns.length,
+      current_balance: current,
+      computed_from_history: { EUR: Math.round(expected.EUR*100)/100, XAF: Math.round(expected.XAF), USD: Math.round(expected.USD*100)/100, XOF: Math.round(expected.XOF) },
+      is_consistent: discrepancies.length === 0,
       discrepancies,
-      recommendation: discrepancies.length > 0
-        ? 'Ejecuta POST /v1/admin/balance/push-supabase con este user_id para sincronizar'
-        : 'Saldos coinciden — no se necesita acción'
+      note: discrepancies.length > 0
+        ? 'El saldo actual difiere del calculado por transacciones. Puede indicar un ajuste manual o dato corrupto.'
+        : 'Saldo consistente con el historial de transacciones.'
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
+// POST /v1/admin/balance/audit-all — Auditoría de todos los wallets
+router.post('/balance/audit-all', requireAuth, requireLevel(3), async (req, res) => {
+  try {
+    const wallets = await prisma.wallet.findMany({
+      include: { user: { select: { id: true, name: true, email: true } } }
+    });
+
+    let ok = 0, issues = 0;
+    const flagged = [];
+
+    for (const wallet of wallets) {
+      const txns = await prisma.transaction.findMany({
+        where: { OR: [{ userId: wallet.userId }, { recipientId: wallet.userId }] },
+        select: { type: true, userId: true, recipientId: true, amountSent: true, currencySent: true,
+                  amountReceived: true, currencyReceived: true, status: true }
+      });
+
+      const expected = { EUR: 0, XAF: 0, USD: 0, XOF: 0 };
+      const completed = txns.filter(t => t.status === 'completed' || t.status === 'processing');
+
+      for (const t of completed) {
+        const cur = t.currencySent, recvCur = t.currencyReceived || cur;
+        if (t.userId === wallet.userId && expected.hasOwnProperty(cur))
+          expected[cur] -= (t.amountSent || 0);
+        if (t.recipientId === wallet.userId && expected.hasOwnProperty(recvCur))
+          expected[recvCur] += (t.amountReceived || t.amountSent || 0);
+      }
+
+      const current = { EUR: wallet.balanceEur, XAF: wallet.balanceXaf, USD: wallet.balanceUsd, XOF: wallet.balanceXof };
+      const hasIssue = Object.keys(current).some(k => Math.abs(current[k] - expected[k]) > 0.01);
+
+      if (hasIssue) {
+        issues++;
+        flagged.push({
+          userId: wallet.userId,
+          name: wallet.user?.name, email: wallet.user?.email,
+          current_balance: current,
+          expected_balance: { EUR: Math.round(expected.EUR*100)/100, XAF: Math.round(expected.XAF), USD: Math.round(expected.USD*100)/100, XOF: Math.round(expected.XOF) }
+        });
+      } else { ok++; }
+    }
+
+    return success(res, {
+      message: 'Auditoría interna completada',
+      total: wallets.length, ok, issues,
+      flagged_wallets: flagged
     });
   } catch (e) { return error(res, e.message); }
 });
