@@ -1518,20 +1518,26 @@ router.post('/balance/reconcile', requireAuth, requireLevel(3), async (req, res)
     // Calcular saldo esperado a partir del historial de transacciones
     const expected = { EUR: 0, XAF: 0, USD: 0, XOF: 0 };
     const completedTxns = txns.filter(t => t.status === 'completed' || t.status === 'processing');
+    // Tipos que son crédito para userId (aumentan saldo)
+    const CREDIT_TYPES = new Set(['topup']);
+    // Tipos que son débito para userId (reducen saldo)
+    const DEBIT_TYPES  = new Set(['send', 'withdraw', 'p2p', 'qr_payment', 'bill', 'bill_payment']);
 
     for (const t of completedTxns) {
-      const cur = t.currencySent;
+      const cur     = t.currencySent;
       const recvCur = t.currencyReceived || cur;
-      if (!expected.hasOwnProperty(cur) && !expected.hasOwnProperty(recvCur)) continue;
-
-      const isSender = t.userId === user_id;
+      const isOwner     = t.userId      === user_id;
       const isRecipient = t.recipientId === user_id;
 
-      if (isSender && expected.hasOwnProperty(cur)) {
-        expected[cur] -= (t.amountSent || 0);
+      if (isOwner && expected.hasOwnProperty(cur)) {
+        if (CREDIT_TYPES.has(t.type)) {
+          expected[cur] += (t.amountSent || 0);       // topup → crédito
+        } else {
+          expected[cur] -= (t.amountSent || 0);       // send/withdraw/etc → débito
+        }
       }
       if (isRecipient && expected.hasOwnProperty(recvCur)) {
-        expected[recvCur] += (t.amountReceived || t.amountSent || 0);
+        expected[recvCur] += (t.amountReceived || t.amountSent || 0); // siempre crédito para receptor
       }
     }
 
@@ -1581,11 +1587,14 @@ router.post('/balance/audit-all', requireAuth, requireLevel(3), async (req, res)
 
       const expected = { EUR: 0, XAF: 0, USD: 0, XOF: 0 };
       const completed = txns.filter(t => t.status === 'completed' || t.status === 'processing');
+      const CREDIT_TYPES = new Set(['topup']);
 
       for (const t of completed) {
         const cur = t.currencySent, recvCur = t.currencyReceived || cur;
-        if (t.userId === wallet.userId && expected.hasOwnProperty(cur))
-          expected[cur] -= (t.amountSent || 0);
+        if (t.userId === wallet.userId && expected.hasOwnProperty(cur)) {
+          if (CREDIT_TYPES.has(t.type)) expected[cur] += (t.amountSent || 0);
+          else                          expected[cur] -= (t.amountSent || 0);
+        }
         if (t.recipientId === wallet.userId && expected.hasOwnProperty(recvCur))
           expected[recvCur] += (t.amountReceived || t.amountSent || 0);
       }
