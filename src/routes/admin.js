@@ -1441,7 +1441,7 @@ router.get('/wallets', requireAuth, requireLevel(2), async (req, res) => {
       include: {
         user: { select: { id: true, name: true, email: true, country: true, role: true, kycStatus: true } }
       },
-      orderBy: { user: { createdAt: 'desc' } }
+      orderBy: { id: 'desc' }
     });
 
     let filtered = wallets;
