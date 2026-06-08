@@ -7,15 +7,48 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ── Roles ─────────────────────────────────────────────────────
+enum UserRole {
+  customer
+  rider
+  supplier
+  circular_autorizada
+  api_partner
+  city_coordinator
+  rider_coordinator
+  business_developer
+  kyc_officer
+  loan_officer
+  support_agent
+  marketing_manager
+  tax_officer
+  payroll_manager
+  support_supervisor
+  compliance_officer
+  finance_officer
+  risk_officer
+  auditor
+  country_manager
+  regional_director
+  super_admin
+  admin
+}
+
 model User {
-  id           String   @id
-  email        String   @unique
-  name         String
-  phone        String
-  country      String
-  role         String   @default("customer")
-  passwordHash String
-  kycStatus    String   @default("pending")
+  id                String   @id
+  email             String   @unique
+  name              String
+  phone             String
+  country           String
+  role              UserRole @default(customer)
+  passwordHash      String
+  kycStatus         String   @default("pending")
+  // 2FA
+  twoFactorSecret   String?
+  twoFactorEnabled  Boolean  @default(false)
+  // Comisiones representante
+  representativeId  String?
+  commissionRate    Float    @default(0)
   kycDocument   String?
   referralCode  String?
   blocked       Boolean  @default(false)
@@ -169,16 +202,22 @@ model OrderItem {
 }
 
 model GroceryOrder {
-  id                String   @id
+  id                String    @id
   userId            String
   totalXaf          Float
   notes             String?
   deliveryAddress   String
   riderId           String?
-  status            String   @default("preparing")
+  status            String    @default("preparing")
   estimatedDelivery String?
   deliveryProof     String?
-  createdAt         DateTime @default(now())
+  // Rider fee
+  riderFeeXaf       Float     @default(0)
+  riderFeeStatus    String    @default("pending")  // pending|escrow|released|manual_released
+  riderPaymentMode  String    @default("auto")     // auto|manual
+  confirmedAt       DateTime?
+  riderPaidAt       DateTime?
+  createdAt         DateTime  @default(now())
 
   user  User               @relation(fields: [userId],  references: [id])
   rider Rider?             @relation(fields: [riderId], references: [id])
@@ -206,6 +245,7 @@ model Rider {
   rating          Float?
   deliveriesTotal Int      @default(0)
   registeredBy    String?
+  userId          String?  @unique   // enlace a User (wallet XenderMoney)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -487,26 +527,29 @@ model BulkPaymentResult {
 }
 
 model Invoice {
-  id            String    @id
-  invoiceNumber String    @unique
-  issuerId      String
-  issuerName    String
-  businessId    String?
-  clientId      String?
-  clientName    String
-  clientEmail   String?
-  currency      String
-  subtotal      Float
-  taxRate       Float
-  taxAmount     Float
-  totalEur      Float
-  notes         String?
-  status        String    @default("draft")
-  dueDate       DateTime?
-  sentAt        DateTime?
-  paidAt        DateTime?
-  paidBy        String?
-  createdAt     DateTime  @default(now())
+  id              String    @id
+  invoiceNumber   String    @unique
+  issuerId        String
+  issuerName      String
+  businessId      String?
+  clientId        String?
+  clientName      String
+  clientEmail     String?
+  currency        String
+  subtotal        Float
+  taxRate         Float
+  taxAmount       Float
+  totalEur        Float
+  notes           String?
+  status          String    @default("draft")
+  dueDate         DateTime?
+  sentAt          DateTime?
+  paidAt          DateTime?
+  paidBy          String?
+  // Rider delivery fee embedded in invoice
+  riderFeeXaf     Float     @default(0)
+  deliveryOrderId String?   @unique
+  createdAt       DateTime  @default(now())
 
   issuer   User             @relation("Issuer", fields: [issuerId], references: [id])
   payer    User?            @relation("Payer",  fields: [paidBy],   references: [id])
@@ -960,6 +1003,56 @@ model PhysicalCard {
   issuedAt    DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// ── Configuración de comisiones (configurable por admin) ─────
+model CommissionConfig {
+  id          String   @id @default(cuid())
+  country     String   @default("*")      // * = global, ES, CM, SN...
+  feeType     String                       // transfer|withdrawal|maintenance|delivery|p2p
+  totalRate   Float                        // % total cobrado al cliente (ej: 0.02 = 2%)
+  ivaRate     Float    @default(0.19)      // % de IVA que va a Hacienda (sobre el fee bruto)
+  repRate     Float    @default(0)         // % que va al representante (sobre el fee neto)
+  active      Boolean  @default(true)
+  description String?
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@unique([country, feeType])
+}
+
+// ── Registro de distribución de comisiones (audit trail) ─────
+model CommissionRecord {
+  id             String   @id @default(cuid())
+  transactionId  String?
+  orderId        String?
+  invoiceId      String?
+  feeType        String
+  currency       String   @default("EUR")
+  grossFee       Float                    // fee total cobrado
+  ivaAmount      Float    @default(0)     // porción para Hacienda
+  innovaAmount   Float                    // porción neta para InnovaAFRIC
+  repAmount      Float    @default(0)     // porción para representante
+  repId          String?                  // userId del representante
+  repName        String?
+  status         String   @default("distributed") // distributed|pending|reversed
+  createdAt      DateTime @default(now())
+}
+
+// ── Representantes (red comercial) ──────────────────────────
+model Representative {
+  id             String   @id @default(cuid())
+  userId         String   @unique          // enlace al User (rol: business_developer, etc.)
+  zone           String                    // ciudad o país que cubre
+  country        String
+  commissionRate Float    @default(0.005)  // 0.5% por defecto
+  status         String   @default("active")
+  totalEarned    Float    @default(0)
+  clientCount    Int      @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model AccountingEntry {

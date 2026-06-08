@@ -64,6 +64,10 @@ const kycRoutes           = require('./src/routes/kyc');
 const stripeRoutes        = require('./src/routes/stripe');
 const mobilemoneyRoutes   = require('./src/routes/mobilemoney');
 const swiftRoutes         = require('./src/routes/swift');
+// v34 — 2FA, Comisiones, Rider payment
+const twoFactorRoutes     = require('./src/routes/two-factor');
+const commissionsRoutes   = require('./src/routes/commissions');
+const riderPaymentRoutes  = require('./src/routes/rider-payment');
 const { error }      = require('./src/helpers/response');
 
 const app = express();
@@ -181,9 +185,13 @@ app.use('/v1/installments', installmentsRoutes);
 app.use('/v1/invest',       investRoutes);
 // v27
 app.use('/v1/merchants',    merchantsRoutes);
-app.use('/v1/refunds',      refundsRoutes);
-app.use('/v1/marketplace',  marketplaceRoutes);
-app.use('/v1/promo-codes',  promocodesRoutes);
+app.use('/v1/refunds',        refundsRoutes);
+app.use('/v1/marketplace',    marketplaceRoutes);
+app.use('/v1/promo-codes',    promocodesRoutes);
+// v34
+app.use('/v1/2fa',            twoFactorRoutes);
+app.use('/v1/commissions',    commissionsRoutes);
+app.use('/v1/rider-payment',  riderPaymentRoutes);
 // v28
 app.use('/v1/partners',     partnersRoutes);
 app.use('/v1/billing',      billingRoutes);
