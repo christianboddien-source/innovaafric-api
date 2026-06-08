@@ -35,7 +35,10 @@ nav {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 2rem; height: 64px;
 }
-.nav-logo { font-size: 1.3rem; font-weight: 800; color: var(--green); letter-spacing: 1px; }
+.nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.nav-logo img { width:36px; height:36px; border-radius:9px; }
+.nav-logo-text { font-size: 1.3rem; font-weight: 800; color: #29ABE2; letter-spacing: 1px; }
+.nav-logo-sub { font-size:0.6rem; color:rgba(41,171,226,.6); letter-spacing:1.5px; font-weight:600; line-height:1; }
 .nav-links { display: flex; gap: 0.5rem; align-items: center; }
 .nav-links a {
   padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
@@ -80,6 +83,31 @@ nav {
 .stat { text-align: center; }
 .stat-num { font-size: 2rem; font-weight: 900; color: var(--green); }
 .stat-label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* TRICONTINENTAL ANIMATION */
+.tri-section{background:var(--bg);padding:5rem 2rem;text-align:center;border-top:1px solid var(--border)}
+.tri-wrap{display:flex;flex-direction:column;align-items:center;gap:0}
+.tri-stage{position:relative;width:380px;height:380px;max-width:90vw}
+.tri-stage svg.tri-svg{position:absolute;inset:0;width:100%;height:100%}
+.tri-node{position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;transition:opacity .5s,transform .5s}
+.tri-node.show{opacity:1;transform:scale(1)!important}
+.tri-node-ico{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid;box-shadow:0 0 18px currentColor}
+.tri-node-lbl{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.tri-eu{top:14px;left:14px;color:#29ABE2;transform:scale(.6)}
+.tri-eu .tri-node-ico{background:rgba(41,171,226,.1);border-color:#29ABE2}
+.tri-as{top:14px;right:14px;color:#F5A623;transform:scale(.6)}
+.tri-as .tri-node-ico{background:rgba(245,166,35,.1);border-color:#F5A623}
+.tri-af{bottom:14px;left:50%;margin-left:-43px;color:#22c55e;transform:scale(.6)}
+.tri-af .tri-node-ico{background:rgba(34,197,94,.1);border-color:#22c55e}
+.tri-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);opacity:0;text-align:center;transition:opacity .6s,transform .6s}
+.tri-center.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.tri-center svg{filter:drop-shadow(0 0 14px rgba(41,171,226,.7));animation:triPulse 2s ease-in-out infinite}
+.tri-center-name{font-size:15px;font-weight:900;color:#29ABE2;letter-spacing:2px;margin-top:7px}
+.tri-center-sub{font-size:9px;color:rgba(41,171,226,.6);letter-spacing:2px;font-weight:600;margin-top:2px}
+.tri-tagline{font-size:12px;font-weight:600;color:rgba(255,255,255,.45);letter-spacing:3px;text-transform:uppercase;margin-top:22px;opacity:0;transition:opacity .6s}
+.tri-tagline.show{opacity:1}
+.tri-tagline span{color:#29ABE2}
+@keyframes triPulse{0%,100%{filter:drop-shadow(0 0 8px rgba(41,171,226,.5))}50%{filter:drop-shadow(0 0 24px rgba(41,171,226,.95))}}
 
 /* SECTION */
 section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
@@ -195,7 +223,13 @@ footer p { color: var(--muted); font-size: 0.8rem; }
 
 <!-- NAV -->
 <nav>
-  <span class="nav-logo">INNOVAAFRIC</span>
+  <a class="nav-logo" href="/">
+    <img src="/icons/icon-192.png" alt="InnovaAFRIC logo">
+    <div>
+      <div class="nav-logo-text">InnovaAFRIC</div>
+      <div class="nav-logo-sub">We Simplify Life</div>
+    </div>
+  </a>
   <div class="nav-links">
     <a href="/money" class="money">💰 XenderMoney</a>
     <a href="/shop" class="shop">🛒 XenderShop</a>
@@ -248,6 +282,48 @@ footer p { color: var(--muted); font-size: 0.8rem; }
     <div class="stat"><div class="stat-num">10+</div><div class="stat-label">Países</div></div>
     <div class="stat"><div class="stat-num">3</div><div class="stat-label">Continentes</div></div>
     <div class="stat"><div class="stat-num">40+</div><div class="stat-label">Servicios</div></div>
+  </div>
+</div>
+
+<!-- ANIMACIÓN TRICONTINENTAL -->
+<div class="tri-section" id="tricontinental">
+  <div class="tri-wrap">
+    <div class="tri-stage">
+      <svg class="tri-svg" viewBox="0 0 380 380" xmlns="http://www.w3.org/2000/svg">
+        <path id="tl-eu-as" d="M 88 54 Q 190 18 292 54" fill="none" stroke="#29ABE2" stroke-width="1.8" stroke-dasharray="350" stroke-dashoffset="350" style="transition:stroke-dashoffset 1s ease"/>
+        <path id="tl-eu-af" d="M 54 88 Q 62 210 152 318" fill="none" stroke="#22c55e" stroke-width="1.8" stroke-dasharray="350" stroke-dashoffset="350" style="transition:stroke-dashoffset 1s ease"/>
+        <path id="tl-as-af" d="M 326 88 Q 318 210 228 318" fill="none" stroke="#F5A623" stroke-width="1.8" stroke-dasharray="350" stroke-dashoffset="350" style="transition:stroke-dashoffset 1s ease"/>
+        <!-- Puntos viajando -->
+        <circle r="5" fill="#29ABE2" opacity="0" id="td1"><animateMotion dur="1.8s" repeatCount="indefinite" begin="indefinite" id="td1m"><mpath href="#tp-eu-as"/></animateMotion><animate attributeName="opacity" from="0" to="1" dur="0.1s" begin="indefinite" fill="freeze" id="td1o"/></circle>
+        <circle r="5" fill="#22c55e"  opacity="0" id="td2"><animateMotion dur="2.1s" repeatCount="indefinite" begin="indefinite" id="td2m"><mpath href="#tp-eu-af"/></animateMotion><animate attributeName="opacity" from="0" to="1" dur="0.1s" begin="indefinite" fill="freeze" id="td2o"/></circle>
+        <circle r="5" fill="#F5A623"  opacity="0" id="td3"><animateMotion dur="2s"   repeatCount="indefinite" begin="indefinite" id="td3m"><mpath href="#tp-as-af"/></animateMotion><animate attributeName="opacity" from="0" to="1" dur="0.1s" begin="indefinite" fill="freeze" id="td3o"/></circle>
+        <path id="tp-eu-as" d="M 88 54 Q 190 18 292 54" style="display:none"/>
+        <path id="tp-eu-af" d="M 54 88 Q 62 210 152 318" style="display:none"/>
+        <path id="tp-as-af" d="M 228 318 Q 318 210 326 88" style="display:none"/>
+      </svg>
+      <div class="tri-node tri-eu" id="triEu"><div class="tri-node-ico">🌍</div><div class="tri-node-lbl">Europa</div></div>
+      <div class="tri-node tri-as" id="triAs"><div class="tri-node-ico">🌏</div><div class="tri-node-lbl">Asia</div></div>
+      <div class="tri-node tri-af" id="triAf"><div class="tri-node-ico">🌍</div><div class="tri-node-lbl">África</div></div>
+      <div class="tri-center" id="triCenter">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="88" height="88">
+          <rect width="200" height="200" rx="40" fill="#0A1628"/>
+          <circle cx="100" cy="88" r="34" fill="none" stroke="#29ABE2" stroke-width="5"/>
+          <ellipse cx="100" cy="88" rx="18" ry="34" fill="none" stroke="#29ABE2" stroke-width="3"/>
+          <line x1="66" y1="88" x2="134" y2="88" stroke="#29ABE2" stroke-width="3"/>
+          <line x1="100" y1="54" x2="100" y2="30" stroke="#29ABE2" stroke-width="3.5"/><circle cx="100" cy="24" r="6" fill="#29ABE2"/>
+          <line x1="124" y1="64" x2="143" y2="45" stroke="#29ABE2" stroke-width="3.5"/><circle cx="148" cy="40" r="6" fill="#29ABE2"/>
+          <line x1="134" y1="88" x2="158" y2="88" stroke="#29ABE2" stroke-width="3.5"/><circle cx="164" cy="88" r="6" fill="#29ABE2"/>
+          <line x1="124" y1="112" x2="143" y2="131" stroke="#29ABE2" stroke-width="3.5"/><circle cx="148" cy="136" r="6" fill="#29ABE2"/>
+          <line x1="100" y1="122" x2="100" y2="146" stroke="#29ABE2" stroke-width="3.5"/><circle cx="100" cy="152" r="6" fill="#29ABE2"/>
+          <line x1="76" y1="112" x2="57" y2="131" stroke="#29ABE2" stroke-width="3.5"/><circle cx="52" cy="136" r="6" fill="#29ABE2"/>
+          <line x1="66" y1="88" x2="42" y2="88" stroke="#29ABE2" stroke-width="3.5"/><circle cx="36" cy="88" r="6" fill="#29ABE2"/>
+          <line x1="76" y1="64" x2="57" y2="45" stroke="#29ABE2" stroke-width="3.5"/><circle cx="52" cy="40" r="6" fill="#29ABE2"/>
+        </svg>
+        <div class="tri-center-name">InnovaAFRIC</div>
+        <div class="tri-center-sub">We Simplify Life</div>
+      </div>
+    </div>
+    <div class="tri-tagline" id="triTagline">Conectando <span>Asia · Europa · África</span></div>
   </div>
 </div>
 
@@ -859,5 +935,35 @@ async function sendContact() {
 }
 </script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
+
+<script>
+// Animación tricontinental — se activa al hacer scroll hasta la sección
+(function(){
+  var fired = false;
+  function runTriAnim(){
+    if(fired) return; fired = true;
+    var t = function(fn,ms){ return setTimeout(fn,ms); };
+    t(function(){ document.getElementById('triEu').classList.add('show'); }, 200);
+    t(function(){ document.getElementById('triAs').classList.add('show'); }, 500);
+    t(function(){ document.getElementById('triAf').classList.add('show'); }, 800);
+    t(function(){ document.getElementById('tl-eu-as').style.strokeDashoffset='0'; }, 1100);
+    t(function(){ document.getElementById('tl-eu-af').style.strokeDashoffset='0'; }, 1400);
+    t(function(){ document.getElementById('tl-as-af').style.strokeDashoffset='0'; }, 1700);
+    t(function(){
+      document.getElementById('triCenter').classList.add('show');
+      ['td1m','td2m','td3m','td1o','td2o','td3o'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el && el.beginElement) el.beginElement();
+      });
+    }, 2100);
+    t(function(){ document.getElementById('triTagline').classList.add('show'); }, 2900);
+  }
+  var observer = new IntersectionObserver(function(entries){
+    if(entries[0].isIntersecting) runTriAnim();
+  }, {threshold: 0.3});
+  var section = document.getElementById('tricontinental');
+  if(section) observer.observe(section);
+})();
+</script>
 </body>
 </html>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Fondo -->
+  <rect width="200" height="200" rx="40" fill="#0A1628"/>
+
+  <!-- Globo central -->
+  <circle cx="100" cy="88" r="34" fill="none" stroke="#29ABE2" stroke-width="5"/>
+  <!-- Meridianos/paralelos -->
+  <ellipse cx="100" cy="88" rx="18" ry="34" fill="none" stroke="#29ABE2" stroke-width="3"/>
+  <line x1="66" y1="88" x2="134" y2="88" stroke="#29ABE2" stroke-width="3"/>
+  <line x1="68" y1="72" x2="132" y2="72" stroke="#29ABE2" stroke-width="2"/>
+  <line x1="68" y1="104" x2="132" y2="104" stroke="#29ABE2" stroke-width="2"/>
+
+  <!-- 8 spokes y puntos externos -->
+  <!-- Top -->
+  <line x1="100" y1="54" x2="100" y2="30" stroke="#29ABE2" stroke-width="3.5"/>
+  <circle cx="100" cy="24" r="6" fill="#29ABE2"/>
+  <!-- Top-right -->
+  <line x1="124" y1="64" x2="143" y2="45" stroke="#29ABE2" stroke-width="3.5"/>
+  <circle cx="148" cy="40" r="6" fill="#29ABE2"/>
+  <!-- Right -->
+  <line x1="134" y1="88" x2="158" y2="88" stroke="#29ABE2" stroke-width="3.5"/>
+  <circle cx="164" cy="88" r="6" fill="#29ABE2"/>
+  <!-- Bottom-right -->
+  <line x1="124" y1="112" x2="143" y2="131" stroke="#29ABE2" stroke-width="3.5"/>
+  <circle cx="148" cy="136" r="6" fill="#29ABE2"/>
+  <!-- Bottom -->
+  <line x1="100" y1="122" x2="100" y2="146" stroke="#29ABE2" stroke-width="3.5"/>
+  <circle cx="100" cy="152" r="6" fill="#29ABE2"/>
+  <!-- Bottom-left -->
+  <line x1="76" y1="112" x2="57" y2="131" stroke="#29ABE2" stroke-width="3.5"/>
+  <circle cx="52" cy="136" r="6" fill="#29ABE2"/>
+  <!-- Left -->
+  <line x1="66" y1="88" x2="42" y2="88" stroke="#29ABE2" stroke-width="3.5"/>
+  <circle cx="36" cy="88" r="6" fill="#29ABE2"/>
+  <!-- Top-left -->
+  <line x1="76" y1="64" x2="57" y2="45" stroke="#29ABE2" stroke-width="3.5"/>
+  <circle cx="52" cy="40" r="6" fill="#29ABE2"/>
+
+  <!-- Texto InnovaAFRIC -->
+  <text x="100" y="176" font-family="Arial Black, Arial" font-size="22" font-weight="900" fill="#29ABE2" text-anchor="middle" letter-spacing="2">InnovaAFRIC</text>
+  <!-- Subtítulo -->
+  <text x="100" y="193" font-family="Arial, sans-serif" font-size="10" font-weight="600" fill="#29ABE2" text-anchor="middle" letter-spacing="1" opacity="0.8">We Simplify Life</text>
+</svg>

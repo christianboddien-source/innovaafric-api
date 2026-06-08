@@ -2,7 +2,7 @@
   "name": "INNOVAAFRIC — Ecosistema Tricontinental",
   "short_name": "InnovaAFRIC",
   "description": "Pagos, comercio, entregas y servicios financieros para tres continentes",
-  "start_url": "/",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#0a0f1e",
   "theme_color": "#00C48C",

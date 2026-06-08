@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preview Animación — InnovaAFRIC</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0A1628;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',sans-serif}
+
+.stage{position:relative;width:360px;height:360px}
+
+/* ── Nodos continentales ── */
+.node{position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;animation:nodeFadeIn .6s ease forwards}
+.node-icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid;box-shadow:0 0 18px currentColor}
+.node-lbl{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+
+/* Europa — arriba izquierda */
+.node-eu{top:20px;left:20px;animation-delay:.3s;color:#29ABE2}
+.node-eu .node-icon{background:rgba(41,171,226,.12);border-color:#29ABE2}
+
+/* Asia — arriba derecha */
+.node-as{top:20px;right:20px;animation-delay:.6s;color:#F5A623}
+.node-as .node-icon{background:rgba(245,166,35,.12);border-color:#F5A623}
+
+/* África — abajo centro */
+.node-af{bottom:20px;left:50%;transform:translateX(-50%);animation-delay:.9s;color:#22c55e}
+.node-af .node-icon{background:rgba(34,197,94,.12);border-color:#22c55e}
+
+/* ── SVG líneas del triángulo ── */
+.tri-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+
+.tri-line{fill:none;stroke-width:1.5;stroke-dasharray:400;stroke-dashoffset:400;animation:drawLine 1s ease forwards}
+.line-eu-as{stroke:#29ABE2;animation-delay:1.2s}
+.line-eu-af{stroke:#22c55e;animation-delay:1.5s}
+.line-as-af{stroke:#F5A623;animation-delay:1.8s}
+
+/* Puntos viajando */
+.travel-dot{opacity:0;animation:dotAppear .1s ease forwards}
+.dot-eu-as{animation-delay:2.3s}
+.dot-eu-af{animation-delay:2.5s}
+.dot-af-as{animation-delay:2.7s}
+
+/* ── Logo central ── */
+.center-logo{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;opacity:0;
+  animation:logoAppear .8s ease forwards;
+  animation-delay:2.2s
+}
+.center-logo svg{width:70px;height:70px;filter:drop-shadow(0 0 12px rgba(41,171,226,.7));animation:logoPulse 2s ease-in-out infinite}
+.center-name{font-size:13px;font-weight:900;color:#29ABE2;letter-spacing:2px;margin-top:6px}
+.center-sub{font-size:8px;color:rgba(41,171,226,.6);letter-spacing:2px;font-weight:600;margin-top:2px}
+
+/* ── Tagline final ── */
+.tagline{
+  margin-top:24px;text-align:center;opacity:0;
+  animation:nodeFadeIn .8s ease forwards;animation-delay:3s
+}
+.tagline p{color:rgba(255,255,255,.5);font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:600}
+.tagline span{color:#29ABE2}
+
+/* ── Replay button ── */
+.replay{
+  margin-top:32px;padding:10px 28px;background:transparent;
+  border:1px solid rgba(41,171,226,.4);border-radius:20px;
+  color:#29ABE2;font-size:12px;font-weight:700;letter-spacing:2px;
+  cursor:pointer;opacity:0;animation:nodeFadeIn .5s ease forwards;animation-delay:3.8s;
+  text-transform:uppercase;transition:all .2s
+}
+.replay:hover{background:rgba(41,171,226,.1);border-color:#29ABE2}
+
+/* ── Keyframes ── */
+@keyframes nodeFadeIn{
+  from{opacity:0;transform:scale(.7)}
+  to{opacity:1;transform:scale(1)}
+}
+/* África node tiene transform especial */
+.node-af{animation:nodeFadeInAf .6s ease forwards;animation-delay:.9s}
+@keyframes nodeFadeInAf{
+  from{opacity:0;transform:translateX(-50%) scale(.7)}
+  to{opacity:1;transform:translateX(-50%) scale(1)}
+}
+
+@keyframes drawLine{
+  to{stroke-dashoffset:0}
+}
+@keyframes logoAppear{
+  from{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+@keyframes logoPulse{
+  0%,100%{filter:drop-shadow(0 0 8px rgba(41,171,226,.5))}
+  50%{filter:drop-shadow(0 0 22px rgba(41,171,226,.9))}
+}
+@keyframes dotAppear{
+  to{opacity:1}
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- SVG líneas triángulo -->
+  <!-- Coordenadas aproximadas de los nodos:
+       EU: (52, 52)   AS: (308, 52)   AF: (180, 308) -->
+  <svg class="tri-svg" viewBox="0 0 360 360">
+    <!-- Línea Europa → Asia -->
+    <path class="tri-line line-eu-as" d="M 84 52 Q 180 20 276 52"/>
+    <!-- Línea Europa → África -->
+    <path class="tri-line line-eu-af" d="M 52 84 Q 60 200 148 300"/>
+    <!-- Línea Asia → África -->
+    <path class="tri-line line-as-af" d="M 308 84 Q 300 200 212 300"/>
+
+    <!-- Puntos viajando Europa→Asia -->
+    <circle class="travel-dot dot-eu-as" r="5" fill="#29ABE2">
+      <animateMotion dur="1.8s" repeatCount="indefinite" begin="2.3s">
+        <mpath href="#path-eu-as"/>
+      </animateMotion>
+    </circle>
+    <path id="path-eu-as" d="M 84 52 Q 180 20 276 52" style="display:none"/>
+
+    <!-- Puntos viajando Europa→África -->
+    <circle class="travel-dot dot-eu-af" r="5" fill="#22c55e">
+      <animateMotion dur="2.1s" repeatCount="indefinite" begin="2.5s">
+        <mpath href="#path-eu-af"/>
+      </animateMotion>
+    </circle>
+    <path id="path-eu-af" d="M 52 84 Q 60 200 148 300" style="display:none"/>
+
+    <!-- Puntos viajando África→Asia -->
+    <circle class="travel-dot dot-af-as" r="5" fill="#F5A623">
+      <animateMotion dur="2s" repeatCount="indefinite" begin="2.7s">
+        <mpath href="#path-af-as"/>
+      </animateMotion>
+    </circle>
+    <path id="path-af-as" d="M 212 300 Q 300 200 308 84" style="display:none"/>
+  </svg>
+
+  <!-- Nodo Europa -->
+  <div class="node node-eu">
+    <div class="node-icon">🌍</div>
+    <div class="node-lbl">Europa</div>
+  </div>
+
+  <!-- Nodo Asia -->
+  <div class="node node-as">
+    <div class="node-icon">🌏</div>
+    <div class="node-lbl">Asia</div>
+  </div>
+
+  <!-- Nodo África -->
+  <div class="node node-af">
+    <div class="node-icon">🌍</div>
+    <div class="node-lbl">África</div>
+  </div>
+
+  <!-- Logo central -->
+  <div class="center-logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+      <rect width="200" height="200" rx="40" fill="#0A1628"/>
+      <circle cx="100" cy="88" r="34" fill="none" stroke="#29ABE2" stroke-width="5"/>
+      <ellipse cx="100" cy="88" rx="18" ry="34" fill="none" stroke="#29ABE2" stroke-width="3"/>
+      <line x1="66" y1="88" x2="134" y2="88" stroke="#29ABE2" stroke-width="3"/>
+      <line x1="68" y1="72" x2="132" y2="72" stroke="#29ABE2" stroke-width="2"/>
+      <line x1="68" y1="104" x2="132" y2="104" stroke="#29ABE2" stroke-width="2"/>
+      <line x1="100" y1="54" x2="100" y2="30" stroke="#29ABE2" stroke-width="3.5"/><circle cx="100" cy="24" r="6" fill="#29ABE2"/>
+      <line x1="124" y1="64" x2="143" y2="45" stroke="#29ABE2" stroke-width="3.5"/><circle cx="148" cy="40" r="6" fill="#29ABE2"/>
+      <line x1="134" y1="88" x2="158" y2="88" stroke="#29ABE2" stroke-width="3.5"/><circle cx="164" cy="88" r="6" fill="#29ABE2"/>
+      <line x1="124" y1="112" x2="143" y2="131" stroke="#29ABE2" stroke-width="3.5"/><circle cx="148" cy="136" r="6" fill="#29ABE2"/>
+      <line x1="100" y1="122" x2="100" y2="146" stroke="#29ABE2" stroke-width="3.5"/><circle cx="100" cy="152" r="6" fill="#29ABE2"/>
+      <line x1="76" y1="112" x2="57" y2="131" stroke="#29ABE2" stroke-width="3.5"/><circle cx="52" cy="136" r="6" fill="#29ABE2"/>
+      <line x1="66" y1="88" x2="42" y2="88" stroke="#29ABE2" stroke-width="3.5"/><circle cx="36" cy="88" r="6" fill="#29ABE2"/>
+      <line x1="76" y1="64" x2="57" y2="45" stroke="#29ABE2" stroke-width="3.5"/><circle cx="52" cy="40" r="6" fill="#29ABE2"/>
+    </svg>
+    <div class="center-name">InnovaAFRIC</div>
+    <div class="center-sub">We Simplify Life</div>
+  </div>
+
+</div>
+
+<!-- Tagline -->
+<div class="tagline">
+  <p>Conectando <span>Asia · Europa · África</span></p>
+</div>
+
+<!-- Replay -->
+<button class="replay" onclick="location.reload()">↺ &nbsp;Repetir animación</button>
+
+</body>
+</html>
