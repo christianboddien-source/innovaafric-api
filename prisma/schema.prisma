@@ -1043,16 +1043,76 @@ model CommissionRecord {
 // ── Representantes (red comercial) ──────────────────────────
 model Representative {
   id             String   @id @default(cuid())
-  userId         String   @unique          // enlace al User (rol: business_developer, etc.)
-  zone           String                    // ciudad o país que cubre
+  userId         String   @unique
+  zone           String
   country        String
-  commissionRate Float    @default(0.005)  // 0.5% por defecto
+  commissionRate Float    @default(0.005)
+  discountRate   Float    @default(0.10)   // 10% descuento en compra de unidades
   status         String   @default("active")
   totalEarned    Float    @default(0)
   clientCount    Int      @default(0)
   notes          String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  account        RepAccount?
+  topUps         ClientTopUp[]
+  unitPurchases  UnitPurchase[]
+}
+
+// ── Cuenta de unidades del representante ─────────────────────
+model RepAccount {
+  id                 String   @id @default(cuid())
+  repId              String   @unique
+  unitBalance        Float    @default(0)   // unidades disponibles (valor nominal EUR)
+  totalUnitsBought   Float    @default(0)   // total comprado histórico
+  totalUnitsUsed     Float    @default(0)   // total recargado a clientes
+  totalPaid          Float    @default(0)   // total pagado a InnovaAFRIC (90%)
+  totalSaved         Float    @default(0)   // total ahorrado con el 10%
+  alertThreshold     Float    @default(100) // alerta cuando saldo < X unidades
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  rep                Representative @relation(fields: [repId], references: [id])
+}
+
+// ── Compra de unidades (rep → InnovaAFRIC) ───────────────────
+model UnitPurchase {
+  id              String   @id @default(cuid())
+  repId           String
+  unitsRequested  Float                    // unidades en valor nominal (ej. 1000 EUR)
+  discountRate    Float    @default(0.10)
+  amountToPay     Float                    // lo que el rep paga (90%)
+  amountDiscount  Float                    // descuento aplicado (10%)
+  currency        String   @default("EUR")
+  bankName        String?
+  bankRef         String?                  // referencia de la transferencia bancaria
+  receiptUrl      String?                  // justificante bancario
+  status          String   @default("pending") // pending|confirmed|rejected
+  confirmedBy     String?
+  confirmedAt     DateTime?
+  rejectedReason  String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  rep             Representative @relation(fields: [repId], references: [id])
+}
+
+// ── Recarga de cliente por representante ─────────────────────
+model ClientTopUp {
+  id          String   @id @default(cuid())
+  repId       String
+  clientId    String
+  clientName  String?
+  clientPhone String?
+  amount      Float                    // unidades usadas (valor nominal)
+  currency    String   @default("EUR")
+  note        String?
+  status      String   @default("completed")
+  createdAt   DateTime @default(now())
+
+  rep         Representative @relation(fields: [repId], references: [id])
 }
 
 model AccountingEntry {

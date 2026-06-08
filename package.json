@@ -28,6 +28,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^8.0.8",
+    "pdfkit": "^0.19.0",
     "prisma": "^6.0.0",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
