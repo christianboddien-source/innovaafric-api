@@ -2,7 +2,7 @@
 const router  = require('express').Router();
 const prisma  = require('../config/prisma');
 const PDFDocument = require('pdfkit');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { requireAuth: authenticate, requireRole } = require('../middleware/auth');
 const { ok, error } = require('../helpers/response');
 
 const DISCOUNT = 0.10; // 10% descuento motivacional

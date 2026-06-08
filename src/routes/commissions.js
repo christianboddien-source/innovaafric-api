@@ -1,7 +1,7 @@
 'use strict';
 const router = require('express').Router();
 const prisma  = require('../config/prisma');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { requireAuth: authenticate, requireRole } = require('../middleware/auth');
 const { ok, error } = require('../helpers/response');
 const { seedDefaultConfigs } = require('../services/commission');
 
