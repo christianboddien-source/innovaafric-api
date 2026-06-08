@@ -240,6 +240,66 @@ body{font-family:'Inter',sans-serif;color:var(--txt)}
   <div id="screens">
 
     <!-- ══════════════════════════════════ -->
+    <!-- SCREEN: LOGIN -->
+    <!-- ══════════════════════════════════ -->
+    <div class="screen" id="s-login">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:32px 24px;gap:0">
+        <!-- Logo -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="80" height="80" style="margin-bottom:14px;filter:drop-shadow(0 0 12px rgba(41,171,226,.5))">
+          <rect width="200" height="200" rx="40" fill="#0A1628"/>
+          <circle cx="100" cy="88" r="34" fill="none" stroke="#29ABE2" stroke-width="5"/>
+          <ellipse cx="100" cy="88" rx="18" ry="34" fill="none" stroke="#29ABE2" stroke-width="3"/>
+          <line x1="66" y1="88" x2="134" y2="88" stroke="#29ABE2" stroke-width="3"/>
+          <line x1="68" y1="72" x2="132" y2="72" stroke="#29ABE2" stroke-width="2"/>
+          <line x1="68" y1="104" x2="132" y2="104" stroke="#29ABE2" stroke-width="2"/>
+          <line x1="100" y1="54" x2="100" y2="30" stroke="#29ABE2" stroke-width="3.5"/><circle cx="100" cy="24" r="6" fill="#29ABE2"/>
+          <line x1="124" y1="64" x2="143" y2="45" stroke="#29ABE2" stroke-width="3.5"/><circle cx="148" cy="40" r="6" fill="#29ABE2"/>
+          <line x1="134" y1="88" x2="158" y2="88" stroke="#29ABE2" stroke-width="3.5"/><circle cx="164" cy="88" r="6" fill="#29ABE2"/>
+          <line x1="124" y1="112" x2="143" y2="131" stroke="#29ABE2" stroke-width="3.5"/><circle cx="148" cy="136" r="6" fill="#29ABE2"/>
+          <line x1="100" y1="122" x2="100" y2="146" stroke="#29ABE2" stroke-width="3.5"/><circle cx="100" cy="152" r="6" fill="#29ABE2"/>
+          <line x1="76" y1="112" x2="57" y2="131" stroke="#29ABE2" stroke-width="3.5"/><circle cx="52" cy="136" r="6" fill="#29ABE2"/>
+          <line x1="66" y1="88" x2="42" y2="88" stroke="#29ABE2" stroke-width="3.5"/><circle cx="36" cy="88" r="6" fill="#29ABE2"/>
+          <line x1="76" y1="64" x2="57" y2="45" stroke="#29ABE2" stroke-width="3.5"/><circle cx="52" cy="40" r="6" fill="#29ABE2"/>
+        </svg>
+        <div style="font-size:20px;font-weight:900;color:var(--txt);letter-spacing:2px;margin-bottom:4px">InnovaAFRIC</div>
+        <div style="font-size:10px;color:rgba(41,171,226,.6);letter-spacing:2px;font-weight:600;margin-bottom:32px">We Simplify Life</div>
+
+        <!-- Form -->
+        <div style="width:100%;display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:16px">📧</span>
+            <input id="login-email" type="email" placeholder="Correo electrónico" style="background:none;border:none;outline:none;color:var(--txt);font-size:13px;font-family:'Inter',sans-serif;width:100%" autocomplete="email"/>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:16px">🔒</span>
+            <input id="login-pwd" type="password" placeholder="Contraseña" style="background:none;border:none;outline:none;color:var(--txt);font-size:13px;font-family:'Inter',sans-serif;width:100%" autocomplete="current-password"/>
+          </div>
+        </div>
+        <div style="text-align:right;width:100%;margin-bottom:20px">
+          <span style="font-size:11px;color:var(--blue);font-weight:600;cursor:pointer">¿Olvidaste tu contraseña?</span>
+        </div>
+        <button class="btn-primary" style="margin-bottom:12px" onclick="goScreen('s-home')">Iniciar sesión →</button>
+        <div style="text-align:center;font-size:11px;color:var(--txt3);margin-bottom:24px">
+          ¿No tienes cuenta? <span style="color:var(--blue);font-weight:700;cursor:pointer">Regístrate gratis</span>
+        </div>
+        <!-- Divider -->
+        <div style="display:flex;align-items:center;gap:10px;width:100%;margin-bottom:16px">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <span style="font-size:10px;color:var(--txt3);font-weight:600">O continúa con</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+        <div style="display:flex;gap:10px;width:100%">
+          <div style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:pointer;font-size:20px">📱</div>
+          <div style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--green)">MTN</div>
+          <div style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--gold)">Orange</div>
+        </div>
+        <div style="margin-top:28px;font-size:9px;color:var(--txt3);text-align:center;line-height:1.6">
+          Al continuar aceptas los <span style="color:var(--blue)">Términos de uso</span> y la <span style="color:var(--blue)">Política de privacidad</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════ -->
     <!-- SCREEN: HOME -->
     <!-- ══════════════════════════════════ -->
     <div class="screen active" id="s-home">
@@ -718,7 +778,10 @@ body{font-family:'Inter',sans-serif;color:var(--txt)}
     });
   }, 2200);
   t(function(){ document.getElementById('sp-tagline').classList.add('show'); }, 3000);
-  t(function(){ document.getElementById('splash').classList.add('hidden'); }, 4500);
+  t(function(){
+    document.getElementById('splash').classList.add('hidden');
+    // El s-login ya está activo (no cambia nada, ya es la pantalla por defecto)
+  }, 4500);
 })();
 
 // ── Navigation ──────────────────────────
