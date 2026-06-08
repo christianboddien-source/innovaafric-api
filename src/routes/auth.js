@@ -156,7 +156,7 @@ router.post('/refresh', async (req, res) => {
 
 // POST /v1/auth/register
 router.post('/register', async (req, res) => {
-  const { name, email, phone, password, country, role = 'customer' } = req.body;
+  const { name, email, phone, password, country, role = 'customer', zone, vehicle } = req.body;
   if (!name || !email || !phone || !password || !country) {
     return error(res, 'Campos requeridos: name, email, phone, password, country', 400);
   }
@@ -165,21 +165,43 @@ router.post('/register', async (req, res) => {
 
   if (!PUBLIC_ROLES.includes(role)) return error(res, `Rol inválido. Opciones: ${PUBLIC_ROLES.join(', ')}`, 400);
 
-  const userId = `usr_${uuidv4().slice(0, 8)}`;
-  const [user] = await prisma.$transaction([
+  const userId  = `usr_${uuidv4().slice(0, 8)}`;
+  const riderId = `rider_${uuidv4().slice(0, 8)}`;
+
+  const ops = [
     prisma.user.create({
       data: { id: userId, name, email, phone, country, role, passwordHash: bcrypt.hashSync(password, 10), kycStatus: 'pending' }
     }),
     prisma.wallet.create({
       data: { userId, balanceEur: 0, balanceUsd: 0, balanceXaf: 0, balanceXof: 0 }
     })
-  ]);
+  ];
+
+  // Si se registra como rider → crear registro Rider vinculado automáticamente
+  if (role === 'rider') {
+    ops.push(prisma.rider.create({
+      data: {
+        id: riderId,
+        name,
+        phone,
+        zone:    zone    || country,   // usa el país si no se especifica zona
+        vehicle: vehicle || 'moto',    // moto por defecto
+        status:  'available',
+        userId                         // vínculo directo al User (wallet)
+      }
+    }));
+  }
+
+  const [user] = await prisma.$transaction(ops);
 
   await triggerWebhook('user.registered', { id: user.id, email, role, country });
   return success(res, {
     id: user.id, name, email, role,
     kyc_status: 'pending',
-    message: 'Cuenta creada. Complete la verificación KYC para activar pagos.'
+    rider_id: role === 'rider' ? riderId : undefined,
+    message: role === 'rider'
+      ? 'Cuenta de rider creada con wallet XenderMoney. Listo para recibir pagos automáticos.'
+      : 'Cuenta creada. Complete la verificación KYC para activar pagos.'
   }, 201);
 });
 
