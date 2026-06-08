@@ -4,7 +4,7 @@ const speakeasy = require('speakeasy');
 const QRCode    = require('qrcode');
 const prisma    = require('../config/prisma');
 const { requireAuth: authenticate, requireRole } = require('../middleware/auth');
-const { ok, error } = require('../helpers/response');
+const { success: ok, error } = require('../helpers/response');
 
 // POST /v1/2fa/setup — genera secret + QR para escanear con Authenticator
 router.post('/setup', authenticate, async (req, res) => {

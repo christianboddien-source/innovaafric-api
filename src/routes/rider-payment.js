@@ -2,7 +2,7 @@
 const router = require('express').Router();
 const prisma  = require('../config/prisma');
 const { requireAuth: authenticate, requireRole } = require('../middleware/auth');
-const { ok, error } = require('../helpers/response');
+const { success: ok, error } = require('../helpers/response');
 const { distributeCommission } = require('../services/commission');
 
 /**
