@@ -62,12 +62,41 @@ async function distributeCommission({ feeType, amount, currency = 'EUR', country
     }
   });
 
-  // 4. Si hay representante, actualizar sus totales
+  // 4. Si hay representante → acreditar su comisión al wallet + actualizar totales
   if (repId && repAmount > 0) {
-    await prisma.representative.updateMany({
-      where: { userId: repId },
-      data: { totalEarned: { increment: repAmount } }
-    });
+    const walletField = currency === 'XAF' ? 'balanceXaf'
+                      : currency === 'XOF' ? 'balanceXof'
+                      : currency === 'USD' ? 'balanceUsd'
+                      : 'balanceEur';
+    await prisma.$transaction([
+      // Acreditar al wallet del representante
+      prisma.wallet.upsert({
+        where: { userId: repId },
+        update: { [walletField]: { increment: repAmount } },
+        create: { userId: repId, [walletField]: repAmount }
+      }),
+      // Registrar la transferencia
+      prisma.transaction.create({
+        data: {
+          id: `rep_comm_${repId}_${Date.now()}`,
+          type: 'commission',
+          userId: repId,
+          recipientId: repId,
+          amountSent: repAmount,
+          currencySent: currency,
+          amountReceived: repAmount,
+          currencyReceived: currency,
+          fee: 0,
+          note: `Comisión ${feeType} — ${(record.id).slice(0,8)}`,
+          status: 'completed'
+        }
+      }),
+      // Actualizar totales del representante
+      prisma.representative.updateMany({
+        where: { userId: repId },
+        data: { totalEarned: { increment: repAmount } }
+      })
+    ]);
   }
 
   return { grossFee, ivaAmount, innovaAmount, repAmount, repId, record };
