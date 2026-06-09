@@ -32,9 +32,47 @@ router.post('/token', async (req, res) => {
 
   if (grant_type === 'password') {
     const user = await prisma.user.findUnique({ where: { email }, include: { wallet: true } });
+
+    // Cuenta bloqueada por admin
+    if (user && user.blocked) {
+      return error(res, 'Cuenta bloqueada. Contacta con InnovaAFRIC para desbloquearla.', 403);
+    }
+
+    // Cuenta bloqueada temporalmente por intentos fallidos
+    if (user && user.lockedUntil && new Date() < new Date(user.lockedUntil)) {
+      const mins = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
+      return error(res, `Cuenta bloqueada por seguridad. Inténtalo de nuevo en ${mins} minuto(s) o solicita desbloqueo a InnovaAFRIC.`, 423);
+    }
+
+    // Credenciales incorrectas
     if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
+      if (user) {
+        const attempts = (user.failedLoginAttempts || 0) + 1;
+        const MAX = 5;
+        if (attempts >= MAX) {
+          // Bloquear cuenta permanentemente tras 5 intentos
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: attempts, blocked: true, blockedReason: `Bloqueada automáticamente tras ${MAX} intentos fallidos` }
+          });
+          return error(res, `Cuenta bloqueada tras ${MAX} intentos fallidos. Solicita desbloqueo a InnovaAFRIC.`, 423);
+        } else {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: attempts }
+          });
+          return error(res, `Email o contraseña incorrectos. ${MAX - attempts} intento(s) restantes antes del bloqueo.`, 401);
+        }
+      }
       return error(res, 'Email o contraseña incorrectos', 401);
     }
+
+    // Login exitoso — resetear contador
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() }
+    });
+
     const token = jwt.sign(
       { sub: user.id, email: user.email, role: user.role, country: user.country,
         scope: user.scope || null, city: user.city || null, department: user.department || null },
@@ -288,6 +326,78 @@ router.post('/kyc', requireAuth, async (req, res) => {
   });
   await triggerWebhook('kyc.submitted', { user_id: user.id, document_type });
   return success(res, { status: 'under_review', message: 'Documentación recibida. Revisión en 24-48h.' });
+});
+
+// POST /v1/auth/unlock-request — usuario solicita desbloqueo de su cuenta
+router.post('/unlock-request', async (req, res) => {
+  const { email, full_name, message } = req.body;
+  if (!email) return error(res, 'email requerido', 400);
+
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true, blocked: true, failedLoginAttempts: true } });
+
+  // Crear solicitud aunque no exista el usuario (puede ser error de email)
+  const existing = await prisma.unlockRequest.findFirst({
+    where: { email, status: 'pending' }
+  });
+  if (existing) return error(res, 'Ya tienes una solicitud de desbloqueo pendiente. InnovaAFRIC la revisará pronto.', 409);
+
+  await prisma.unlockRequest.create({
+    data: {
+      userId:   user?.id || null,
+      email,
+      fullName: full_name || null,
+      message:  message || null,
+      status:   'pending'
+    }
+  });
+
+  return success(res, { message: 'Solicitud enviada. InnovaAFRIC revisará tu caso en un plazo de 24-48h.' });
+});
+
+// GET /v1/auth/unlock-requests — admin ve todas las solicitudes pendientes
+router.get('/unlock-requests', requireAuth, async (req, res) => {
+  if (!['super_admin', 'admin', 'support_supervisor', 'support_agent'].includes(req.user.role)) {
+    return error(res, 'Sin permiso', 403);
+  }
+  const requests = await prisma.unlockRequest.findMany({
+    where: { status: 'pending' },
+    orderBy: { createdAt: 'asc' }
+  });
+  return success(res, { count: requests.length, requests });
+});
+
+// POST /v1/auth/unlock-requests/:id/approve — admin aprueba y desbloquea
+router.post('/unlock-requests/:id/approve', requireAuth, async (req, res) => {
+  if (!['super_admin', 'admin', 'support_supervisor'].includes(req.user.role)) {
+    return error(res, 'Sin permiso', 403);
+  }
+  const req2 = await prisma.unlockRequest.findUnique({ where: { id: req.params.id } });
+  if (!req2) return error(res, 'Solicitud no encontrada', 404);
+
+  await prisma.$transaction([
+    prisma.unlockRequest.update({
+      where: { id: req.params.id },
+      data: { status: 'approved', resolvedBy: req.user.id || req.user.sub, resolvedAt: new Date() }
+    }),
+    ...(req2.userId ? [prisma.user.update({
+      where: { id: req2.userId },
+      data: { blocked: false, blockedReason: null, failedLoginAttempts: 0, lockedUntil: null }
+    })] : [])
+  ]);
+
+  return success(res, { message: `Cuenta de ${req2.email} desbloqueada correctamente` });
+});
+
+// POST /v1/auth/unlock-requests/:id/reject — admin rechaza la solicitud
+router.post('/unlock-requests/:id/reject', requireAuth, async (req, res) => {
+  if (!['super_admin', 'admin', 'support_supervisor'].includes(req.user.role)) {
+    return error(res, 'Sin permiso', 403);
+  }
+  await prisma.unlockRequest.update({
+    where: { id: req.params.id },
+    data: { status: 'rejected', resolvedBy: req.user.id || req.user.sub, resolvedAt: new Date() }
+  });
+  return success(res, { message: 'Solicitud rechazada' });
 });
 
 // POST /v1/auth/generate-access-url — genera URL de acceso directo para un usuario admin

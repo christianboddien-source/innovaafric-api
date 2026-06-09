@@ -51,8 +51,11 @@ model User {
   commissionRate    Float    @default(0)
   kycDocument   String?
   referralCode  String?
-  blocked       Boolean  @default(false)
-  blockedReason String?
+  blocked              Boolean   @default(false)
+  blockedReason        String?
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
+  lastLoginAt          DateTime?
   scope         String?
   city          String?
   department    String?
@@ -1189,6 +1192,19 @@ model CircularTopUp {
   createdAt       DateTime @default(now())
 
   circular        Circular @relation(fields: [circularId], references: [id])
+}
+
+// ── Solicitud de desbloqueo de cuenta ───────────────────────
+model UnlockRequest {
+  id          String   @id @default(cuid())
+  userId      String?
+  email       String
+  fullName    String?
+  message     String?
+  status      String   @default("pending")  // pending|approved|rejected
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
 }
 
 model AccountingEntry {
