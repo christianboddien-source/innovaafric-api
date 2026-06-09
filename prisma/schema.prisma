@@ -1115,6 +1115,82 @@ model ClientTopUp {
   rep         Representative @relation(fields: [repId], references: [id])
 }
 
+// ── Circular Autorizada ──────────────────────────────────────
+// Usuario de barrio autorizado por InnovaAFRIC o por un Representante
+model Circular {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  neighborhood       String                        // barrio / zona
+  country            String
+  commissionRate     Float    @default(0.05)       // 5% descuento en compra de unidades
+  status             String   @default("pending")  // pending|active|suspended
+  authorizedBy       String?                       // userId del admin o rep que autorizó
+  authorizedByType   String?                       // 'admin' | 'representative'
+  repId              String?                       // si fue autorizado por un representante
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  account            CircularAccount?
+  purchases          CircularPurchase[]
+  topUps             CircularTopUp[]
+}
+
+// ── Cuenta de unidades del circular ─────────────────────────
+model CircularAccount {
+  id                 String   @id @default(cuid())
+  circularId         String   @unique
+  unitBalance        Float    @default(0)
+  totalUnitsBought   Float    @default(0)
+  totalUnitsUsed     Float    @default(0)
+  totalPaid          Float    @default(0)
+  totalSaved         Float    @default(0)  // 5% ahorrado
+  alertThreshold     Float    @default(50)
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  circular           Circular @relation(fields: [circularId], references: [id])
+}
+
+// ── Compra de unidades (circular → InnovaAFRIC) ──────────────
+model CircularPurchase {
+  id              String   @id @default(cuid())
+  circularId      String
+  unitsRequested  Float
+  commissionRate  Float    @default(0.05)
+  amountToPay     Float                           // 95% del valor nominal
+  amountSaved     Float                           // 5% ahorrado
+  currency        String   @default("XAF")
+  bankName        String?
+  bankRef         String?
+  receiptUrl      String?
+  status          String   @default("pending")   // pending|confirmed|rejected
+  confirmedBy     String?
+  confirmedAt     DateTime?
+  rejectedReason  String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  circular        Circular @relation(fields: [circularId], references: [id])
+}
+
+// ── Recarga de usuario de barrio por circular ────────────────
+model CircularTopUp {
+  id              String   @id @default(cuid())
+  circularId      String
+  clientId        String
+  clientName      String?
+  clientPhone     String?
+  amount          Float
+  currency        String   @default("XAF")
+  note            String?
+  status          String   @default("completed")
+  createdAt       DateTime @default(now())
+
+  circular        Circular @relation(fields: [circularId], references: [id])
+}
+
 model AccountingEntry {
   id          String   @id
   type        String

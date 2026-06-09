@@ -69,6 +69,7 @@ const twoFactorRoutes        = require('./src/routes/two-factor');
 const commissionsRoutes      = require('./src/routes/commissions');
 const riderPaymentRoutes     = require('./src/routes/rider-payment');
 const representativesRoutes  = require('./src/routes/representatives');
+const circularesRoutes       = require('./src/routes/circulares');
 const { error }      = require('./src/helpers/response');
 
 const app = express();
@@ -194,6 +195,7 @@ app.use('/v1/2fa',              twoFactorRoutes);
 app.use('/v1/commissions',      commissionsRoutes);
 app.use('/v1/rider-payment',    riderPaymentRoutes);
 app.use('/v1/representatives',  representativesRoutes);
+app.use('/v1/circulares',       circularesRoutes);
 // v28
 app.use('/v1/partners',     partnersRoutes);
 app.use('/v1/billing',      billingRoutes);
