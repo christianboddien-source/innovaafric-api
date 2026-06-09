@@ -290,4 +290,51 @@ router.post('/kyc', requireAuth, async (req, res) => {
   return success(res, { status: 'under_review', message: 'Documentación recibida. Revisión en 24-48h.' });
 });
 
+// POST /v1/auth/generate-access-url — genera URL de acceso directo para un usuario admin
+// Solo super_admin puede generarla para otros; cualquier admin puede generar la suya propia
+router.post('/generate-access-url', requireAuth, async (req, res) => {
+  const actorRole = req.user.role;
+  const isSuper   = ['super_admin', 'admin'].includes(actorRole);
+  const { userId, expiresInDays = 30, dashboardUrl = 'https://innovaafric-prod.vercel.app/InnovaAFRIC_Admin.html' } = req.body;
+
+  // Determinar el usuario objetivo
+  const targetId = userId && isSuper ? userId : req.user.id || req.user.sub;
+
+  const user = await prisma.user.findUnique({
+    where: { id: targetId },
+    select: { id: true, email: true, name: true, role: true, country: true }
+  });
+  if (!user) return error(res, 'Usuario no encontrado', 404);
+
+  // Solo super_admin puede generar URLs para otros
+  if (userId && userId !== (req.user.id || req.user.sub) && !isSuper) {
+    return error(res, 'Solo un Super Admin puede generar URLs para otros usuarios', 403);
+  }
+
+  const expiresIn = expiresInDays * 24 * 3600;
+  const token = jwt.sign(
+    {
+      sub:     user.id,
+      email:   user.email,
+      role:    user.role,
+      country: user.country,
+      type:    'dashboard_access'
+    },
+    JWT_SECRET,
+    { expiresIn }
+  );
+
+  const url = `${dashboardUrl}#token=${token}`;
+  const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+  return success(res, {
+    url,
+    token,
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    expiresAt,
+    expiresInDays,
+    note: `Comparte esta URL solo con ${user.name || user.email}. Expira el ${new Date(expiresAt).toLocaleDateString('es-ES')}.`
+  });
+});
+
 module.exports = router;
