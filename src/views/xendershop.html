@@ -44,7 +44,6 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,15,30,0.95);backdrop-fi
 .btn-outline:hover{border-color:var(--orange);color:var(--orange);}
 .hero-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
 
-/* SEARCH */
 .search-bar{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:1.5rem 2rem;}
 .search-inner{max-width:1200px;margin:0 auto;display:flex;gap:1rem;flex-wrap:wrap;}
 .search-input-wrap{flex:1;display:flex;gap:0;}
@@ -55,7 +54,6 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,15,30,0.95);backdrop-fi
 .cat-pill{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:0.8rem;cursor:pointer;transition:all 0.2s;color:var(--text);}
 .cat-pill.active,.cat-pill:hover{background:rgba(255,107,53,0.15);border-color:var(--orange);color:var(--orange);}
 
-/* PRODUCTS */
 .shop-layout{max-width:1200px;margin:0 auto;padding:3rem 2rem;display:grid;grid-template-columns:1fr;gap:2rem;}
 .products-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
 .products-header h2{font-size:1.5rem;font-weight:800;}
@@ -75,7 +73,6 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,15,30,0.95);backdrop-fi
 .add-cart-btn:hover{opacity:0.85;}
 .loading-grid{text-align:center;padding:4rem;color:var(--muted);}
 
-/* CART DRAWER */
 .cart-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:none;}
 .cart-overlay.open{display:block;}
 .cart-drawer{position:fixed;right:0;top:0;bottom:0;width:380px;background:var(--bg2);border-left:1px solid var(--border);z-index:201;transform:translateX(100%);transition:transform 0.3s;display:flex;flex-direction:column;}
@@ -97,13 +94,11 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,15,30,0.95);backdrop-fi
 .checkout-btn:hover{opacity:0.85;}
 .cart-empty{text-align:center;padding:3rem;color:var(--muted);}
 
-/* SECTION */
 section{padding:5rem 2rem;max-width:1200px;margin:0 auto;}
 .section-title{text-align:center;margin-bottom:3rem;}
 .section-title h2{font-size:2rem;font-weight:800;margin-bottom:0.5rem;}
 .section-title p{color:var(--muted);}
 
-/* VENDEDOR FORM */
 .seller-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
 .seller-inner{max-width:700px;margin:0 auto;padding:4rem 2rem;}
 .form-container{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:2.5rem;}
@@ -122,14 +117,12 @@ textarea{resize:vertical;min-height:80px;}
 .form-submit{width:100%;padding:13px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:800;cursor:pointer;margin-top:0.5rem;transition:all 0.2s;}
 .form-submit:hover{opacity:0.85;}
 
-/* STATS */
 .stats-bar{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:2rem;}
 .stats-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:space-around;flex-wrap:wrap;gap:1.5rem;}
 .stat{text-align:center;}
 .stat-num{font-size:2rem;font-weight:900;color:var(--orange);}
 .stat-label{font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
 
-/* ALERT */
 .alert{padding:12px 16px;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;display:none;}
 .alert.show{display:block;}
 .alert-success{background:rgba(0,196,140,0.15);border:1px solid rgba(0,196,140,0.4);color:var(--green);}
@@ -149,17 +142,17 @@ footer p{color:var(--muted);font-size:0.8rem;}
 <nav>
   <span class="nav-logo">🛒 XenderShop</span>
   <div class="nav-links">
-    <a href="/" class="home">🌍 INNOVAAFRIC</a>
-    <a href="/money" class="money">💰 XenderMoney</a>
-    <a href="/bigshop" class="bigshop">🏭 BigShop</a>
-    <a href="/delivery" class="delivery">🚚 Delivery</a>
+    <a href="/" class="home" data-i18n="nav_home">🌍 INNOVAAFRIC</a>
+    <a href="/money" class="money" data-i18n="nav_money">💰 XenderMoney</a>
+    <a href="/bigshop" class="bigshop" data-i18n="nav_bigshop">🏭 BigShop</a>
+    <a href="/delivery" class="delivery" data-i18n="nav_delivery">🚚 Delivery</a>
   </div>
   <div class="nav-right">
     <button class="cart-btn" onclick="toggleCart()">
-      🛒 Carrito
+      <span data-i18n="cart_btn">🛒 Carrito</span>
       <span class="cart-badge" id="cart-count">0</span>
     </button>
-    <a href="#vendedor" class="nav-btn">Vender</a>
+    <a href="#vendedor" class="nav-btn" data-i18n="cart_sell">Vender</a>
   </div>
 </nav>
 
@@ -167,36 +160,36 @@ footer p{color:var(--muted);font-size:0.8rem;}
 <div class="cart-overlay" id="cart-overlay" onclick="toggleCart()"></div>
 <div class="cart-drawer" id="cart-drawer">
   <div class="cart-header">
-    <h3>🛒 Mi carrito</h3>
+    <h3 data-i18n="cart_title">🛒 Mi carrito</h3>
     <button class="cart-close" onclick="toggleCart()">×</button>
   </div>
   <div class="cart-items" id="cart-items">
-    <div class="cart-empty">Tu carrito está vacío</div>
+    <div class="cart-empty" data-i18n="cart_empty">Tu carrito está vacío</div>
   </div>
   <div class="cart-footer">
-    <div class="cart-total"><span>Total</span><span id="cart-total">0.00 EUR</span></div>
-    <button class="checkout-btn" onclick="checkout()">Pagar ahora →</button>
+    <div class="cart-total"><span data-i18n="cart_total">Total</span><span id="cart-total">0.00 EUR</span></div>
+    <button class="checkout-btn" onclick="checkout()" data-i18n="cart_checkout">Pagar ahora →</button>
   </div>
 </div>
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-badge">🌍 Marketplace tricontinental</div>
-  <h1>Compra y vende<br>en <span>tres continentes</span></h1>
-  <p>Productos de África, Europa y América. Pagos integrados con XenderMoney y entrega con Xender Delivery.</p>
+  <div class="hero-badge" data-i18n="shop_badge">🌍 Marketplace tricontinental</div>
+  <h1><span data-i18n="shop_h1a">Compra y vende</span><br>en <span data-i18n="shop_h1b">tres continentes</span></h1>
+  <p data-i18n="shop_desc">Productos de África, Europa y América. Pagos integrados con XenderMoney y entrega con Xender Delivery.</p>
   <div class="hero-btns">
-    <a href="#catalogo" class="btn-orange">Explorar tienda</a>
-    <a href="#vendedor" class="btn-outline">Abrir mi tienda</a>
+    <a href="#catalogo" class="btn-orange" data-i18n="shop_explore">Explorar tienda</a>
+    <a href="#vendedor" class="btn-outline" data-i18n="shop_open">Abrir mi tienda</a>
   </div>
 </div>
 
 <!-- STATS -->
 <div class="stats-bar">
   <div class="stats-inner">
-    <div class="stat"><div class="stat-num">500+</div><div class="stat-label">Productos</div></div>
-    <div class="stat"><div class="stat-num">80+</div><div class="stat-label">Vendedores</div></div>
-    <div class="stat"><div class="stat-num">12</div><div class="stat-label">Países</div></div>
-    <div class="stat"><div class="stat-num">4</div><div class="stat-label">Divisas</div></div>
+    <div class="stat"><div class="stat-num">500+</div><div class="stat-label" data-i18n="stat_products">Productos</div></div>
+    <div class="stat"><div class="stat-num">80+</div><div class="stat-label" data-i18n="stat_sellers">Vendedores</div></div>
+    <div class="stat"><div class="stat-num">12</div><div class="stat-label" data-i18n="stat_countries">Países</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-label" data-i18n="stat_currencies">Divisas</div></div>
   </div>
 </div>
 
@@ -204,19 +197,19 @@ footer p{color:var(--muted);font-size:0.8rem;}
 <div class="search-bar" id="catalogo">
   <div class="search-inner">
     <div class="search-input-wrap">
-      <input type="text" id="search-input" placeholder="Buscar productos..." oninput="filterProducts()">
+      <input type="text" id="search-input" data-i18n-ph="search_placeholder" placeholder="Buscar productos..." oninput="filterProducts()">
       <button class="search-btn">🔍</button>
     </div>
   </div>
   <div class="category-filter" style="max-width:1200px;margin:1rem auto 0;">
-    <div class="cat-pill active" onclick="filterCat(this,'all')">Todos</div>
-    <div class="cat-pill" onclick="filterCat(this,'alimentacion')">🍎 Alimentación</div>
-    <div class="cat-pill" onclick="filterCat(this,'moda')">👗 Moda</div>
-    <div class="cat-pill" onclick="filterCat(this,'electronica')">📱 Electrónica</div>
-    <div class="cat-pill" onclick="filterCat(this,'belleza')">💄 Belleza</div>
-    <div class="cat-pill" onclick="filterCat(this,'hogar')">🏠 Hogar</div>
-    <div class="cat-pill" onclick="filterCat(this,'artesania')">🎨 Artesanía</div>
-    <div class="cat-pill" onclick="filterCat(this,'agricultura')">🌾 Agricultura</div>
+    <div class="cat-pill active" onclick="filterCat(this,'all')" data-i18n="cat_all">Todos</div>
+    <div class="cat-pill" onclick="filterCat(this,'alimentacion')" data-i18n="cat_food">🍎 Alimentación</div>
+    <div class="cat-pill" onclick="filterCat(this,'moda')" data-i18n="cat_fashion">👗 Moda</div>
+    <div class="cat-pill" onclick="filterCat(this,'electronica')" data-i18n="cat_electronics">📱 Electrónica</div>
+    <div class="cat-pill" onclick="filterCat(this,'belleza')" data-i18n="cat_beauty">💄 Belleza</div>
+    <div class="cat-pill" onclick="filterCat(this,'hogar')" data-i18n="cat_home">🏠 Hogar</div>
+    <div class="cat-pill" onclick="filterCat(this,'artesania')" data-i18n="cat_crafts">🎨 Artesanía</div>
+    <div class="cat-pill" onclick="filterCat(this,'agricultura')" data-i18n="cat_agri">🌾 Agricultura</div>
   </div>
 </div>
 
@@ -224,16 +217,16 @@ footer p{color:var(--muted);font-size:0.8rem;}
 <div class="shop-layout">
   <div>
     <div class="products-header">
-      <h2>Catálogo de productos</h2>
+      <h2 data-i18n="products_title">Catálogo de productos</h2>
       <select class="sort-select" onchange="sortProducts(this.value)">
-        <option value="default">Ordenar por: Destacados</option>
-        <option value="price-asc">Precio: menor a mayor</option>
-        <option value="price-desc">Precio: mayor a menor</option>
-        <option value="name">Nombre A–Z</option>
+        <option value="default" data-i18n="sort_default">Ordenar por: Destacados</option>
+        <option value="price-asc" data-i18n="sort_price_asc">Precio: menor a mayor</option>
+        <option value="price-desc" data-i18n="sort_price_desc">Precio: mayor a menor</option>
+        <option value="name" data-i18n="sort_name">Nombre A–Z</option>
       </select>
     </div>
     <div class="products-grid" id="products-grid">
-      <div class="loading-grid" style="grid-column:1/-1">Cargando productos... 🔄</div>
+      <div class="loading-grid" style="grid-column:1/-1" data-i18n="loading_products">Cargando productos... 🔄</div>
     </div>
   </div>
 </div>
@@ -242,14 +235,14 @@ footer p{color:var(--muted);font-size:0.8rem;}
 <div class="seller-section" id="vendedor">
   <div class="seller-inner">
     <div class="section-title">
-      <h2>Vende en XenderShop</h2>
-      <p>Llega a clientes en Europa y África desde un solo lugar</p>
+      <h2 data-i18n="seller_section_title">Vende en XenderShop</h2>
+      <p data-i18n="seller_section_desc">Llega a clientes en Europa y África desde un solo lugar</p>
     </div>
     <div class="form-container">
       <div class="form-tabs">
-        <button class="ftab active" onclick="switchFTab('registro-vendedor')">📋 Registro de vendedor</button>
-        <button class="ftab" onclick="switchFTab('publicar-producto')">➕ Publicar producto</button>
-        <button class="ftab" onclick="switchFTab('login-vendedor')">🔐 Acceder</button>
+        <button class="ftab active" onclick="switchFTab('registro-vendedor')" data-i18n="tab_register_seller">📋 Registro de vendedor</button>
+        <button class="ftab" onclick="switchFTab('publicar-producto')" data-i18n="tab_publish">➕ Publicar producto</button>
+        <button class="ftab" onclick="switchFTab('login-vendedor')" data-i18n="tab_login_seller">🔐 Acceder</button>
       </div>
 
       <!-- REGISTRO VENDEDOR -->
@@ -257,22 +250,26 @@ footer p{color:var(--muted);font-size:0.8rem;}
         <div id="alert-seller" class="alert"></div>
         <form onsubmit="registerSeller(event)">
           <div class="form-grid">
-            <div class="form-group"><label>Nombre del vendedor / tienda *</label><input type="text" id="s-name" required placeholder="Mi Tienda"></div>
-            <div class="form-group"><label>Email *</label><input type="email" id="s-email" required placeholder="tienda@email.com"></div>
-            <div class="form-group"><label>Teléfono *</label><input type="tel" id="s-phone" required placeholder="+237..."></div>
-            <div class="form-group"><label>País *</label>
+            <div class="form-group"><label data-i18n="label_seller_name">Nombre del vendedor / tienda *</label><input type="text" id="s-name" required data-i18n-ph="ph_store" placeholder="Mi Tienda"></div>
+            <div class="form-group"><label data-i18n="label_email">Email *</label><input type="email" id="s-email" required data-i18n-ph="ph_store_email" placeholder="tienda@email.com"></div>
+            <div class="form-group"><label data-i18n="label_phone">Teléfono *</label><input type="tel" id="s-phone" required placeholder="+237..."></div>
+            <div class="form-group"><label data-i18n="label_country">País *</label>
               <select id="s-country" required>
-                <option value="">Seleccionar...</option>
-                <option value="CM">🇨🇲 Camerún</option><option value="SN">🇸🇳 Senegal</option>
-                <option value="GQ">🇬🇶 Guinea Ecuatorial</option><option value="CI">🇨🇮 Costa de Marfil</option>
-                <option value="ES">🇪🇸 España</option><option value="FR">🇫🇷 Francia</option><option value="DE">🇩🇪 Alemania</option>
+                <option value="" data-i18n="opt_select">Seleccionar...</option>
+                <option value="CM" data-i18n="opt_cameroon">🇨🇲 Camerún</option>
+                <option value="SN" data-i18n="opt_senegal">🇸🇳 Senegal</option>
+                <option value="GQ" data-i18n="opt_guinea">🇬🇶 Guinea Ecuatorial</option>
+                <option value="CI" data-i18n="opt_ivory">🇨🇮 Costa de Marfil</option>
+                <option value="ES" data-i18n="opt_spain">🇪🇸 España</option>
+                <option value="FR" data-i18n="opt_france">🇫🇷 Francia</option>
+                <option value="DE" data-i18n="opt_germany">🇩🇪 Alemania</option>
               </select>
             </div>
-            <div class="form-group full"><label>Descripción de tu tienda</label><textarea id="s-desc" placeholder="¿Qué vendes? ¿Para quién?"></textarea></div>
-            <div class="form-group"><label>Contraseña *</label><input type="password" id="s-pass" minlength="8" required></div>
-            <div class="form-group"><label>Confirmar contraseña *</label><input type="password" id="s-pass2" required></div>
+            <div class="form-group full"><label data-i18n="label_store_desc">Descripción de tu tienda</label><textarea id="s-desc" data-i18n-ph="ph_store_desc" placeholder="¿Qué vendes? ¿Para quién?"></textarea></div>
+            <div class="form-group"><label data-i18n="label_password">Contraseña *</label><input type="password" id="s-pass" minlength="8" required></div>
+            <div class="form-group"><label data-i18n="label_confirm_pass">Confirmar contraseña *</label><input type="password" id="s-pass2" required></div>
           </div>
-          <button type="submit" class="form-submit">Crear cuenta de vendedor</button>
+          <button type="submit" class="form-submit" data-i18n="btn_create_seller">Crear cuenta de vendedor</button>
         </form>
       </div>
 
@@ -281,31 +278,34 @@ footer p{color:var(--muted);font-size:0.8rem;}
         <div id="alert-product" class="alert"></div>
         <form onsubmit="publishProduct(event)">
           <div class="form-grid">
-            <div class="form-group full"><label>Nombre del producto *</label><input type="text" id="p-name" required placeholder="Ej: Shea Butter 500g"></div>
-            <div class="form-group"><label>Precio (EUR) *</label><input type="number" id="p-price" required min="0.01" step="0.01" placeholder="19.99"></div>
-            <div class="form-group"><label>Categoría *</label>
+            <div class="form-group full"><label data-i18n="label_product_name">Nombre del producto *</label><input type="text" id="p-name" required placeholder="Ej: Shea Butter 500g"></div>
+            <div class="form-group"><label data-i18n="label_price_eur">Precio (EUR) *</label><input type="number" id="p-price" required min="0.01" step="0.01" placeholder="19.99"></div>
+            <div class="form-group"><label data-i18n="label_category">Categoría *</label>
               <select id="p-cat" required>
-                <option value="">Seleccionar...</option>
-                <option value="alimentacion">🍎 Alimentación</option>
-                <option value="moda">👗 Moda</option>
-                <option value="electronica">📱 Electrónica</option>
-                <option value="belleza">💄 Belleza</option>
-                <option value="hogar">🏠 Hogar</option>
-                <option value="artesania">🎨 Artesanía</option>
-                <option value="agricultura">🌾 Agricultura</option>
+                <option value="" data-i18n="opt_select">Seleccionar...</option>
+                <option value="alimentacion" data-i18n="cat_food">🍎 Alimentación</option>
+                <option value="moda" data-i18n="cat_fashion">👗 Moda</option>
+                <option value="electronica" data-i18n="cat_electronics">📱 Electrónica</option>
+                <option value="belleza" data-i18n="cat_beauty">💄 Belleza</option>
+                <option value="hogar" data-i18n="cat_home">🏠 Hogar</option>
+                <option value="artesania" data-i18n="cat_crafts">🎨 Artesanía</option>
+                <option value="agricultura" data-i18n="cat_agri">🌾 Agricultura</option>
               </select>
             </div>
-            <div class="form-group"><label>Stock disponible</label><input type="number" id="p-stock" min="0" placeholder="50"></div>
-            <div class="form-group full"><label>Descripción *</label><textarea id="p-desc" required placeholder="Describe tu producto..."></textarea></div>
-            <div class="form-group"><label>País de origen</label>
+            <div class="form-group"><label data-i18n="label_stock">Stock disponible</label><input type="number" id="p-stock" min="0" placeholder="50"></div>
+            <div class="form-group full"><label data-i18n="label_product_desc">Descripción *</label><textarea id="p-desc" required placeholder="Describe tu producto..."></textarea></div>
+            <div class="form-group"><label data-i18n="label_origin">País de origen</label>
               <select id="p-country">
-                <option value="CM">🇨🇲 Camerún</option><option value="SN">🇸🇳 Senegal</option>
-                <option value="GQ">🇬🇶 Guinea Ecuatorial</option><option value="ES">🇪🇸 España</option><option value="FR">🇫🇷 Francia</option>
+                <option value="CM" data-i18n="opt_cameroon">🇨🇲 Camerún</option>
+                <option value="SN" data-i18n="opt_senegal">🇸🇳 Senegal</option>
+                <option value="GQ" data-i18n="opt_guinea">🇬🇶 Guinea Ecuatorial</option>
+                <option value="ES" data-i18n="opt_spain">🇪🇸 España</option>
+                <option value="FR" data-i18n="opt_france">🇫🇷 Francia</option>
               </select>
             </div>
-            <div class="form-group"><label>Peso (kg)</label><input type="number" id="p-weight" min="0" step="0.1" placeholder="0.5"></div>
+            <div class="form-group"><label data-i18n="label_weight">Peso (kg)</label><input type="number" id="p-weight" min="0" step="0.1" placeholder="0.5"></div>
           </div>
-          <button type="submit" class="form-submit">Publicar producto</button>
+          <button type="submit" class="form-submit" data-i18n="btn_publish">Publicar producto</button>
         </form>
       </div>
 
@@ -313,9 +313,9 @@ footer p{color:var(--muted);font-size:0.8rem;}
       <div id="ftab-login-vendedor" class="ftab-panel">
         <div id="alert-login" class="alert"></div>
         <form onsubmit="loginSeller(event)">
-          <div class="form-group"><label>Email</label><input type="email" id="l-email" required placeholder="tu@email.com"></div>
-          <div class="form-group"><label>Contraseña</label><input type="password" id="l-pass" required></div>
-          <button type="submit" class="form-submit">Entrar a mi tienda</button>
+          <div class="form-group"><label data-i18n="label_email">Email</label><input type="email" id="l-email" required placeholder="tu@email.com"></div>
+          <div class="form-group"><label data-i18n="label_password">Contraseña</label><input type="password" id="l-pass" required></div>
+          <button type="submit" class="form-submit" data-i18n="btn_enter_store">Entrar a mi tienda</button>
         </form>
       </div>
     </div>
@@ -324,13 +324,13 @@ footer p{color:var(--muted);font-size:0.8rem;}
 
 <footer>
   <div class="footer-brands">
-    <a href="/">🌍 INNOVAAFRIC</a>
-    <a href="/money">💰 XenderMoney</a>
-    <a href="/shop">🛒 XenderShop</a>
-    <a href="/bigshop">🏭 XenderBigShop</a>
-    <a href="/delivery">🚚 Xender Delivery</a>
+    <a href="/" data-i18n="nav_home">🌍 INNOVAAFRIC</a>
+    <a href="/money" data-i18n="nav_money">💰 XenderMoney</a>
+    <a href="/shop" data-i18n="nav_shop">🛒 XenderShop</a>
+    <a href="/bigshop" data-i18n="nav_bigshop">🏭 XenderBigShop</a>
+    <a href="/delivery" data-i18n="nav_delivery">🚚 Xender Delivery</a>
   </div>
-  <p>© 2026 XenderShop by INNOVAAFRIC. Marketplace tricontinental.</p>
+  <p data-i18n="footer_copy">© 2026 XenderShop by INNOVAAFRIC. Marketplace tricontinental.</p>
 </footer>
 
 <script>
@@ -340,7 +340,6 @@ let cart = JSON.parse(localStorage.getItem('xender_cart')||'[]');
 let allProducts = [];
 let currentCat = 'all';
 
-// PRODUCTOS DEMO (mientras la API responde)
 const DEMO_PRODUCTS = [
   {id:'p1',name:'Shea Butter Natural 500g',price:12.99,currency:'EUR',category:'belleza',icon:'🧴',seller:'NaturAfrica CM',country:'CM',stock:45},
   {id:'p2',name:'Batik Wax Print Fabric',price:24.50,currency:'EUR',category:'moda',icon:'👗',seller:'Dakar Textil SN',country:'SN',stock:30},
@@ -358,7 +357,7 @@ const DEMO_PRODUCTS = [
 
 function renderProducts(products) {
   const grid = document.getElementById('products-grid');
-  if(!products.length){grid.innerHTML='<div class="loading-grid" style="grid-column:1/-1">No se encontraron productos</div>';return;}
+  if(!products.length){grid.innerHTML='<div class="loading-grid" style="grid-column:1/-1">'+window.i18nT('no_products')+'</div>';return;}
   grid.innerHTML = products.map(p=>`
     <div class="product-card">
       <div class="product-img">${p.icon||'📦'}</div>
@@ -368,7 +367,7 @@ function renderProducts(products) {
         <div class="product-seller">por ${p.seller||'Vendedor'} · ${p.country||''}</div>
         <div class="product-footer">
           <div class="product-price">${parseFloat(p.price).toFixed(2)} <small>${p.currency||'EUR'}</small></div>
-          <button class="add-cart-btn" onclick="addToCart('${p.id}','${p.name}',${p.price},'${p.currency||'EUR'}','${p.icon||'📦'}')">+ Añadir</button>
+          <button class="add-cart-btn" onclick="addToCart('${p.id}','${p.name}',${p.price},'${p.currency||'EUR'}','${p.icon||'📦'}')">+ ${window.i18nT('add_cart')}</button>
         </div>
       </div>
     </div>`).join('');
@@ -418,7 +417,6 @@ function sortProducts(val) {
   filterProducts();
 }
 
-// CART
 function addToCart(id, name, price, currency, icon) {
   const existing = cart.find(i=>i.id===id);
   if(existing) existing.qty++;
@@ -434,7 +432,11 @@ function renderCart() {
   const count = cart.reduce((a,i)=>a+i.qty,0);
   document.getElementById('cart-count').textContent = count;
   const items = document.getElementById('cart-items');
-  if(!cart.length){items.innerHTML='<div class="cart-empty">Tu carrito está vacío 🛒</div>';document.getElementById('cart-total').textContent='0.00 EUR';return;}
+  if(!cart.length){
+    items.innerHTML='<div class="cart-empty">'+window.i18nT('cart_empty')+' 🛒</div>';
+    document.getElementById('cart-total').textContent='0.00 EUR';
+    return;
+  }
   items.innerHTML = cart.map(i=>`
     <div class="cart-item">
       <div class="cart-item-icon">${i.icon}</div>
@@ -470,15 +472,14 @@ function openCart() {
 }
 
 function checkout() {
-  if(!cart.length) return alert('Tu carrito está vacío');
-  if(!token) { alert('Inicia sesión para completar la compra'); window.location.href='#vendedor'; return; }
-  alert('✅ Pedido procesado. Recibirás confirmación por email.');
+  if(!cart.length) return alert(window.i18nT('alert_cart_empty'));
+  if(!token) { alert(window.i18nT('alert_login_to_buy')); window.location.href='#vendedor'; return; }
+  alert(window.i18nT('alert_order_ok'));
   cart=[];saveCart();renderCart();
   document.getElementById('cart-overlay').classList.remove('open');
   document.getElementById('cart-drawer').classList.remove('open');
 }
 
-// FORMS
 function switchFTab(id) {
   document.querySelectorAll('.ftab').forEach((b,i)=>{
     b.classList.toggle('active',['registro-vendedor','publicar-producto','login-vendedor'][i]===id);
@@ -492,7 +493,7 @@ function showAlert(id,msg,type){const el=document.getElementById(id);if(!el)retu
 async function registerSeller(e) {
   e.preventDefault();
   const pass = document.getElementById('s-pass').value;
-  if(pass!==document.getElementById('s-pass2').value) return showAlert('alert-seller','Las contraseñas no coinciden','error');
+  if(pass!==document.getElementById('s-pass2').value) return showAlert('alert-seller',window.i18nT('alert_pass_mismatch'),'error');
   try {
     const res = await fetch(API+'/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({name:document.getElementById('s-name').value,email:document.getElementById('s-email').value,phone:document.getElementById('s-phone').value,country:document.getElementById('s-country').value,password:pass,role:'supplier'})});
@@ -500,20 +501,20 @@ async function registerSeller(e) {
     if(!res.ok) throw new Error(json.message||json.error||'Error');
     token=json.token||(json.data&&json.data.token);
     if(token) localStorage.setItem('inno_token',token);
-    showAlert('alert-seller','✅ Cuenta de vendedor creada. ¡Ahora publica tus productos!','success');
+    showAlert('alert-seller',window.i18nT('alert_seller_created'),'success');
     switchFTab('publicar-producto');
   } catch(err){showAlert('alert-seller','❌ '+err.message,'error');}
 }
 
 async function publishProduct(e) {
   e.preventDefault();
-  if(!token) return showAlert('alert-product','Inicia sesión primero','error');
+  if(!token) return showAlert('alert-product',window.i18nT('alert_login_first'),'error');
   try {
     const body={name:document.getElementById('p-name').value,price:parseFloat(document.getElementById('p-price').value),category:document.getElementById('p-cat').value,description:document.getElementById('p-desc').value,stock:parseInt(document.getElementById('p-stock').value)||0,country:document.getElementById('p-country').value};
     const res=await fetch(API+'/v1/shop/products',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
     const json=await res.json();
     if(!res.ok) throw new Error(json.message||json.error||'Error');
-    showAlert('alert-product','✅ Producto publicado correctamente','success');
+    showAlert('alert-product',window.i18nT('alert_product_ok'),'success');
   } catch(err){showAlert('alert-product','❌ '+err.message,'error');}
 }
 
@@ -525,15 +526,15 @@ async function loginSeller(e) {
     if(!res.ok) throw new Error(json.message||json.error||'Credenciales incorrectas');
     token=json.access_token||json.token;
     localStorage.setItem('inno_token',token);
-    showAlert('alert-login','✅ Sesión iniciada. Ya puedes publicar productos.','success');
+    showAlert('alert-login',window.i18nT('alert_session_ok'),'success');
     switchFTab('publicar-producto');
   } catch(err){showAlert('alert-login','❌ '+err.message,'error');}
 }
 
-// INIT
 loadProducts();
 renderCart();
 </script>
+<script src="/i18n.js"></script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>
