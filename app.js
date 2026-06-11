@@ -14,6 +14,7 @@ const moneyRoutes    = require('./src/routes/money');
 const shopRoutes     = require('./src/routes/shop');
 const bigshopRoutes  = require('./src/routes/bigshop');
 const deliveryRoutes = require('./src/routes/delivery');
+const locationsRoutes = require('./src/routes/locations');
 const utilsRoutes    = require('./src/routes/utils');
 const adminRoutes    = require('./src/routes/admin');
 const billsRoutes     = require('./src/routes/bills');
@@ -141,6 +142,7 @@ app.get('/perfil',    (_req, res) => res.sendFile(path.join(__dirname, 'src/view
 app.get('/admin',     (_req, res) => res.sendFile(path.join(__dirname, 'src/views/dashboard.html')));
 app.get('/circular',  (_req, res) => res.sendFile(path.join(__dirname, 'src/views/circular.html')));
 app.get('/representante', (_req, res) => res.sendFile(path.join(__dirname, 'src/views/representante.html')));
+app.get('/rider',     (_req, res) => res.sendFile(path.join(__dirname, 'src/views/rider.html')));
 app.get('/app',       (_req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 
 // ── Documentación Swagger ───────────────────────────────
@@ -156,6 +158,7 @@ app.use('/v1/money',    moneyRoutes);
 app.use('/v1/shop',     shopRoutes);
 app.use('/v1/bigshop',  bigshopRoutes);
 app.use('/v1/delivery', deliveryRoutes);
+app.use('/v1/locations', locationsRoutes);
 app.use('/v1/utils',    utilsRoutes);
 app.use('/v1/admin',    adminRoutes);
 app.use('/v1/bills',     billsRoutes);

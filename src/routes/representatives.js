@@ -149,6 +149,34 @@ router.get('/network-commissions', authenticate, async (req, res) => {
   } catch (e) { return error(res, e.message); }
 });
 
+// GET /v1/representatives/riders — riders del país/zona del representante
+router.get('/riders', authenticate, async (req, res) => {
+  try {
+    const rep = await prisma.representative.findUnique({ where: { userId: uid(req) } });
+    if (!rep) return error(res, 'No eres representante', 403);
+
+    const riders = await prisma.rider.findMany({ orderBy: { createdAt: 'desc' } });
+    // país del usuario enlazado, o coincidencia de zona con la del rep
+    const userIds = riders.map(r => r.userId).filter(Boolean);
+    const users = userIds.length ? await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, country: true, city: true }
+    }) : [];
+    const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+
+    const repCountry = (rep.country || '').toLowerCase();
+    const repZone = (rep.zone || '').toLowerCase();
+    const mine = riders.filter(r => {
+      const u = r.userId ? userMap[r.userId] : null;
+      if (u?.country) return u.country.toLowerCase() === repCountry;
+      const zone = (r.zone || '').toLowerCase();
+      return (repZone && zone.includes(repZone.split(' ')[0])) || zone.includes(repCountry);
+    });
+
+    return ok(res, { count: mine.length, riders: mine });
+  } catch (e) { return error(res, e.message); }
+});
+
 // POST /v1/representatives/transfer-earnings — trasladar comisiones ganadas a la wallet pagando impuestos
 router.post('/transfer-earnings', authenticate, async (req, res) => {
   try {

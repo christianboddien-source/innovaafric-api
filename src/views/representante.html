@@ -90,6 +90,11 @@
   .bubble.me{align-self:flex-end;background:var(--accent-dark);color:#eafdff;border-bottom-right-radius:4px}
   .bubble.them{align-self:flex-start;background:var(--card2);border:1px solid var(--border);border-bottom-left-radius:4px}
   .bubble .meta{font-size:10px;opacity:.65;margin-top:4px}
+
+  /* ── Mapa en vivo ── */
+  #mapBox{height:55vh;border-radius:14px;overflow:hidden;border:1px solid var(--border);margin-bottom:12px}
+  .map-pin{font-size:22px;line-height:22px;text-shadow:0 0 4px #000}
+  .map-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -270,12 +275,30 @@
         </div>
       </div>
     </section>
+    <!-- MAPA EN VIVO -->
+    <section id="page-mapa" class="hidden">
+      <h2>🗺️ Mapa en vivo — mi zona</h2>
+      <div class="map-legend">
+        <span>📍 Tú</span><span>⚡ Circulares</span><span>🛵 Riders</span><span>🤝 Reps</span><span>🏢 InnovaAFRIC</span>
+      </div>
+      <div id="mapBox"></div>
+      <div class="info" id="mapInfo" style="margin-bottom:14px">Activa la ubicación para aparecer en el mapa. Se actualiza cada 15 segundos.</div>
+
+      <div class="card">
+        <b style="font-size:14px">🛵 Riders de mi país</b>
+        <div style="overflow-x:auto;margin-top:8px">
+          <table><thead><tr><th>Nombre</th><th>Zona</th><th>Vehículo</th><th>Estado</th></tr></thead>
+          <tbody id="ridersList"><tr><td colspan="4" class="spinner">—</td></tr></tbody></table>
+        </div>
+      </div>
+    </section>
   </main>
 
   <nav>
     <button class="active" onclick="go('home',this)"><span class="ic">🏠</span>Inicio</button>
     <button onclick="go('circulares',this)"><span class="ic">⚡</span>Circulares</button>
     <button onclick="go('comisiones',this)"><span class="ic">💰</span>Comisiones</button>
+    <button onclick="go('mapa',this)"><span class="ic">🗺️</span>Mapa</button>
   </nav>
 </div>
 
@@ -419,6 +442,7 @@ async function enterApp() {
   loadCirculares();
   loadRecent();
   checkUnread();
+  startGeoPing();
 }
 
 function logout() {
@@ -428,13 +452,14 @@ function logout() {
 
 // ── navegación ──
 function go(page, btn) {
-  ['home', 'circulares', 'comisiones'].forEach(p =>
+  ['home', 'circulares', 'comisiones', 'mapa'].forEach(p =>
     document.getElementById('page-' + p).classList.toggle('hidden', p !== page));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (page === 'home') refreshMe();
   if (page === 'circulares') loadCirculares();
   if (page === 'comisiones') loadComisiones();
+  if (page === 'mapa') { openLiveMap(); loadMyRiders(); }
 }
 
 async function refreshMe() {
@@ -643,6 +668,86 @@ async function doTransfer() {
     loadComisiones();
     refreshMe();
   } catch (e) { msg('transferMsg', e.message, false); }
+}
+
+// ── geolocalización + mapa en vivo ──
+let GEO_TIMER = null, MAP = null, MARKERS = [], MAP_TIMER = null, MY_POS = null;
+const PIN = { circular: '⚡', rider: '🛵', representante: '🤝', innovaafric: '🏢' };
+
+function startGeoPing() {
+  if (!navigator.geolocation) return;
+  const send = () => navigator.geolocation.getCurrentPosition(
+    p => {
+      MY_POS = { lat: p.coords.latitude, lng: p.coords.longitude };
+      api('POST', '/locations/ping', MY_POS).catch(() => {});
+    },
+    () => {}, { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
+  );
+  send();
+  GEO_TIMER = setInterval(send, 20000);
+}
+
+function loadLeaflet() {
+  return new Promise((resolve, reject) => {
+    if (window.L) return resolve();
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('No se pudo cargar el mapa'));
+    document.head.appendChild(s);
+  });
+}
+
+async function openLiveMap() {
+  try {
+    await loadLeaflet();
+    if (!MAP) {
+      const center = MY_POS || { lat: 4.05, lng: 9.7 };
+      MAP = L.map('mapBox').setView([center.lat, center.lng], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(MAP);
+    }
+    setTimeout(() => MAP.invalidateSize(), 200);
+    refreshMap();
+    clearInterval(MAP_TIMER);
+    MAP_TIMER = setInterval(refreshMap, 15000);
+  } catch (e) {
+    document.getElementById('mapInfo').textContent = e.message;
+  }
+}
+
+async function refreshMap() {
+  if (!MAP) return;
+  try {
+    const d = await api('GET', '/locations/nearby');
+    MARKERS.forEach(m => MAP.removeLayer(m));
+    MARKERS = [];
+    const mk = (lat, lng, emoji, label) => {
+      const m = L.marker([lat, lng], {
+        icon: L.divIcon({ className: 'map-pin', html: emoji, iconSize: [24, 24], iconAnchor: [12, 12] })
+      }).addTo(MAP).bindPopup(label);
+      MARKERS.push(m);
+    };
+    if (MY_POS) mk(MY_POS.lat, MY_POS.lng, '📍', '<b>Tú</b>');
+    d.people.forEach(p => mk(p.lat, p.lng, PIN[p.role] || '•', `<b>${p.name}</b><br>${p.role}${p.city ? ' · ' + p.city : ''}`));
+    document.getElementById('mapInfo').innerHTML =
+      `<b>${d.count}</b> persona(s) activas en tu país: circulares, riders y compañeros. Tu posición se comparte mientras la app está abierta.`;
+  } catch {}
+}
+
+async function loadMyRiders() {
+  try {
+    const data = await api('GET', '/representatives/riders');
+    document.getElementById('ridersList').innerHTML = data.riders.length
+      ? data.riders.map(r => `<tr><td>${r.name}</td><td>${r.zone}</td><td>${r.vehicle}</td>
+          <td><span class="tag ${r.status === 'available' ? 'active' : r.status === 'busy' ? 'pending' : 'suspended'}">${r.status}</span></td></tr>`).join('')
+      : '<tr><td colspan="4" class="spinner">Sin riders registrados en tu país todavía</td></tr>';
+  } catch (e) {
+    document.getElementById('ridersList').innerHTML = `<tr><td colspan="4" class="spinner">${e.message}</td></tr>`;
+  }
 }
 
 // ── chat: InnovaAFRIC + mis circulares ──

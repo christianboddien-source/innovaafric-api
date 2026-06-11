@@ -30,6 +30,89 @@ router.get('/track/:tracking_id', async (req, res) => {
   });
 });
 
+// El JWT lleva el id del usuario en `sub`
+const uid = (req) => req.user.sub || req.user.id;
+
+// ─────────────────────────────────────────────────────────────
+// APP DEL RIDER
+// ─────────────────────────────────────────────────────────────
+
+// GET /v1/delivery/rider/me — perfil del rider logueado
+router.get('/rider/me', requireAuth, async (req, res) => {
+  const rider = await prisma.rider.findUnique({ where: { userId: uid(req) } });
+  if (!rider) return error(res, 'No estás registrado como Rider', 403);
+  const user = await prisma.user.findUnique({
+    where: { id: uid(req) },
+    select: { name: true, email: true, phone: true, country: true, city: true }
+  });
+  return success(res, { ...rider, user });
+});
+
+// PATCH /v1/delivery/rider/status — el rider cambia su disponibilidad
+router.patch('/rider/status', requireAuth, async (req, res) => {
+  const rider = await prisma.rider.findUnique({ where: { userId: uid(req) } });
+  if (!rider) return error(res, 'No eres rider', 403);
+  const { status } = req.body;
+  if (!['available', 'busy', 'offline'].includes(status)) {
+    return error(res, 'status debe ser available|busy|offline', 400);
+  }
+  const updated = await prisma.rider.update({ where: { id: rider.id }, data: { status } });
+  return success(res, { message: `Estado actualizado: ${status}`, rider: updated });
+});
+
+// GET /v1/delivery/available-orders — comandas sin rider asignado
+router.get('/available-orders', requireAuth, async (req, res) => {
+  const rider = await prisma.rider.findUnique({ where: { userId: uid(req) } });
+  if (!rider) return error(res, 'No eres rider', 403);
+  const orders = await prisma.groceryOrder.findMany({
+    where: { riderId: null, status: { in: ['preparing', 'ready', 'pending', 'confirmed'] } },
+    include: {
+      items: true,
+      user: { select: { name: true, phone: true, city: true } }
+    },
+    orderBy: { createdAt: 'asc' },
+    take: 30
+  });
+  return success(res, { count: orders.length, orders });
+});
+
+// POST /v1/delivery/orders/:id/accept — el rider acepta la comanda
+router.post('/orders/:id/accept', requireAuth, async (req, res) => {
+  const rider = await prisma.rider.findUnique({ where: { userId: uid(req) } });
+  if (!rider) return error(res, 'No eres rider', 403);
+  const order = await prisma.groceryOrder.findUnique({ where: { id: req.params.id } });
+  if (!order) return error(res, 'Comanda no encontrada', 404);
+  if (order.riderId) return error(res, 'Esta comanda ya fue aceptada por otro rider', 409);
+
+  const [updatedOrder] = await prisma.$transaction([
+    prisma.groceryOrder.update({
+      where: { id: order.id },
+      data: { riderId: rider.id, status: 'in_transit' }
+    }),
+    prisma.rider.update({ where: { id: rider.id }, data: { status: 'busy' } })
+  ]);
+
+  await triggerWebhook('order.accepted_by_rider', { orderId: order.id, riderId: rider.id });
+  return success(res, {
+    message: `✅ Comanda aceptada. Entrega en: ${order.deliveryAddress}`,
+    order: updatedOrder,
+    riderFee: order.riderFeeXaf
+  });
+});
+
+// GET /v1/delivery/my-deliveries — comandas del rider (en curso e histórico)
+router.get('/my-deliveries', requireAuth, async (req, res) => {
+  const rider = await prisma.rider.findUnique({ where: { userId: uid(req) } });
+  if (!rider) return error(res, 'No eres rider', 403);
+  const orders = await prisma.groceryOrder.findMany({
+    where: { riderId: rider.id },
+    include: { user: { select: { name: true, phone: true } } },
+    orderBy: { createdAt: 'desc' },
+    take: 50
+  });
+  return success(res, { count: orders.length, orders });
+});
+
 // GET /v1/delivery/riders
 router.get('/riders', requireAuth, requireRole('circular_autorizada', 'admin'), async (req, res) => {
   const { zone, status } = req.query;
