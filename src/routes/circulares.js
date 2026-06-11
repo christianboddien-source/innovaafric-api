@@ -405,14 +405,19 @@ router.get('/', requireAuth, async (req, res) => {
 
     const circulares = await prisma.circular.findMany({
       where,
-      include: {
-        account: true,
-        user: { select: { id: true, name: true, email: true, phone: true, country: true } }
-      },
+      include: { account: true },
       orderBy: { createdAt: 'desc' }
     });
 
-    return ok(res, { count: circulares.length, circulares });
+    // El modelo Circular no tiene relación user en Prisma — se consultan aparte
+    const users = await prisma.user.findMany({
+      where: { id: { in: circulares.map(c => c.userId) } },
+      select: { id: true, name: true, email: true, phone: true, country: true }
+    });
+    const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+    const withUsers = circulares.map(c => ({ ...c, user: userMap[c.userId] || null }));
+
+    return ok(res, { count: withUsers.length, circulares: withUsers });
   } catch (e) { return error(res, e.message); }
 });
 
@@ -421,14 +426,19 @@ router.get('/purchases/pending', requireAuth, requireRole('admin', 'super_admin'
   try {
     const purchases = await prisma.circularPurchase.findMany({
       where: { status: 'pending' },
-      include: {
-        circular: {
-          include: { user: { select: { name: true, email: true, phone: true } } }
-        }
-      },
+      include: { circular: true },
       orderBy: { createdAt: 'asc' }
     });
-    return ok(res, { count: purchases.length, purchases });
+    // El modelo Circular no tiene relación user — se consultan aparte
+    const users = await prisma.user.findMany({
+      where: { id: { in: purchases.map(p => p.circular.userId) } },
+      select: { id: true, name: true, email: true, phone: true }
+    });
+    const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+    const withUsers = purchases.map(p => ({
+      ...p, circular: { ...p.circular, user: userMap[p.circular.userId] || null }
+    }));
+    return ok(res, { count: withUsers.length, purchases: withUsers });
   } catch (e) { return error(res, e.message); }
 });
 
