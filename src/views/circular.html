@@ -150,8 +150,14 @@
     <label>Email</label>
     <input id="loginEmail" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="username">
     <label>Contraseña</label>
-    <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+    <div style="position:relative">
+      <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:48px">
+      <button type="button" onclick="toggleEye('loginPass',this)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer">👁️</button>
+    </div>
     <button class="btn" id="loginBtn" onclick="doLogin()">Entrar</button>
+    <div style="text-align:center;margin-top:14px">
+      <a href="#" onclick="openForgot();return false" style="color:var(--accent);font-size:13px;text-decoration:none">¿Has olvidado tu contraseña?</a>
+    </div>
     <div id="loginErr" class="err hidden"></div>
   </div>
   <p style="text-align:center;color:var(--muted);font-size:12px">Solo para Circulares Autorizadas por InnovaAFRIC<br>o por un representante oficial.</p>
@@ -223,6 +229,7 @@
       <div class="card">
         <label>Buscar cliente (teléfono, email o nombre)</label>
         <input id="clientSearch" placeholder="Ej: +2376..., maria@..." oninput="searchClient()">
+        <button class="btn btn-outline" style="margin-top:10px" onclick="openScanner()">📷 Escanear QR del cliente</button>
         <div id="clientResults"></div>
         <div id="clientChosen" class="hidden" style="margin-top:12px"></div>
         <label>Importe</label>
@@ -369,6 +376,58 @@
   </div>
 </div>
 
+<!-- ════════ PANTALLA NUEVA CONTRASEÑA ════════ -->
+<div id="resetScreen" class="hidden" style="max-width:420px;margin:0 auto;padding:48px 24px;display:flex;flex-direction:column;justify-content:center;min-height:100vh">
+  <div class="logo">
+    <div class="brand">InnovaAFRIC</div>
+    <div class="tagline">We Simplify Life</div>
+    <span class="badge">🔑 Nueva contraseña</span>
+  </div>
+  <div class="card">
+    <label>Nueva contraseña (mín. 8 caracteres)</label>
+    <div style="position:relative">
+      <input id="resetPass1" type="password" placeholder="••••••••" autocomplete="new-password" style="padding-right:48px">
+      <button type="button" onclick="toggleEye('resetPass1',this)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer">👁️</button>
+    </div>
+    <label>Repite la contraseña</label>
+    <div style="position:relative">
+      <input id="resetPass2" type="password" placeholder="••••••••" autocomplete="new-password" style="padding-right:48px">
+      <button type="button" onclick="toggleEye('resetPass2',this)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer">👁️</button>
+    </div>
+    <button class="btn" id="resetBtn" onclick="doReset()">Guardar nueva contraseña</button>
+    <div id="resetMsg"></div>
+  </div>
+</div>
+
+<!-- ════════ MODAL RECUPERAR CONTRASEÑA ════════ -->
+<div id="forgotModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <b style="font-size:15px">🔑 Recuperar contraseña</b>
+      <button onclick="closeForgot()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <label>Tu email</label>
+    <input id="forgotEmail" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="username">
+    <button class="btn" onclick="sendForgot()">📧 Enviarme enlace de recuperación</button>
+    <button class="btn btn-outline" onclick="sendUnlock()">🔓 Mi cuenta está bloqueada — solicitar desbloqueo</button>
+    <button class="btn btn-outline" onclick="window.location.href='mailto:soporte@innovaafric.com?subject=Recuperar acceso a mi cuenta'">✉️ Contactar con soporte InnovaAFRIC</button>
+    <div id="forgotMsg"></div>
+  </div>
+</div>
+
+<!-- ════════ MODAL ESCÁNER QR ════════ -->
+<div id="scanModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b style="font-size:15px">📷 Escanear QR del cliente</b>
+      <button onclick="closeScanner()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Pide al cliente que muestre su QR de recarga (app XenderMoney → Pago QR → Mi código QR)</p>
+    <div id="qrReader" style="width:100%;border-radius:12px;overflow:hidden"></div>
+    <div id="scanMsg"></div>
+  </div>
+</div>
+
 <!-- ════════ MODAL CHAT ════════ -->
 <div id="chatModal" class="modal-overlay hidden">
   <div class="modal-box" style="display:flex;flex-direction:column;height:80vh;max-width:420px">
@@ -413,9 +472,20 @@ function msg(elId, text, ok) {
 }
 
 // ── sesión ──
+let RESET_TOKEN = null;
+
 function init() {
-  // 1. token en la URL (#token=...) — URL de acceso directo generada por InnovaAFRIC
   const hash = new URLSearchParams(location.hash.slice(1));
+  // 0. enlace de recuperación de contraseña (#reset=...)
+  if (hash.get('reset')) {
+    RESET_TOKEN = hash.get('reset');
+    history.replaceState(null, '', location.pathname);
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('appScreen').classList.add('hidden');
+    document.getElementById('resetScreen').classList.remove('hidden');
+    return;
+  }
+  // 1. token en la URL (#token=...) — URL de acceso directo generada por InnovaAFRIC
   if (hash.get('token')) {
     TOKEN = hash.get('token');
     localStorage.setItem('circ_token', TOKEN);
@@ -870,6 +940,99 @@ async function sendChat() {
     loadChat();
   } catch (e) {
     inp.value = text; // no perder el mensaje si falla
+  }
+}
+
+// ── ojo de contraseña + recuperación ──
+function toggleEye(id, btn) {
+  const i = document.getElementById(id);
+  i.type = i.type === 'password' ? 'text' : 'password';
+  btn.textContent = i.type === 'password' ? '👁️' : '🙈';
+}
+
+function openForgot() {
+  document.getElementById('forgotEmail').value = document.getElementById('loginEmail').value;
+  msg('forgotMsg', '');
+  document.getElementById('forgotModal').classList.remove('hidden');
+}
+function closeForgot() { document.getElementById('forgotModal').classList.add('hidden'); }
+
+async function sendForgot() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) return msg('forgotMsg', 'Escribe tu email', false);
+  msg('forgotMsg', 'Enviando…', true);
+  try {
+    const d = await api('POST', '/auth/forgot-password', { email });
+    msg('forgotMsg', d.message, true);
+  } catch (e) { msg('forgotMsg', e.message, false); }
+}
+
+async function sendUnlock() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) return msg('forgotMsg', 'Escribe tu email', false);
+  try {
+    const d = await api('POST', '/auth/unlock-request', { email, message: 'Solicitud enviada desde la app Circular Autorizada' });
+    msg('forgotMsg', d.message || '✅ Solicitud enviada. InnovaAFRIC la revisará pronto.', true);
+  } catch (e) { msg('forgotMsg', e.message, false); }
+}
+
+async function doReset() {
+  const p1 = document.getElementById('resetPass1').value;
+  const p2 = document.getElementById('resetPass2').value;
+  if (p1.length < 8) return msg('resetMsg', 'La contraseña debe tener al menos 8 caracteres', false);
+  if (p1 !== p2) return msg('resetMsg', 'Las contraseñas no coinciden', false);
+  const btn = document.getElementById('resetBtn');
+  btn.disabled = true;
+  try {
+    const d = await api('POST', '/auth/reset-password', { token: RESET_TOKEN, newPassword: p1 });
+    msg('resetMsg', d.message + '<br><br><a href="' + location.pathname + '" style="color:var(--accent)">→ Ir a iniciar sesión</a>', true);
+  } catch (e) {
+    msg('resetMsg', e.message, false);
+    btn.disabled = false;
+  }
+}
+
+// ── escáner QR del cliente ──
+let html5Qr = null;
+
+function loadScannerLib() {
+  return new Promise((resolve, reject) => {
+    if (window.Html5Qrcode) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('No se pudo cargar el lector QR. Revisa tu conexión.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function openScanner() {
+  document.getElementById('scanModal').classList.remove('hidden');
+  msg('scanMsg', '');
+  try {
+    await loadScannerLib();
+    html5Qr = new Html5Qrcode('qrReader');
+    await html5Qr.start({ facingMode: 'environment' }, { fps: 10, qrbox: 220 }, onScan, () => {});
+  } catch (e) {
+    msg('scanMsg', 'No se pudo abrir la cámara: ' + (e.message || e), false);
+  }
+}
+
+async function closeScanner() {
+  try { if (html5Qr) { await html5Qr.stop(); html5Qr.clear(); html5Qr = null; } } catch {}
+  document.getElementById('scanModal').classList.add('hidden');
+}
+
+async function onScan(text) {
+  // Formato del QR personal del cliente: INNOVAAFRIC_CLIENT:<userId> (acepta también el id directo)
+  const id = text.startsWith('INNOVAAFRIC_CLIENT:') ? text.slice(19) : text.trim();
+  await closeScanner();
+  try {
+    const d = await api('GET', '/circulares/client/' + encodeURIComponent(id));
+    pickClient(d.client);
+    msg('topupMsg', '📷 Cliente identificado por QR: <b>' + (d.client.name || d.client.id) + '</b>', true);
+  } catch (e) {
+    msg('topupMsg', 'QR no reconocido: ' + e.message, false);
   }
 }
 

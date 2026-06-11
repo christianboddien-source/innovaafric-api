@@ -80,6 +80,7 @@ app.use(helmet({
     directives: {
       defaultSrc:  ["'self'"],
       scriptSrc:   ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
+      scriptSrcAttr: ["'unsafe-inline'"], // permite onclick= (helmet pone 'none' por defecto y rompe los botones)
       styleSrc:    ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com", "https://fonts.googleapis.com"],
       connectSrc:  ["'self'", "https://*.tile.openstreetmap.org"],
       imgSrc:      ["'self'", "data:", "https:"],

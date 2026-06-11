@@ -107,6 +107,22 @@ router.get('/find-client', requireAuth, async (req, res) => {
   } catch (e) { return error(res, e.message); }
 });
 
+// GET /v1/circulares/client/:id — datos del cliente (escaneo de su QR personal)
+router.get('/client/:id', requireAuth, async (req, res) => {
+  try {
+    const circ = await prisma.circular.findUnique({ where: { userId: uid(req) } });
+    if (!circ) return error(res, 'No eres Circular Autorizada', 403);
+    if (circ.status !== 'active') return error(res, 'Cuenta no activa', 403);
+
+    const client = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, name: true, phone: true, country: true }
+    });
+    if (!client) return error(res, 'Cliente no encontrado. ¿El QR es de InnovaAFRIC?', 404);
+    return ok(res, { client });
+  } catch (e) { return error(res, e.message); }
+});
+
 // POST /v1/circulares/topup-client — circular recarga la wallet de un usuario del barrio
 router.post('/topup-client', requireAuth, async (req, res) => {
   try {

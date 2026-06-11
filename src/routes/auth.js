@@ -400,6 +400,86 @@ router.post('/unlock-requests/:id/reject', requireAuth, async (req, res) => {
   return success(res, { message: 'Solicitud rechazada' });
 });
 
+// POST /v1/auth/forgot-password — enviar enlace de recuperación de contraseña
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return error(res, 'email requerido', 400);
+
+  // Responder siempre lo mismo para no revelar si el email existe
+  const genericMsg = 'Si el email existe en InnovaAFRIC, hemos enviado un enlace de recuperación. Revisa tu bandeja de entrada y la carpeta de spam. El enlace caduca en 30 minutos.';
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return success(res, { message: genericMsg, sent: false });
+
+  const token = jwt.sign(
+    { sub: user.id, email: user.email, type: 'password_reset' },
+    JWT_SECRET, { expiresIn: '30m' }
+  );
+
+  // Enlace a la app que corresponde al usuario
+  const baseUrl = process.env.PUBLIC_URL || 'https://innovaafric-api-production.up.railway.app';
+  const isRep = await prisma.representative.findUnique({ where: { userId: user.id } }).catch(() => null);
+  const appPath = user.role === 'circular_autorizada' ? '/circular' : isRep ? '/representante' : '/money';
+  const link = `${baseUrl}${appPath}#reset=${token}`;
+
+  let sent = false;
+  if (process.env.SMTP_HOST) {
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      });
+      await transporter.sendMail({
+        from: `"INNOVAAFRIC" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        to: user.email,
+        subject: 'Recupera tu contraseña — InnovaAFRIC',
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
+          <h2 style="color:#0d9bc4">InnovaAFRIC — We Simplify Life</h2>
+          <p>Hola ${user.name || ''},</p>
+          <p>Recibimos una solicitud para restablecer tu contraseña. Pulsa el botón para crear una nueva:</p>
+          <p style="text-align:center;margin:24px 0">
+            <a href="${link}" style="background:#0d9bc4;color:#fff;padding:13px 26px;border-radius:8px;text-decoration:none;font-weight:bold">Crear nueva contraseña</a>
+          </p>
+          <p style="font-size:12px;color:#777">El enlace caduca en 30 minutos. Si no solicitaste este cambio, ignora este mensaje — tu contraseña seguirá siendo la misma.</p>
+        </div>`
+      });
+      sent = true;
+    } catch (e) {
+      console.error('[FORGOT-PASSWORD] error enviando email:', e.message);
+    }
+  }
+  // Registro en logs del servidor (modo mock si no hay SMTP)
+  console.log(`[FORGOT-PASSWORD] ${user.email} → ${link} (email ${sent ? 'enviado' : 'NO enviado — sin SMTP'})`);
+
+  return success(res, { message: genericMsg, sent });
+});
+
+// POST /v1/auth/reset-password — establecer nueva contraseña con el token del email
+router.post('/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword) return error(res, 'token y newPassword requeridos', 400);
+  if (newPassword.length < 8) return error(res, 'La contraseña debe tener al menos 8 caracteres', 400);
+
+  let payload;
+  try { payload = jwt.verify(token, JWT_SECRET); }
+  catch { return error(res, 'El enlace ha caducado o no es válido. Solicita uno nuevo.', 401); }
+  if (payload.type !== 'password_reset') return error(res, 'Token inválido', 401);
+
+  await prisma.user.update({
+    where: { id: payload.sub },
+    data: {
+      passwordHash: bcrypt.hashSync(newPassword, 10),
+      failedLoginAttempts: 0,
+      lockedUntil: null
+    }
+  });
+
+  return success(res, { message: '✅ Contraseña actualizada. Ya puedes iniciar sesión con la nueva contraseña.' });
+});
+
 // POST /v1/auth/generate-access-url — genera URL de acceso directo para un usuario admin
 // Solo super_admin puede generarla para otros; cualquier admin puede generar la suya propia
 router.post('/generate-access-url', requireAuth, async (req, res) => {

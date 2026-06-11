@@ -357,6 +357,14 @@ footer p { color:var(--muted); font-size:0.8rem; }
             <input type="number" id="qr-amount" placeholder="25.00" min="0.01" step="0.01">
           </div>
           <button class="form-submit" onclick="payQR()">💳 Pagar</button>
+
+          <div style="margin-top:2rem;border-top:1px solid rgba(255,255,255,.12);padding-top:1.5rem;text-align:center">
+            <h3 style="margin-bottom:0.5rem">Mi código QR de recarga</h3>
+            <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">Muéstraselo a tu <b>Circular Autorizada</b> de barrio para recargar tu cuenta en efectivo, sin errores de teléfono</p>
+            <div id="myqr-content">
+              <button class="form-submit" onclick="showMyQR()">📱 Mostrar mi QR</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -520,6 +528,20 @@ async function sendMoney(e) {
     if(!res.ok) throw new Error(json.message||json.error||'Error al enviar');
     showAlert('alert-send','✅ Dinero enviado correctamente','success');
   } catch(err) { showAlert('alert-send','❌ '+err.message,'error'); }
+}
+
+function showMyQR() {
+  if (!token) return showAlert('alert-qr', 'Inicia sesión primero para ver tu QR', 'error');
+  try {
+    // El id del usuario viene en el payload del token (campo sub)
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const data = encodeURIComponent('INNOVAAFRIC_CLIENT:' + payload.sub);
+    document.getElementById('myqr-content').innerHTML =
+      '<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=2&data=' + data + '" alt="Mi QR de recarga" style="border-radius:12px;background:#fff;padding:10px">' +
+      '<p style="color:var(--muted);font-size:0.8rem;margin-top:0.8rem">' + (payload.email || '') + '</p>';
+  } catch (e) {
+    showAlert('alert-qr', 'No se pudo generar tu QR. Vuelve a iniciar sesión.', 'error');
+  }
 }
 
 async function payQR() {
