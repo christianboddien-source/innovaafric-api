@@ -189,7 +189,7 @@
       <div class="who"><b id="whoName">—</b><span id="whoZone">—</span></div>
     </div>
     <div style="display:flex;gap:8px">
-      <button onclick="openChat()" style="font-size:15px">💬</button>
+      <button id="chatBtn" onclick="openChat()" style="font-size:15px;position:relative">💬<span id="chatDot" class="hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:var(--red);border:2px solid var(--card)"></span></button>
       <button onclick="logout()">Salir</button>
     </div>
   </header>
@@ -534,6 +534,7 @@ async function enterApp() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appScreen').classList.remove('hidden');
   renderHome();
+  checkUnread();
 }
 
 function logout() {
@@ -914,6 +915,18 @@ function closeChat() {
   clearInterval(chatTimer);
 }
 
+// aviso 🔴 de mensajes no leídos — compara la última actividad ajena con lo último visto
+async function checkUnread() {
+  if (!TOKEN || !ME) return;
+  try {
+    const d = await api('GET', '/chat/my-unread');
+    const last = d.rooms[chatRoom()];
+    const unread = last && new Date(last) > new Date(localStorage.getItem('seen_' + chatRoom()) || 0);
+    document.getElementById('chatDot').classList.toggle('hidden', !unread);
+  } catch {}
+}
+setInterval(checkUnread, 30000);
+
 async function loadChat() {
   try {
     const data = await api('GET', '/chat/messages?room=' + chatRoom());
@@ -927,6 +940,9 @@ async function loadChat() {
         }).join('')
       : '<div class="spinner">Escribe tu primer mensaje a InnovaAFRIC<br>o a tu representante</div>';
     box.scrollTop = box.scrollHeight;
+    // marcar como visto y apagar el aviso 🔴
+    localStorage.setItem('seen_' + chatRoom(), new Date().toISOString());
+    document.getElementById('chatDot').classList.add('hidden');
   } catch (e) { /* silencioso: reintenta en el próximo ciclo */ }
 }
 

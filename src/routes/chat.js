@@ -82,6 +82,27 @@ router.patch('/read', requireAuth, requireRole(...CHAT_STAFF), async (req, res) 
   return success(res, { message: 'Marcados como leídos', count });
 });
 
+// GET /v1/chat/my-unread — última actividad ajena en mis salas (para el aviso 🔴 en las apps)
+router.get('/my-unread', requireAuth, async (req, res) => {
+  const me = req.user.sub;
+  const rooms = [`user_${me}`];
+  // Si es representante, también vigila las salas de sus circulares
+  const rep = await prisma.representative.findUnique({ where: { userId: me } }).catch(() => null);
+  if (rep) {
+    const circs = await prisma.circular.findMany({ where: { repId: rep.id }, select: { userId: true } });
+    rooms.push(...circs.map(c => `user_${c.userId}`));
+  }
+  const latest = await prisma.chatMessage.findMany({
+    where: { room: { in: rooms }, fromId: { not: me } },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+    select: { room: true, createdAt: true }
+  });
+  const lastByRoom = {};
+  latest.forEach(m => { if (!lastByRoom[m.room]) lastByRoom[m.room] = m.createdAt; });
+  return success(res, { rooms: lastByRoom });
+});
+
 // GET /v1/chat/unread — total no leídos (admin)
 router.get('/unread', requireAuth, requireRole(...CHAT_STAFF), async (_req, res) => {
   const count = await prisma.chatMessage.count({ where: { read: false } });
