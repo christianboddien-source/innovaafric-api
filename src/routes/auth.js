@@ -120,6 +120,17 @@ router.post('/token', async (req, res) => {
     if (!user && sbUser.email) {
       const meta = sbUser.user_metadata || {};
       const newId = shortId;
+
+      // Traer el saldo del wallet de Supabase para no crearlo a cero
+      let sbWallet = { eur: 0, usd: 0, xaf: 0, xof: 0 };
+      try {
+        const wResp = await fetch(`${sbUrl}/rest/v1/wallets?select=eur,usd,xaf,xof&user_id=eq.${sbUser.id}`, {
+          headers: { apikey: sbAnon, Authorization: `Bearer ${sbAnon}` }
+        });
+        const wRows = await wResp.json();
+        if (Array.isArray(wRows) && wRows[0]) sbWallet = wRows[0];
+      } catch { /* sin saldo Supabase — se crea a cero */ }
+
       const [created] = await prisma.$transaction([
         prisma.user.create({
           data: {
@@ -135,7 +146,13 @@ router.post('/token', async (req, res) => {
           }
         }),
         prisma.wallet.create({
-          data: { userId: newId, balanceEur: 0, balanceUsd: 0, balanceXaf: 0, balanceXof: 0 }
+          data: {
+            userId: newId,
+            balanceEur: Number(sbWallet.eur) || 0,
+            balanceUsd: Number(sbWallet.usd) || 0,
+            balanceXaf: Number(sbWallet.xaf) || 0,
+            balanceXof: Number(sbWallet.xof) || 0
+          }
         })
       ]);
       user = await prisma.user.findUnique({ where: { id: newId }, include: { wallet: true } });
