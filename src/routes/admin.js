@@ -93,9 +93,15 @@ router.get('/users', requireAuth, requireLevel(2), async (req, res) => {
 
   const users = await prisma.user.findMany({
     where, orderBy: { createdAt: 'desc' },
-    select: { id: true, name: true, email: true, phone: true, country: true, role: true, kycStatus: true, createdAt: true }
+    select: {
+      id: true, name: true, email: true, phone: true, country: true, city: true,
+      role: true, kycStatus: true, createdAt: true, blocked: true, pinHash: true,
+      wallet: { select: { balanceEur: true, balanceUsd: true, balanceXaf: true, balanceXof: true } }
+    }
   });
-  return success(res, paginate(users, page, limit));
+  // No exponer el hash del PIN — solo si lo tiene
+  const safe = users.map(({ pinHash, ...u }) => ({ ...u, has_pin: !!pinHash }));
+  return success(res, paginate(safe, page, limit));
 });
 
 // GET /v1/admin/users/:id — Detalle con wallet

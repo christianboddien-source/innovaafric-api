@@ -160,6 +160,37 @@ router.post('/token', async (req, res) => {
 
     if (!user) return error(res, 'No se pudo encontrar ni crear usuario', 500);
 
+    // Sincronización continua: si el wallet de Railway está a cero y Supabase
+    // tiene saldo, copiarlo (cubre cuentas antiguas y futuras en cada login)
+    try {
+      const rw = user.wallet;
+      const railwayEmpty = !rw || (!(rw.balanceEur || 0) && !(rw.balanceUsd || 0) &&
+                                   !(rw.balanceXaf || 0) && !(rw.balanceXof || 0));
+      if (railwayEmpty) {
+        const wResp = await fetch(`${sbUrl}/rest/v1/wallets?select=eur,usd,xaf,xof&user_id=eq.${sbUser.id}`, {
+          headers: { apikey: sbAnon, Authorization: `Bearer ${sbAnon}` }
+        });
+        const rows = await wResp.json();
+        const sw = Array.isArray(rows) ? rows[0] : null;
+        if (sw && ((Number(sw.eur) || 0) || (Number(sw.usd) || 0) || (Number(sw.xaf) || 0) || (Number(sw.xof) || 0))) {
+          await prisma.wallet.upsert({
+            where: { userId: user.id },
+            update: {
+              balanceEur: Number(sw.eur) || 0, balanceUsd: Number(sw.usd) || 0,
+              balanceXaf: Number(sw.xaf) || 0, balanceXof: Number(sw.xof) || 0
+            },
+            create: {
+              userId: user.id,
+              balanceEur: Number(sw.eur) || 0, balanceUsd: Number(sw.usd) || 0,
+              balanceXaf: Number(sw.xaf) || 0, balanceXof: Number(sw.xof) || 0
+            }
+          });
+          user = await prisma.user.findUnique({ where: { id: user.id }, include: { wallet: true } });
+          console.log(`[exchange] Wallet de ${user.email} sincronizado desde Supabase`);
+        }
+      }
+    } catch { /* sin sync — no bloquear el login */ }
+
     const token = jwt.sign(
       { sub: user.id, email: user.email, role: user.role, country: user.country,
         scope: user.scope || null, city: user.city || null },
