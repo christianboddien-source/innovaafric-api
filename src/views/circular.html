@@ -258,6 +258,46 @@
       </div>
     </section>
 
+    <!-- COBRAR: COMISIONES + TRASLADO A WALLET -->
+    <section id="page-cobrar" class="hidden">
+      <h2>💰 Mis comisiones y cobro</h2>
+      <div id="cobrarSummary"><div class="spinner">Cargando…</div></div>
+
+      <div class="card">
+        <b style="font-size:14px">↗️ Trasladar unidades a mi wallet XenderMoney</b>
+        <label>Unidades a trasladar</label>
+        <input id="transferUnits" type="number" min="1" placeholder="0" oninput="calcTransfer()">
+        <label>Divisa</label>
+        <select id="transferCurrency" onchange="calcTransfer()">
+          <option value="XAF">XAF (FCFA)</option>
+          <option value="XOF">XOF (FCFA)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="USD">USD ($)</option>
+        </select>
+        <div class="calc" id="transferCalc" style="display:none">
+          <div class="row"><span>Unidades a trasladar</span><b id="tUnits">—</b></div>
+          <div class="row"><span>Impuestos a pagar</span><b id="tTax" style="color:var(--red)">—</b></div>
+          <div class="row"><span>Recibes en tu wallet</span><b id="tNet" style="color:var(--green)">—</b></div>
+        </div>
+        <button class="btn" onclick="doTransfer()">Trasladar a mi wallet</button>
+        <div id="transferMsg"></div>
+      </div>
+
+      <div class="card">
+        <b style="font-size:14px">Historial de traslados</b>
+        <div style="overflow-x:auto;margin-top:8px">
+          <table><thead><tr><th>Fecha</th><th>Unidades</th><th>Impuesto</th><th>Neto recibido</th></tr></thead>
+          <tbody id="transfersList"><tr><td colspan="4" class="spinner">—</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <div class="info">
+        Al trasladar unidades a tu wallet <b>se retienen los impuestos</b> según la
+        configuración de tu país (o la retención estándar de InnovaAFRIC). El neto queda
+        disponible en tu cuenta <b>XenderMoney</b> para retirar o gastar.
+      </div>
+    </section>
+
     <!-- CIERRE DE CAJA -->
     <section id="page-caja" class="hidden">
       <h2>🧾 Cierre de caja</h2>
@@ -298,6 +338,7 @@
     <button class="active" onclick="go('home',this)"><span class="ic">🏠</span>Inicio</button>
     <button onclick="go('topup',this)"><span class="ic">💸</span>Recargar</button>
     <button onclick="go('units',this)"><span class="ic">🛒</span>Unidades</button>
+    <button onclick="go('cobrar',this)"><span class="ic">💰</span>Cobrar</button>
     <button onclick="go('caja',this)"><span class="ic">🧾</span>Caja</button>
     <button onclick="go('history',this)"><span class="ic">📋</span>Historial</button>
   </nav>
@@ -409,12 +450,13 @@ function logout() {
 
 // ── navegación ──
 function go(page, btn) {
-  ['home', 'topup', 'units', 'caja', 'history'].forEach(p =>
+  ['home', 'topup', 'units', 'cobrar', 'caja', 'history'].forEach(p =>
     document.getElementById('page-' + p).classList.toggle('hidden', p !== page));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (page === 'history') loadHistory();
   if (page === 'home') refreshMe();
+  if (page === 'cobrar') loadCobrar();
   if (page === 'caja') {
     if (!document.getElementById('cajaDate').value) {
       document.getElementById('cajaDate').value = new Date().toISOString().slice(0, 10);
@@ -618,6 +660,78 @@ function printReceipt() {
     </table>
     <p style="font-size:11px;color:#555">Este recibo certifica la recarga de la wallet XenderMoney del cliente. Conserve este documento.</p>`;
   window.print();
+}
+
+// ── comisiones + traslado a wallet ──
+let TAX_RATE_HINT = 0.02; // se actualiza con la respuesta real del servidor
+
+async function loadCobrar() {
+  const box = document.getElementById('cobrarSummary');
+  try {
+    const data = await api('GET', '/circulares/commissions');
+    const pct = (data.commissionRate * 100).toFixed(0);
+    const totals = Object.entries(data.totalsByCurrency);
+    box.innerHTML = `
+      <div class="card">
+        <b style="font-size:14px">Comisiones ganadas (${pct}% por cada recarga)</b>
+        ${totals.length
+          ? totals.map(([cur, tot]) => `<div class="total-line"><span>💰 Total comisiones (${cur})</span><b>${fmt(tot)} ${cur}</b></div>`).join('')
+          : '<div class="spinner">Aún no tienes comisiones — haz recargas a clientes</div>'}
+        <div class="receipt-line"><span>Recargas con comisión</span><b>${data.operations.length}</b></div>
+        <div class="receipt-line"><span>Unidades disponibles</span><b>${fmt(data.unitBalance)}</b></div>
+      </div>
+      ${data.operations.length ? `
+      <div class="card">
+        <b style="font-size:14px">Comisión por cada recarga</b>
+        <div style="overflow-x:auto;margin-top:8px">
+          <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Recarga</th><th>Tu ${pct}%</th></tr></thead>
+          <tbody>${data.operations.slice(0, 20).map(o => `<tr>
+            <td>${fmtDate(o.date)}</td><td>${o.clientName || '—'}</td>
+            <td>${fmt(o.amount)} ${o.currency}</td>
+            <td style="color:var(--green);font-weight:600">${fmt(o.commission)} ${o.currency}</td></tr>`).join('')}
+          </tbody></table>
+        </div>
+      </div>` : ''}`;
+
+    document.getElementById('transfersList').innerHTML = data.transfers.length
+      ? data.transfers.map(t => `<tr><td>${fmtDate(t.createdAt)}</td>
+          <td>${fmt(t.amountSent)} ${t.currencySent}</td>
+          <td style="color:var(--red)">${fmt(t.fee)}</td>
+          <td style="color:var(--green);font-weight:600">${fmt(t.amountReceived)} ${t.currencyReceived}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="spinner">Aún no has trasladado unidades</td></tr>';
+  } catch (e) {
+    box.innerHTML = `<div class="err">${e.message}</div>`;
+  }
+}
+
+function calcTransfer() {
+  const u = Number(document.getElementById('transferUnits').value);
+  const cur = document.getElementById('transferCurrency').value;
+  const boxCalc = document.getElementById('transferCalc');
+  if (!u || u <= 0) { boxCalc.style.display = 'none'; return; }
+  boxCalc.style.display = 'block';
+  const tax = Math.round(u * TAX_RATE_HINT * 100) / 100;
+  document.getElementById('tUnits').textContent = fmt(u) + ' unidades';
+  document.getElementById('tTax').textContent = '≈ ' + fmt(tax) + ' ' + cur;
+  document.getElementById('tNet').textContent = '≈ ' + fmt(u - tax) + ' ' + cur;
+}
+
+async function doTransfer() {
+  const units = Number(document.getElementById('transferUnits').value);
+  const currency = document.getElementById('transferCurrency').value;
+  if (!units || units <= 0) return msg('transferMsg', 'Introduce las unidades a trasladar', false);
+  msg('transferMsg', '');
+  try {
+    const data = await api('POST', '/circulares/transfer-to-wallet', { units, currency });
+    TAX_RATE_HINT = data.taxRate;
+    msg('transferMsg',
+      `${data.message}<br>Impuesto pagado (${data.taxName}, ${(data.taxRate * 100).toFixed(1)}%): <b>${fmt(data.tax)} ${currency}</b><br>` +
+      `Unidades restantes: <b>${fmt(data.newUnitBalance)}</b> · Wallet: <b>${fmt(data.newWalletBalance)} ${currency}</b>`, true);
+    document.getElementById('transferUnits').value = '';
+    calcTransfer();
+    loadCobrar();
+    refreshMe();
+  } catch (e) { msg('transferMsg', e.message, false); }
 }
 
 // ── cierre de caja ──

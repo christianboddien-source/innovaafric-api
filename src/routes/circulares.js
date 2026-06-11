@@ -6,6 +6,7 @@ const { success: ok, error } = require('../helpers/response');
 const { WALLET_LIMITS, CURRENCY_FIELD } = require('../config/walletLimits');
 
 const COMMISSION = 0.05; // 5% descuento en compra de unidades
+const TRANSFER_TAX_DEFAULT = 0.02; // 2% de retención si el país no tiene impuestos configurados
 
 // El JWT lleva el id del usuario en `sub` (los tokens antiguos usaban `id`)
 const uid = (req) => req.user.sub || req.user.id;
@@ -221,6 +222,120 @@ router.get('/my-operations', requireAuth, async (req, res) => {
     ]);
 
     return ok(res, { account: circ.account, topUps, purchases });
+  } catch (e) { return error(res, e.message); }
+});
+
+// GET /v1/circulares/commissions — comisión del 5% por cada recarga + traslados a wallet
+router.get('/commissions', requireAuth, async (req, res) => {
+  try {
+    const circ = await prisma.circular.findUnique({
+      where: { userId: uid(req) }, include: { account: true }
+    });
+    if (!circ) return error(res, 'No eres Circular Autorizada', 403);
+    const rate = circ.commissionRate ?? COMMISSION;
+
+    const topUps = await prisma.circularTopUp.findMany({
+      where: { circularId: circ.id, status: 'completed' },
+      orderBy: { createdAt: 'desc' }, take: 100
+    });
+    const operations = topUps.map(t => ({
+      id: t.id, date: t.createdAt,
+      clientName: t.clientName, clientPhone: t.clientPhone,
+      amount: t.amount, currency: t.currency,
+      commission: Math.round(t.amount * rate * 100) / 100
+    }));
+    const totalsByCurrency = {};
+    operations.forEach(o => {
+      totalsByCurrency[o.currency] = Math.round(((totalsByCurrency[o.currency] || 0) + o.commission) * 100) / 100;
+    });
+
+    const transfers = await prisma.transaction.findMany({
+      where: { userId: circ.userId, type: 'circular_cashout' },
+      orderBy: { createdAt: 'desc' }, take: 50
+    });
+
+    return ok(res, {
+      commissionRate: rate,
+      operations,
+      totalsByCurrency,
+      unitBalance: circ.account?.unitBalance ?? 0,
+      transfers
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
+// POST /v1/circulares/transfer-to-wallet — trasladar unidades a la wallet XenderMoney pagando impuestos
+router.post('/transfer-to-wallet', requireAuth, async (req, res) => {
+  try {
+    const circ = await prisma.circular.findUnique({
+      where: { userId: uid(req) }, include: { account: true }
+    });
+    if (!circ) return error(res, 'No eres Circular Autorizada', 403);
+    if (circ.status !== 'active') return error(res, 'Cuenta no activa', 403);
+    if (!circ.account) return error(res, 'Tu cuenta de unidades no está inicializada', 400);
+
+    const { units, currency = 'XAF' } = req.body;
+    if (!units || units <= 0) return error(res, 'units debe ser > 0', 400);
+    if (circ.account.unitBalance < units) {
+      return error(res, `Saldo insuficiente. Tienes ${circ.account.unitBalance.toLocaleString()} unidades`, 400);
+    }
+
+    // Impuestos del país si están configurados; si no, retención por defecto
+    let taxRate = TRANSFER_TAX_DEFAULT;
+    let taxName = 'Retención InnovaAFRIC';
+    const countryTaxes = await prisma.tax.findMany({
+      where: { country: (circ.country || '').toUpperCase(), active: true }
+    }).catch(() => []);
+    if (countryTaxes.length) {
+      taxRate = countryTaxes.reduce((s, t) => s + t.rate, 0) / 100;
+      taxName = countryTaxes.map(t => t.name).join(' + ');
+    }
+
+    const tax = Math.round(units * taxRate * 100) / 100;
+    const net = Math.round((units - tax) * 100) / 100;
+    const walletField = CURRENCY_FIELD[currency] || 'balanceXaf';
+
+    // Techo de wallet de la propia circular
+    const limits = WALLET_LIMITS[currency];
+    if (limits) {
+      const w = await prisma.wallet.findUnique({ where: { userId: circ.userId } });
+      const bal = w ? (w[walletField] || 0) : 0;
+      if (net + bal > limits.cap) {
+        return error(res, `La transferencia supera el techo de tu wallet (${limits.cap.toLocaleString()} ${currency}). Neto máximo que puedes recibir: ${(limits.cap - bal).toLocaleString()} ${currency}.`, 422);
+      }
+    }
+
+    const txResults = await prisma.$transaction([
+      prisma.circularAccount.update({
+        where: { circularId: circ.id },
+        data: { unitBalance: { decrement: units } }
+      }),
+      prisma.wallet.upsert({
+        where: { userId: circ.userId },
+        update: { [walletField]: { increment: net } },
+        create: { userId: circ.userId, [walletField]: net }
+      }),
+      prisma.transaction.create({
+        data: {
+          id: `circ_cash_${circ.id.slice(-6)}_${Date.now()}`,
+          type: 'circular_cashout',
+          userId: circ.userId,
+          amountSent: units, currencySent: currency,
+          amountReceived: net, currencyReceived: currency,
+          fee: tax, status: 'completed',
+          note: `Traslado de unidades a wallet XenderMoney — ${taxName} ${(taxRate * 100).toFixed(1)}%`
+        }
+      })
+    ]);
+
+    return ok(res, {
+      message: `✅ ${net.toLocaleString()} ${currency} acreditados en tu wallet XenderMoney`,
+      unitsTransferred: units,
+      tax, taxRate, taxName,
+      netReceived: net,
+      newUnitBalance: txResults[0].unitBalance,
+      newWalletBalance: txResults[1][walletField]
+    });
   } catch (e) { return error(res, e.message); }
 });
 
