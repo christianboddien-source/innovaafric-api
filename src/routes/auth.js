@@ -400,6 +400,33 @@ router.post('/unlock-requests/:id/reject', requireAuth, async (req, res) => {
   return success(res, { message: 'Solicitud rechazada' });
 });
 
+// POST /v1/auth/set-pin — configurar o cambiar el PIN de seguridad (4-6 dígitos)
+router.post('/set-pin', requireAuth, async (req, res) => {
+  const { pin, currentPin } = req.body;
+  if (!/^\d{4,6}$/.test(String(pin || ''))) {
+    return error(res, 'El PIN debe tener entre 4 y 6 dígitos', 400);
+  }
+  const me = req.user.sub || req.user.id;
+  const user = await prisma.user.findUnique({ where: { id: me }, select: { pinHash: true } });
+  if (user?.pinHash) {
+    if (!currentPin || !bcrypt.compareSync(String(currentPin), user.pinHash)) {
+      return error(res, 'El PIN actual no es correcto', 401);
+    }
+  }
+  await prisma.user.update({
+    where: { id: me },
+    data: { pinHash: bcrypt.hashSync(String(pin), 10) }
+  });
+  return success(res, { message: '✅ PIN configurado. Se pedirá en cada operación de dinero.' });
+});
+
+// GET /v1/auth/pin-status — ¿tiene PIN configurado?
+router.get('/pin-status', requireAuth, async (req, res) => {
+  const me = req.user.sub || req.user.id;
+  const user = await prisma.user.findUnique({ where: { id: me }, select: { pinHash: true } });
+  return success(res, { hasPin: !!user?.pinHash });
+});
+
 // POST /v1/auth/forgot-password — enviar enlace de recuperación de contraseña
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;

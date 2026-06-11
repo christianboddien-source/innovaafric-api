@@ -46,6 +46,8 @@ model User {
   // 2FA
   twoFactorSecret   String?
   twoFactorEnabled  Boolean  @default(false)
+  // PIN de seguridad para operaciones de dinero en las apps
+  pinHash           String?
   // Comisiones representante
   representativeId  String?
   commissionRate    Float    @default(0)

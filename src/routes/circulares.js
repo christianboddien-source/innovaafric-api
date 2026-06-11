@@ -11,6 +11,21 @@ const TRANSFER_TAX_DEFAULT = 0.02; // 2% de retención si el país no tiene impu
 // El JWT lleva el id del usuario en `sub` (los tokens antiguos usaban `id`)
 const uid = (req) => req.user.sub || req.user.id;
 
+const bcrypt = require('bcryptjs');
+
+// Si el usuario tiene PIN configurado, exigirlo en operaciones de dinero.
+// Devuelve null si todo bien, o el error ya respondido.
+async function checkPin(req, res) {
+  const user = await prisma.user.findUnique({
+    where: { id: uid(req) }, select: { pinHash: true }
+  });
+  if (!user?.pinHash) return null; // sin PIN configurado — no se exige
+  const pin = String(req.body.pin || '');
+  if (!pin) return error(res, 'Introduce tu PIN de seguridad', 428);
+  if (!bcrypt.compareSync(pin, user.pinHash)) return error(res, 'PIN incorrecto', 401);
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────
 // RUTAS PROPIAS DEL CIRCULAR
 // ─────────────────────────────────────────────────────────────
@@ -135,6 +150,9 @@ router.post('/topup-client', requireAuth, async (req, res) => {
 
     const { clientId, amount, currency = 'XAF', note } = req.body;
     if (!clientId || !amount || amount <= 0) return error(res, 'clientId y amount requeridos', 400);
+
+    // PIN de seguridad (si la circular lo tiene configurado)
+    if (await checkPin(req, res)) return;
     if (circ.account.unitBalance < amount) {
       return error(res, `Saldo insuficiente. Tienes ${circ.account.unitBalance} unidades`, 400);
     }
@@ -295,6 +313,9 @@ router.post('/transfer-to-wallet', requireAuth, async (req, res) => {
     if (circ.account.unitBalance < units) {
       return error(res, `Saldo insuficiente. Tienes ${circ.account.unitBalance.toLocaleString()} unidades`, 400);
     }
+
+    // PIN de seguridad (si la circular lo tiene configurado)
+    if (await checkPin(req, res)) return;
 
     // Impuestos del país (tipo circular_cashout) si están configurados; si no, retención por defecto
     let taxRate = TRANSFER_TAX_DEFAULT;

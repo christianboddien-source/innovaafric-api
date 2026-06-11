@@ -11,6 +11,20 @@ const TRANSFER_TAX_DEFAULT = 0.02; // 2% de retención si el país no tiene impu
 // El JWT lleva el id del usuario en `sub` (los tokens antiguos usaban `id`)
 const uid = (req) => req.user.sub || req.user.id;
 
+const bcrypt = require('bcryptjs');
+
+// Si el usuario tiene PIN configurado, exigirlo en operaciones de dinero
+async function checkPin(req, res) {
+  const user = await prisma.user.findUnique({
+    where: { id: uid(req) }, select: { pinHash: true }
+  });
+  if (!user?.pinHash) return null;
+  const pin = String(req.body.pin || '');
+  if (!pin) return error(res, 'Introduce tu PIN de seguridad', 428);
+  if (!bcrypt.compareSync(pin, user.pinHash)) return error(res, 'PIN incorrecto', 401);
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────
 // UTILIDADES PDF
 // ─────────────────────────────────────────────────────────────
@@ -189,6 +203,9 @@ router.post('/transfer-earnings', authenticate, async (req, res) => {
     if (rep.totalEarned < amount) {
       return error(res, `Saldo de comisiones insuficiente. Tienes ${rep.totalEarned.toLocaleString()}`, 400);
     }
+
+    // PIN de seguridad (si el rep lo tiene configurado)
+    if (await checkPin(req, res)) return;
 
     // Impuestos del país (mismo tipo circular_cashout que las circulares)
     let taxRate = TRANSFER_TAX_DEFAULT;

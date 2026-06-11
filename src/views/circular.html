@@ -196,6 +196,7 @@
       <div class="who"><b id="whoName">—</b><span id="whoZone">—</span></div>
     </div>
     <div style="display:flex;gap:8px">
+      <button onclick="openSetPin()" style="font-size:15px" title="PIN de seguridad">🔐</button>
       <button id="chatBtn" onclick="openChat()" style="font-size:15px;position:relative">💬<span id="chatDot" class="hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:var(--red);border:2px solid var(--card)"></span></button>
       <button onclick="logout()">Salir</button>
     </div>
@@ -485,8 +486,42 @@
   </div>
 </div>
 
+<!-- ════════ MODAL PEDIR PIN ════════ -->
+<div id="askPinModal" class="modal-overlay hidden" style="z-index:60">
+  <div class="modal-box" style="max-width:320px;text-align:center">
+    <b style="font-size:15px">🔐 PIN de seguridad</b>
+    <p style="font-size:13px;color:var(--muted);margin-top:6px">Introduce tu PIN para confirmar la operación</p>
+    <input id="askPinInput" type="password" inputmode="numeric" maxlength="6" placeholder="••••" style="text-align:center;font-size:24px;letter-spacing:8px;margin-top:12px">
+    <div id="askPinMsg"></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="cancelAskPin()">Cancelar</button>
+      <button class="btn" onclick="submitAskPin()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODAL CONFIGURAR PIN ════════ -->
+<div id="setPinModal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:360px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <b style="font-size:15px">🔐 Mi PIN de seguridad</b>
+      <button onclick="document.getElementById('setPinModal').classList.add('hidden')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted)">Se pedirá antes de cada recarga y traslado de dinero.</p>
+    <label>PIN actual (vacío si es la primera vez)</label>
+    <input id="setPinCurrent" type="password" inputmode="numeric" maxlength="6" placeholder="••••">
+    <label>Nuevo PIN (4 a 6 dígitos)</label>
+    <input id="setPinNew" type="password" inputmode="numeric" maxlength="6" placeholder="••••">
+    <label>Repite el nuevo PIN</label>
+    <input id="setPinNew2" type="password" inputmode="numeric" maxlength="6" placeholder="••••">
+    <button class="btn" onclick="saveSetPin()">Guardar PIN</button>
+    <div id="setPinMsg"></div>
+  </div>
+</div>
+
 <!-- ════════ ZONA DE IMPRESIÓN ════════ -->
 <div id="printArea"></div>
+<script src="/app-i18n.js"></script>
 
 <script>
 'use strict';
@@ -675,9 +710,9 @@ async function doTopup() {
   const btn = document.getElementById('topupBtn');
   btn.disabled = true; msg('topupMsg', '');
   try {
-    const data = await api('POST', '/circulares/topup-client', {
-      clientId: selectedClient.id, amount, currency
-    });
+    const data = await callWithPin(pin => api('POST', '/circulares/topup-client', {
+      clientId: selectedClient.id, amount, currency, pin
+    }));
     msg('topupMsg', `${data.message}<br>Saldo de unidades restante: <b>${fmt(data.newBalance)}</b>` +
       (data.alertLow ? '<br>' + data.alertMessage : ''), true);
     document.getElementById('topupAmount').value = '';
@@ -916,7 +951,7 @@ async function doTransfer() {
   if (!units || units <= 0) return msg('transferMsg', 'Introduce las unidades a trasladar', false);
   msg('transferMsg', '');
   try {
-    const data = await api('POST', '/circulares/transfer-to-wallet', { units, currency });
+    const data = await callWithPin(pin => api('POST', '/circulares/transfer-to-wallet', { units, currency, pin }));
     TAX_RATE_HINT = data.taxRate;
     msg('transferMsg',
       `${data.message}<br>Impuesto pagado (${data.taxName}, ${(data.taxRate * 100).toFixed(1)}%): <b>${fmt(data.tax)} ${currency}</b><br>` +
@@ -1131,6 +1166,66 @@ async function sendChat() {
     inp.value = text; // no perder el mensaje si falla
   }
 }
+
+// ── PIN de seguridad ──
+let PIN_RESOLVE = null;
+
+function askPin() {
+  return new Promise(resolve => {
+    PIN_RESOLVE = resolve;
+    document.getElementById('askPinInput').value = '';
+    msg('askPinMsg', '');
+    document.getElementById('askPinModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('askPinInput').focus(), 100);
+  });
+}
+function submitAskPin() {
+  const v = document.getElementById('askPinInput').value.trim();
+  if (!/^\d{4,6}$/.test(v)) return msg('askPinMsg', 'PIN de 4 a 6 dígitos', false);
+  document.getElementById('askPinModal').classList.add('hidden');
+  if (PIN_RESOLVE) PIN_RESOLVE(v);
+}
+function cancelAskPin() {
+  document.getElementById('askPinModal').classList.add('hidden');
+  if (PIN_RESOLVE) PIN_RESOLVE(null);
+}
+
+// Ejecuta una operación de dinero; si el servidor exige PIN, lo pide y reintenta
+async function callWithPin(fn) {
+  let pin;
+  while (true) {
+    try {
+      return await fn(pin);
+    } catch (e) {
+      if (/PIN de seguridad|PIN incorrecto/.test(e.message)) {
+        pin = await askPin();
+        if (pin === null) throw new Error('Operación cancelada');
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+
+function openSetPin() {
+  ['setPinCurrent', 'setPinNew', 'setPinNew2'].forEach(id => document.getElementById(id).value = '');
+  msg('setPinMsg', '');
+  document.getElementById('setPinModal').classList.remove('hidden');
+}
+
+async function saveSetPin() {
+  const cur = document.getElementById('setPinCurrent').value.trim();
+  const p1 = document.getElementById('setPinNew').value.trim();
+  const p2 = document.getElementById('setPinNew2').value.trim();
+  if (!/^\d{4,6}$/.test(p1)) return msg('setPinMsg', 'El PIN debe tener entre 4 y 6 dígitos', false);
+  if (p1 !== p2) return msg('setPinMsg', 'Los PIN no coinciden', false);
+  try {
+    const d = await api('POST', '/auth/set-pin', { pin: p1, ...(cur ? { currentPin: cur } : {}) });
+    msg('setPinMsg', d.message, true);
+  } catch (e) { msg('setPinMsg', e.message, false); }
+}
+
+document.getElementById('askPinInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') submitAskPin(); });
 
 // ── ojo de contraseña + recuperación ──
 function toggleEye(id, btn) {
