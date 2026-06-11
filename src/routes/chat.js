@@ -9,6 +9,20 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 // Roles de staff que gestionan el chat desde el dashboard
 const CHAT_STAFF = ['admin', 'super_admin', 'support_agent', 'support_supervisor'];
 
+// ¿Puede este usuario ver la sala completa? Staff: todas. Usuario: su sala personal.
+// Representante: también las salas de las circulares de su red.
+async function canSeeFullRoom(user, room) {
+  if (CHAT_STAFF.includes(user.role)) return true;
+  if (room === `user_${user.sub}`) return true;
+  if (room.startsWith('user_')) {
+    const rep = await prisma.representative.findUnique({ where: { userId: user.sub } });
+    if (!rep) return false;
+    const circ = await prisma.circular.findUnique({ where: { userId: room.slice(5) } });
+    return !!(circ && circ.repId === rep.id);
+  }
+  return false;
+}
+
 // GET /v1/chat/rooms — salas activas (staff)
 router.get('/rooms', requireAuth, requireRole(...CHAT_STAFF), async (_req, res) => {
   const messages = await prisma.chatMessage.findMany({
@@ -34,9 +48,9 @@ router.get('/rooms', requireAuth, requireRole(...CHAT_STAFF), async (_req, res) 
 router.get('/messages', requireAuth, async (req, res) => {
   const { room = 'support', limit = 100 } = req.query;
   const where = { room };
-  // Staff ve cualquier sala; un usuario normal ve su sala personal (user_<id>) completa
-  // o, en salas compartidas, solo los mensajes que envió o recibió
-  if (!CHAT_STAFF.includes(req.user.role) && room !== `user_${req.user.sub}`) {
+  // Staff ve cualquier sala; el dueño ve su sala personal; el rep las de su red.
+  // En salas compartidas, solo los mensajes que envió o recibió.
+  if (!await canSeeFullRoom(req.user, room)) {
     where.OR = [{ fromId: req.user.sub }, { toId: req.user.sub }];
   }
   const messages = await prisma.chatMessage.findMany({

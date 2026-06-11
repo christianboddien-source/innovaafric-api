@@ -348,8 +348,9 @@ router.post('/authorize', requireAuth, async (req, res) => {
   try {
     const actorRole = req.user.role;
     const isAdmin = ['admin', 'super_admin', 'finance_officer', 'country_manager'].includes(actorRole);
-    const isRep   = actorRole === 'representante';
-    if (!isAdmin && !isRep) return error(res, 'Solo admins o representantes pueden autorizar circulares', 403);
+    // Un representante se identifica por la tabla Representative, no por el rol
+    const rep = isAdmin ? null : await prisma.representative.findUnique({ where: { userId: uid(req) } });
+    if (!isAdmin && !rep) return error(res, 'Solo admins o representantes pueden autorizar circulares', 403);
 
     const { userId, neighborhood, country, notes } = req.body;
     if (!userId || !neighborhood || !country) {
@@ -362,13 +363,7 @@ router.post('/authorize', requireAuth, async (req, res) => {
     const existing = await prisma.circular.findUnique({ where: { userId } });
     if (existing) return error(res, 'Este usuario ya está registrado como Circular Autorizada', 409);
 
-    // Si es un representante, buscamos su registro
-    let repId = null;
-    if (isRep) {
-      const rep = await prisma.representative.findUnique({ where: { userId: uid(req) } });
-      if (!rep) return error(res, 'No se encontró tu registro de representante', 403);
-      repId = rep.id;
-    }
+    const repId = rep ? rep.id : null;
 
     const circular = await prisma.circular.create({
       data: {
@@ -402,14 +397,11 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const actorRole = req.user.role;
     const isAdmin = ['admin', 'super_admin', 'finance_officer', 'country_manager'].includes(actorRole);
-    const isRep   = actorRole === 'representante';
-    if (!isAdmin && !isRep) return error(res, 'Sin permiso', 403);
+    // Un representante se identifica por la tabla Representative, no por el rol
+    const rep = isAdmin ? null : await prisma.representative.findUnique({ where: { userId: uid(req) } });
+    if (!isAdmin && !rep) return error(res, 'Sin permiso', 403);
 
-    let where = {};
-    if (isRep) {
-      const rep = await prisma.representative.findUnique({ where: { userId: uid(req) } });
-      if (rep) where = { repId: rep.id }; // rep solo ve sus circulares
-    }
+    const where = rep ? { repId: rep.id } : {}; // rep solo ve sus circulares
 
     const circulares = await prisma.circular.findMany({
       where,

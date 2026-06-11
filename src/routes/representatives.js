@@ -6,6 +6,10 @@ const { requireAuth: authenticate, requireRole } = require('../middleware/auth')
 const { success: ok, error } = require('../helpers/response');
 
 const DISCOUNT = 0.10; // 10% descuento motivacional
+const TRANSFER_TAX_DEFAULT = 0.02; // 2% de retención si el país no tiene impuestos configurados
+
+// El JWT lleva el id del usuario en `sub` (los tokens antiguos usaban `id`)
+const uid = (req) => req.user.sub || req.user.id;
 
 // ─────────────────────────────────────────────────────────────
 // UTILIDADES PDF
@@ -62,11 +66,149 @@ function fmtAmt(n, cur = 'EUR') { return `${Number(n || 0).toFixed(2)} ${cur}`; 
 router.get('/me', authenticate, async (req, res) => {
   try {
     const rep = await prisma.representative.findUnique({
-      where: { userId: req.user.id },
+      where: { userId: uid(req) },
       include: { account: true }
     });
     if (!rep) return error(res, 'No eres representante registrado', 403);
-    return ok(res, rep);
+    // El modelo no tiene relación user en Prisma — se consulta aparte
+    const [user, circularesCount] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: rep.userId },
+        select: { name: true, email: true, phone: true }
+      }),
+      prisma.circular.count({ where: { repId: rep.id } })
+    ]);
+    return ok(res, { ...rep, user, circularesCount });
+  } catch (e) { return error(res, e.message); }
+});
+
+// GET /v1/representatives/find-user?q= — buscar usuario para autorizarlo como circular
+router.get('/find-user', authenticate, async (req, res) => {
+  try {
+    const rep = await prisma.representative.findUnique({ where: { userId: uid(req) } });
+    if (!rep) return error(res, 'No eres representante', 403);
+
+    const q = (req.query.q || '').trim();
+    if (q.length < 3) return error(res, 'Escribe al menos 3 caracteres (teléfono, email o nombre)', 400);
+
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { phone: { contains: q } },
+          { email: { contains: q, mode: 'insensitive' } },
+          { name:  { contains: q, mode: 'insensitive' } }
+        ]
+      },
+      select: { id: true, name: true, phone: true, email: true, country: true, role: true },
+      take: 8
+    });
+    return ok(res, { count: users.length, users });
+  } catch (e) { return error(res, e.message); }
+});
+
+// GET /v1/representatives/network-commissions — comisión 50% del ahorro de cada circular de mi red
+router.get('/network-commissions', authenticate, async (req, res) => {
+  try {
+    const rep = await prisma.representative.findUnique({ where: { userId: uid(req) } });
+    if (!rep) return error(res, 'No eres representante', 403);
+
+    const circulares = await prisma.circular.findMany({ where: { repId: rep.id } });
+    const circIds = circulares.map(c => c.id);
+    const circNames = {};
+    for (const c of circulares) {
+      const u = await prisma.user.findUnique({ where: { id: c.userId }, select: { name: true } });
+      circNames[c.id] = u?.name || c.neighborhood;
+    }
+
+    const purchases = circIds.length ? await prisma.circularPurchase.findMany({
+      where: { circularId: { in: circIds }, status: 'confirmed' },
+      orderBy: { createdAt: 'desc' }, take: 100
+    }) : [];
+
+    const operations = purchases.map(p => ({
+      id: p.id, date: p.confirmedAt || p.createdAt,
+      circularName: circNames[p.circularId],
+      units: p.unitsRequested, currency: p.currency,
+      circularSaved: p.amountSaved,
+      myCommission: Math.round(p.amountSaved * 0.5 * 100) / 100 // 50% del ahorro va al rep
+    }));
+    const totalsByCurrency = {};
+    operations.forEach(o => {
+      totalsByCurrency[o.currency] = Math.round(((totalsByCurrency[o.currency] || 0) + o.myCommission) * 100) / 100;
+    });
+
+    const transfers = await prisma.transaction.findMany({
+      where: { userId: rep.userId, type: 'rep_cashout' },
+      orderBy: { createdAt: 'desc' }, take: 50
+    });
+
+    return ok(res, {
+      totalEarned: rep.totalEarned,
+      operations, totalsByCurrency, transfers
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
+// POST /v1/representatives/transfer-earnings — trasladar comisiones ganadas a la wallet pagando impuestos
+router.post('/transfer-earnings', authenticate, async (req, res) => {
+  try {
+    const rep = await prisma.representative.findUnique({ where: { userId: uid(req) } });
+    if (!rep) return error(res, 'No eres representante', 403);
+    if (rep.status !== 'active') return error(res, 'Cuenta no activa', 403);
+
+    const { amount, currency = 'XAF' } = req.body;
+    if (!amount || amount <= 0) return error(res, 'amount debe ser > 0', 400);
+    if (rep.totalEarned < amount) {
+      return error(res, `Saldo de comisiones insuficiente. Tienes ${rep.totalEarned.toLocaleString()}`, 400);
+    }
+
+    // Impuestos del país (mismo tipo circular_cashout que las circulares)
+    let taxRate = TRANSFER_TAX_DEFAULT;
+    let taxName = 'Retención InnovaAFRIC';
+    const countryTaxes = await prisma.tax.findMany({
+      where: { country: (rep.country || '').toUpperCase(), active: true, type: 'circular_cashout' }
+    }).catch(() => []);
+    if (countryTaxes.length) {
+      taxRate = countryTaxes.reduce((s, t) => s + t.rate, 0) / 100;
+      taxName = countryTaxes.map(t => t.name).join(' + ');
+    }
+
+    const tax = Math.round(amount * taxRate * 100) / 100;
+    const net = Math.round((amount - tax) * 100) / 100;
+    const CF = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
+    const walletField = CF[currency] || 'balanceXaf';
+
+    const txResults = await prisma.$transaction([
+      prisma.representative.update({
+        where: { id: rep.id },
+        data: { totalEarned: { decrement: amount } }
+      }),
+      prisma.wallet.upsert({
+        where: { userId: rep.userId },
+        update: { [walletField]: { increment: net } },
+        create: { userId: rep.userId, [walletField]: net }
+      }),
+      prisma.transaction.create({
+        data: {
+          id: `rep_cash_${rep.id.slice(-6)}_${Date.now()}`,
+          type: 'rep_cashout',
+          userId: rep.userId,
+          amountSent: amount, currencySent: currency,
+          amountReceived: net, currencyReceived: currency,
+          fee: tax, status: 'completed',
+          note: `Cobro de comisiones de red — ${taxName} ${(taxRate * 100).toFixed(1)}%`
+        }
+      })
+    ]);
+
+    return ok(res, {
+      message: `✅ ${net.toLocaleString()} ${currency} acreditados en tu wallet XenderMoney`,
+      amountTransferred: amount,
+      tax, taxRate, taxName,
+      netReceived: net,
+      newEarningsBalance: txResults[0].totalEarned,
+      newWalletBalance: txResults[1][walletField]
+    });
   } catch (e) { return error(res, e.message); }
 });
 
@@ -74,7 +216,7 @@ router.get('/me', authenticate, async (req, res) => {
 router.post('/purchase-units', authenticate, async (req, res) => {
   try {
     const rep = await prisma.representative.findUnique({
-      where: { userId: req.user.id }, include: { account: true }
+      where: { userId: uid(req) }, include: { account: true }
     });
     if (!rep) return error(res, 'No eres representante', 403);
 
@@ -112,7 +254,7 @@ router.post('/purchase-units', authenticate, async (req, res) => {
 router.post('/topup-client', authenticate, async (req, res) => {
   try {
     const rep = await prisma.representative.findUnique({
-      where: { userId: req.user.id }, include: { account: true }
+      where: { userId: uid(req) }, include: { account: true }
     });
     if (!rep) return error(res, 'No eres representante', 403);
     if (!rep.account) return error(res, 'Tu cuenta de unidades no está inicializada', 400);
@@ -144,7 +286,7 @@ router.post('/topup-client', authenticate, async (req, res) => {
         data: {
           id: `rep_topup_${rep.id}_${Date.now()}`,
           type: 'topup',
-          userId: req.user.id,
+          userId: uid(req),
           recipientId: clientId,
           amountSent: amount, currencySent: currency,
           amountReceived: amount, currencyReceived: currency,
@@ -188,7 +330,7 @@ router.post('/topup-client', authenticate, async (req, res) => {
 router.get('/my-operations', authenticate, async (req, res) => {
   try {
     const rep = await prisma.representative.findUnique({
-      where: { userId: req.user.id }, include: { account: true }
+      where: { userId: uid(req) }, include: { account: true }
     });
     if (!rep) return error(res, 'No eres representante', 403);
 
@@ -254,7 +396,7 @@ router.post('/purchases/:id/confirm', authenticate, requireRole('admin','super_a
     await prisma.$transaction([
       prisma.unitPurchase.update({
         where: { id: purchase.id },
-        data: { status: 'confirmed', confirmedBy: req.user.id, confirmedAt: new Date() }
+        data: { status: 'confirmed', confirmedBy: uid(req), confirmedAt: new Date() }
       }),
       prisma.repAccount.upsert({
         where: { repId },
@@ -289,7 +431,7 @@ router.post('/purchases/:id/reject', authenticate, requireRole('admin','super_ad
     const { reason } = req.body;
     await prisma.unitPurchase.update({
       where: { id: req.params.id },
-      data: { status: 'rejected', rejectedReason: reason || 'Rechazado por admin', confirmedBy: req.user.id, confirmedAt: new Date() }
+      data: { status: 'rejected', rejectedReason: reason || 'Rechazado por admin', confirmedBy: uid(req), confirmedAt: new Date() }
     });
     return ok(res, { message: 'Solicitud rechazada' });
   } catch (e) { return error(res, e.message); }
@@ -321,7 +463,7 @@ router.get('/:repId/report/balance', authenticate, async (req, res) => {
     if (!rep) return error(res, 'Representante no encontrado', 404);
 
     // Solo el propio rep o admin pueden ver
-    const isOwner = rep.userId === req.user.id;
+    const isOwner = rep.userId === uid(req);
     const isAdmin = ['admin','super_admin','finance_officer','country_manager'].includes(req.user.role);
     if (!isOwner && !isAdmin) return error(res, 'Sin permiso', 403);
 
@@ -378,7 +520,7 @@ router.get('/:repId/report/operations', authenticate, async (req, res) => {
     });
     if (!rep) return error(res, 'Representante no encontrado', 404);
 
-    const isOwner = rep.userId === req.user.id;
+    const isOwner = rep.userId === uid(req);
     const isAdmin = ['admin','super_admin','finance_officer','country_manager'].includes(req.user.role);
     if (!isOwner && !isAdmin) return error(res, 'Sin permiso', 403);
 
