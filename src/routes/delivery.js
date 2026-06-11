@@ -100,6 +100,89 @@ router.post('/orders/:id/accept', requireAuth, async (req, res) => {
   });
 });
 
+// POST /v1/delivery/orders/:id/delivered — el rider marca la entrega con prueba (foto/firma)
+router.post('/orders/:id/delivered', requireAuth, async (req, res) => {
+  const rider = await prisma.rider.findUnique({ where: { userId: uid(req) } });
+  if (!rider) return error(res, 'No eres rider', 403);
+
+  const order = await prisma.groceryOrder.findUnique({ where: { id: req.params.id } });
+  if (!order) return error(res, 'Comanda no encontrada', 404);
+  if (order.riderId !== rider.id) return error(res, 'Esta comanda no es tuya', 403);
+  if (order.status === 'delivered') return error(res, 'Ya marcada como entregada', 400);
+
+  const { proof } = req.body; // nota o foto (dataURL) como prueba de entrega
+  if (proof && proof.length > 400000) return error(res, 'La foto es demasiado grande', 413);
+
+  const now = new Date();
+  const autoPay = order.riderPaymentMode === 'auto' && order.riderFeeXaf > 0 && rider.userId;
+
+  if (autoPay) {
+    // Liberar el pago al rider automáticamente (mismo flujo que rider-payment confirm)
+    await prisma.$transaction([
+      prisma.groceryOrder.update({
+        where: { id: order.id },
+        data: {
+          status: 'delivered',
+          deliveryProof: proof || 'Entrega confirmada por el rider',
+          riderFeeStatus: 'released',
+          confirmedAt: now,
+          riderPaidAt: now
+        }
+      }),
+      prisma.wallet.upsert({
+        where: { userId: rider.userId },
+        update: { balanceXaf: { increment: order.riderFeeXaf } },
+        create: { userId: rider.userId, balanceXaf: order.riderFeeXaf }
+      }),
+      prisma.transaction.create({
+        data: {
+          id: `rider_pay_${order.id}_${Date.now()}`,
+          type: 'rider_payment',
+          userId: order.userId,
+          recipientId: rider.userId,
+          amountSent: order.riderFeeXaf, currencySent: 'XAF',
+          amountReceived: order.riderFeeXaf, currencyReceived: 'XAF',
+          fee: 0, status: 'completed',
+          note: `Pago rider pedido #${order.id} (entrega con prueba)`
+        }
+      }),
+      prisma.rider.update({
+        where: { id: rider.id },
+        data: { status: 'available', deliveriesTotal: { increment: 1 } }
+      })
+    ]);
+    await triggerWebhook('order.delivered', { orderId: order.id, riderId: rider.id, paid: true });
+    return success(res, {
+      message: `✅ Entrega registrada. ${order.riderFeeXaf.toLocaleString()} XAF acreditados en tu wallet XenderMoney.`,
+      paid: true,
+      fee: order.riderFeeXaf
+    });
+  }
+
+  // Modo manual → pago queda en cola para que admin lo libere
+  await prisma.$transaction([
+    prisma.groceryOrder.update({
+      where: { id: order.id },
+      data: {
+        status: 'delivered',
+        deliveryProof: proof || 'Entrega confirmada por el rider',
+        riderFeeStatus: 'escrow',
+        confirmedAt: now
+      }
+    }),
+    prisma.rider.update({
+      where: { id: rider.id },
+      data: { status: 'available', deliveriesTotal: { increment: 1 } }
+    })
+  ]);
+  await triggerWebhook('order.delivered', { orderId: order.id, riderId: rider.id, paid: false });
+  return success(res, {
+    message: '✅ Entrega registrada. Tu pago está en cola — InnovaAFRIC lo liberará pronto.',
+    paid: false,
+    fee: order.riderFeeXaf
+  });
+});
+
 // GET /v1/delivery/my-deliveries — comandas del rider (en curso e histórico)
 router.get('/my-deliveries', requireAuth, async (req, res) => {
   const rider = await prisma.rider.findUnique({ where: { userId: uid(req) } });

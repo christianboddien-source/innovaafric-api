@@ -222,6 +222,23 @@
   </div>
 </div>
 
+<!-- ════════ MODAL ENTREGA COMPLETADA ════════ -->
+<div id="deliveredModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <b style="font-size:15px">✅ Confirmar entrega</b>
+      <button onclick="closeDeliveredModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <label>Nota de entrega (opcional)</label>
+    <input id="proofNote" placeholder="Ej: Entregado en mano al cliente">
+    <label>Foto de prueba (opcional)</label>
+    <input id="proofPhoto" type="file" accept="image/*" capture="environment" onchange="previewProof()">
+    <div id="proofPreview" style="text-align:center;margin-top:10px"></div>
+    <button class="btn" id="deliveredBtn" onclick="confirmDelivered()">Registrar entrega y cobrar</button>
+    <div id="deliveredMsg"></div>
+  </div>
+</div>
+
 <!-- ════════ MODAL CHAT ════════ -->
 <div id="chatModal" class="modal-overlay hidden">
   <div class="modal-box" style="display:flex;flex-direction:column;height:80vh">
@@ -361,7 +378,10 @@ async function loadOrders() {
           <div class="addr">📍 ${o.deliveryAddress}</div>
           <div class="meta">Cliente: ${o.user?.name || '—'} · ${o.user?.phone || ''}<br>
             ${o.items?.length || 0} artículo(s) · Tu pago: <span class="fee">${fmt(o.riderFeeXaf)} XAF</span></div>
-          <button class="btn" onclick="acceptOrder('${o.id}')">✅ Aceptar comanda</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" style="flex:1" onclick="navigateTo('${(o.deliveryAddress || '').replace(/'/g, '')}')">🧭 Ver ruta</button>
+            <button class="btn" style="flex:1" onclick="acceptOrder('${o.id}')">✅ Aceptar</button>
+          </div>
         </div>`).join('')
       : '<div class="card"><div class="spinner">No hay comandas disponibles ahora mismo</div></div>';
   } catch (e) {
@@ -374,10 +394,77 @@ async function loadOrders() {
         <div class="order-card">
           <div class="top"><b>${fmt(o.totalXaf)} XAF</b><span class="tag ${o.status}">${o.status}</span></div>
           <div class="addr">📍 ${o.deliveryAddress}</div>
-          <div class="meta">${fmtDate(o.createdAt)} · ${o.user?.name || ''} · Tu pago: <span class="fee">${fmt(o.riderFeeXaf)} XAF</span></div>
+          <div class="meta">${fmtDate(o.createdAt)} · ${o.user?.name || ''} · Tu pago: <span class="fee">${fmt(o.riderFeeXaf)} XAF</span>
+            ${o.riderFeeStatus === 'released' || o.riderFeeStatus === 'manual_released' ? ' ✅ cobrado' : o.riderFeeStatus === 'escrow' ? ' ⏳ en cola' : ''}</div>
+          ${o.status === 'in_transit' ? `
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" style="flex:1" onclick="navigateTo('${(o.deliveryAddress || '').replace(/'/g, '')}')">🧭 Navegar</button>
+            <button class="btn" style="flex:1" onclick="openDeliveredModal('${o.id}')">✅ Entregado</button>
+          </div>` : ''}
         </div>`).join('')
       : '<div class="card"><div class="spinner">Aún no tienes entregas</div></div>';
   } catch {}
+}
+
+// ── navegación a la entrega ──
+function navigateTo(address) {
+  window.open('https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(address), '_blank');
+}
+
+// ── entrega completada con prueba ──
+let DELIVERED_ORDER = null, PROOF_PHOTO = null;
+
+function openDeliveredModal(orderId) {
+  DELIVERED_ORDER = orderId;
+  PROOF_PHOTO = null;
+  document.getElementById('proofNote').value = '';
+  document.getElementById('proofPhoto').value = '';
+  document.getElementById('proofPreview').innerHTML = '';
+  msg('deliveredMsg', '');
+  document.getElementById('deliveredBtn').disabled = false;
+  document.getElementById('deliveredModal').classList.remove('hidden');
+}
+function closeDeliveredModal() { document.getElementById('deliveredModal').classList.add('hidden'); }
+
+// Comprime la foto a ~480px de ancho para que viaje ligera
+function previewProof() {
+  const file = document.getElementById('proofPhoto').files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    const w = Math.min(480, img.width);
+    const h = Math.round(img.height * (w / img.width));
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(img, 0, 0, w, h);
+    PROOF_PHOTO = cv.toDataURL('image/jpeg', 0.55);
+    document.getElementById('proofPreview').innerHTML =
+      `<img src="${PROOF_PHOTO}" style="max-width:100%;border-radius:10px;border:1px solid var(--border)">`;
+    URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+async function confirmDelivered() {
+  if (!DELIVERED_ORDER) return;
+  const btn = document.getElementById('deliveredBtn');
+  btn.disabled = true;
+  const note = document.getElementById('proofNote').value.trim();
+  const proof = PROOF_PHOTO || note || undefined;
+  try {
+    const d = await api('POST', `/delivery/orders/${DELIVERED_ORDER}/delivered`, {
+      proof: PROOF_PHOTO && note ? note + '|' + PROOF_PHOTO : proof
+    });
+    msg('deliveredMsg', d.message, true);
+    ME.status = 'available';
+    ME.deliveriesTotal = (ME.deliveriesTotal || 0) + 1;
+    renderHome();
+    loadOrders();
+    setTimeout(closeDeliveredModal, 2500);
+  } catch (e) {
+    msg('deliveredMsg', e.message, false);
+    btn.disabled = false;
+  }
 }
 
 async function acceptOrder(id) {

@@ -5,6 +5,9 @@ const { requireAuth: authenticate, requireRole } = require('../middleware/auth')
 const { success: ok, error } = require('../helpers/response');
 const { distributeCommission } = require('../services/commission');
 
+// El JWT lleva el id del usuario en `sub`
+const uid = (req) => req.user.sub || req.user.id;
+
 /**
  * POST /v1/rider-payment/confirm/:orderId
  * El cliente confirma la entrega → sistema libera el pago al rider automáticamente
@@ -18,7 +21,7 @@ router.post('/confirm/:orderId', authenticate, async (req, res) => {
     });
 
     if (!order) return error(res, 'Pedido no encontrado', 404);
-    if (order.userId !== req.user.id) return error(res, 'No autorizado', 403);
+    if (order.userId !== uid(req)) return error(res, 'No autorizado', 403);
     if (order.riderFeeStatus === 'released' || order.riderFeeStatus === 'manual_released')
       return error(res, 'Pago del rider ya liberado', 400);
     if (order.status !== 'delivering' && order.status !== 'delivered')
@@ -138,7 +141,7 @@ router.post('/release/:orderId', authenticate, requireRole('admin', 'super_admin
         data: {
           id: `rider_manual_${order.id}_${Date.now()}`,
           type: 'rider_payment',
-          userId: req.user.id,
+          userId: uid(req),
           recipientId: rider.userId,
           amountSent: order.riderFeeXaf,
           currencySent: 'XAF',
