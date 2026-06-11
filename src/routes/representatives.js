@@ -360,13 +360,16 @@ router.get('/my-operations', authenticate, async (req, res) => {
 router.get('/', authenticate, requireRole('admin','super_admin','finance_officer','country_manager'), async (req, res) => {
   try {
     const reps = await prisma.representative.findMany({
-      include: {
-        account: true,
-        user: { select: { id: true, name: true, email: true, phone: true, country: true } }
-      },
+      include: { account: true },
       orderBy: { createdAt: 'desc' }
     });
-    return ok(res, reps);
+    // El modelo Representative no tiene relación user — se consultan aparte
+    const users = await prisma.user.findMany({
+      where: { id: { in: reps.map(r => r.userId) } },
+      select: { id: true, name: true, email: true, phone: true, country: true }
+    });
+    const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+    return ok(res, reps.map(r => ({ ...r, user: userMap[r.userId] || null })));
   } catch (e) { return error(res, e.message); }
 });
 
@@ -375,10 +378,18 @@ router.get('/purchases/pending', authenticate, requireRole('admin','super_admin'
   try {
     const purchases = await prisma.unitPurchase.findMany({
       where: { status: 'pending' },
-      include: { rep: { include: { user: { select: { name: true, email: true, phone: true } } } } },
+      include: { rep: true },
       orderBy: { createdAt: 'asc' }
     });
-    return ok(res, { count: purchases.length, purchases });
+    const users = await prisma.user.findMany({
+      where: { id: { in: purchases.map(p => p.rep.userId) } },
+      select: { id: true, name: true, email: true, phone: true }
+    });
+    const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+    const withUsers = purchases.map(p => ({
+      ...p, rep: { ...p.rep, user: userMap[p.rep.userId] || null }
+    }));
+    return ok(res, { count: withUsers.length, purchases: withUsers });
   } catch (e) { return error(res, e.message); }
 });
 
@@ -458,9 +469,14 @@ router.get('/:repId/report/balance', authenticate, async (req, res) => {
   try {
     const rep = await prisma.representative.findUnique({
       where: { id: req.params.repId },
-      include: { account: true, user: { select: { name: true, email: true, phone: true, country: true } } }
+      include: { account: true }
     });
     if (!rep) return error(res, 'Representante no encontrado', 404);
+    // El modelo no tiene relación user — se consulta aparte
+    rep.user = await prisma.user.findUnique({
+      where: { id: rep.userId },
+      select: { name: true, email: true, phone: true, country: true }
+    });
 
     // Solo el propio rep o admin pueden ver
     const isOwner = rep.userId === uid(req);
@@ -516,9 +532,14 @@ router.get('/:repId/report/operations', authenticate, async (req, res) => {
   try {
     const rep = await prisma.representative.findUnique({
       where: { id: req.params.repId },
-      include: { account: true, user: { select: { name: true, email: true, country: true } } }
+      include: { account: true }
     });
     if (!rep) return error(res, 'Representante no encontrado', 404);
+    // El modelo no tiene relación user — se consulta aparte
+    rep.user = await prisma.user.findUnique({
+      where: { id: rep.userId },
+      select: { name: true, email: true, country: true }
+    });
 
     const isOwner = rep.userId === uid(req);
     const isAdmin = ['admin','super_admin','finance_officer','country_manager'].includes(req.user.role);
@@ -587,11 +608,17 @@ router.get('/report/global', authenticate, requireRole('admin','super_admin','fi
     const reps = await prisma.representative.findMany({
       include: {
         account: true,
-        user: { select: { name: true, country: true } },
         topUps:       { where: dateFilter, select: { amount: true } },
         unitPurchases:{ where: { ...dateFilter, status: 'confirmed' }, select: { unitsRequested: true, amountToPay: true, amountDiscount: true } }
       }
     });
+    // El modelo no tiene relación user — se consultan aparte
+    const repUsers = await prisma.user.findMany({
+      where: { id: { in: reps.map(r => r.userId) } },
+      select: { id: true, name: true, country: true }
+    });
+    const repUserMap = Object.fromEntries(repUsers.map(u => [u.id, u]));
+    reps.forEach(r => { r.user = repUserMap[r.userId] || { name: '—', country: '—' }; });
 
     const totalNetwork = reps.reduce((s, r) => {
       s.topUps    += r.topUps.reduce((a, t) => a + t.amount, 0);
