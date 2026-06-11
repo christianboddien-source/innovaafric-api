@@ -9,14 +9,7 @@ const { success, error, paginate, getRate, calcFee, triggerWebhook } = require('
 const { requireAuth, requireRole, requireKYC } = require('../middleware/auth');
 const { notify } = require('../helpers/notify');
 
-const CURRENCY_FIELD = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
-
-const WALLET_LIMITS = {
-  EUR: { cap: 3000,    reloadThreshold: 2800 },
-  USD: { cap: 3000,    reloadThreshold: 2800 },
-  XAF: { cap: 2000000, reloadThreshold: 1800000 },
-  XOF: { cap: 2000000, reloadThreshold: 1800000 }
-};
+const { WALLET_LIMITS, CURRENCY_FIELD } = require('../config/walletLimits');
 
 // GET /v1/money/balance — requiere KYC aprobado
 router.get('/balance', requireAuth, requireKYC, async (req, res) => {

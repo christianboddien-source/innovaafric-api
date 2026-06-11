@@ -138,6 +138,7 @@ app.get('/delivery',  (_req, res) => res.sendFile(path.join(__dirname, 'src/view
 app.get('/bigshop',   (_req, res) => res.sendFile(path.join(__dirname, 'src/views/xenderbigshop.html')));
 app.get('/perfil',    (_req, res) => res.sendFile(path.join(__dirname, 'src/views/perfil.html')));
 app.get('/admin',     (_req, res) => res.sendFile(path.join(__dirname, 'src/views/dashboard.html')));
+app.get('/circular',  (_req, res) => res.sendFile(path.join(__dirname, 'src/views/circular.html')));
 app.get('/app',       (_req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 
 // ── Documentación Swagger ───────────────────────────────

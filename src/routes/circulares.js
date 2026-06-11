@@ -3,8 +3,12 @@ const router  = require('express').Router();
 const prisma  = require('../config/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
+const { WALLET_LIMITS, CURRENCY_FIELD } = require('../config/walletLimits');
 
 const COMMISSION = 0.05; // 5% descuento en compra de unidades
+
+// El JWT lleva el id del usuario en `sub` (los tokens antiguos usaban `id`)
+const uid = (req) => req.user.sub || req.user.id;
 
 // ─────────────────────────────────────────────────────────────
 // RUTAS PROPIAS DEL CIRCULAR
@@ -14,8 +18,8 @@ const COMMISSION = 0.05; // 5% descuento en compra de unidades
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const circ = await prisma.circular.findUnique({
-      where: { userId: req.user.id },
-      include: { account: true }
+      where: { userId: uid(req) },
+      include: { account: true, _count: { select: { topUps: true } } }
     });
     if (!circ) return error(res, 'No estás registrado como Circular Autorizada', 403);
     return ok(res, circ);
@@ -25,12 +29,23 @@ router.get('/me', requireAuth, async (req, res) => {
 // POST /v1/circulares/purchase-units — circular solicita compra de unidades (5% descuento)
 router.post('/purchase-units', requireAuth, async (req, res) => {
   try {
-    const circ = await prisma.circular.findUnique({ where: { userId: req.user.id } });
+    const circ = await prisma.circular.findUnique({ where: { userId: uid(req) } });
     if (!circ) return error(res, 'No eres Circular Autorizada', 403);
     if (circ.status !== 'active') return error(res, 'Tu cuenta no está activa. Contacta con tu representante o InnovaAFRIC.', 403);
 
     const { unitsRequested, currency = 'XAF', bankName, bankRef, notes } = req.body;
     if (!unitsRequested || unitsRequested <= 0) return error(res, 'unitsRequested debe ser > 0', 400);
+
+    // Techo de la circular: su saldo de unidades no puede superar el cap de la divisa
+    const limits = WALLET_LIMITS[currency];
+    if (limits) {
+      const account = await prisma.circularAccount.findUnique({ where: { circularId: circ.id } });
+      const currentUnits = account ? account.unitBalance : 0;
+      const maxAllowed = limits.cap - currentUnits;
+      if (unitsRequested > maxAllowed) {
+        return error(res, `Importe máximo permitido: ${Math.max(0, maxAllowed).toLocaleString()} unidades. Tu techo como Circular es ${limits.cap.toLocaleString()} ${currency} y ya tienes ${currentUnits.toLocaleString()}.`, 422);
+      }
+    }
 
     const rate       = circ.commissionRate ?? COMMISSION;
     const amountSaved = Math.round(unitsRequested * rate * 100) / 100;
@@ -60,11 +75,37 @@ router.post('/purchase-units', requireAuth, async (req, res) => {
   } catch (e) { return error(res, e.message); }
 });
 
+// GET /v1/circulares/find-client?q=... — buscar cliente por teléfono, email o nombre
+router.get('/find-client', requireAuth, async (req, res) => {
+  try {
+    const circ = await prisma.circular.findUnique({ where: { userId: uid(req) } });
+    if (!circ) return error(res, 'No eres Circular Autorizada', 403);
+    if (circ.status !== 'active') return error(res, 'Cuenta no activa', 403);
+
+    const q = (req.query.q || '').trim();
+    if (q.length < 3) return error(res, 'Escribe al menos 3 caracteres (teléfono, email o nombre)', 400);
+
+    const clients = await prisma.user.findMany({
+      where: {
+        OR: [
+          { phone: { contains: q } },
+          { email: { contains: q, mode: 'insensitive' } },
+          { name:  { contains: q, mode: 'insensitive' } }
+        ]
+      },
+      select: { id: true, name: true, phone: true, country: true },
+      take: 8
+    });
+
+    return ok(res, { count: clients.length, clients });
+  } catch (e) { return error(res, e.message); }
+});
+
 // POST /v1/circulares/topup-client — circular recarga la wallet de un usuario del barrio
 router.post('/topup-client', requireAuth, async (req, res) => {
   try {
     const circ = await prisma.circular.findUnique({
-      where: { userId: req.user.id }, include: { account: true }
+      where: { userId: uid(req) }, include: { account: true }
     });
     if (!circ) return error(res, 'No eres Circular Autorizada', 403);
     if (circ.status !== 'active') return error(res, 'Cuenta no activa', 403);
@@ -81,10 +122,21 @@ router.post('/topup-client', requireAuth, async (req, res) => {
     });
     if (!client) return error(res, 'Cliente no encontrado', 404);
 
-    const walletField = currency === 'XAF' ? 'balanceXaf'
-                      : currency === 'XOF' ? 'balanceXof'
-                      : currency === 'USD' ? 'balanceUsd'
-                      : 'balanceEur';
+    const walletField = CURRENCY_FIELD[currency] || 'balanceEur';
+
+    // Techo de wallet del cliente: misma regla que el topup normal
+    const limits = WALLET_LIMITS[currency];
+    if (limits) {
+      const clientWallet = await prisma.wallet.findUnique({ where: { userId: clientId } });
+      const clientBalance = clientWallet ? (clientWallet[walletField] || 0) : 0;
+      if (clientBalance > limits.reloadThreshold) {
+        return error(res, `El cliente no puede recargar todavía. Su saldo ${currency} es ${clientBalance.toLocaleString()} y debe bajar a ${limits.reloadThreshold.toLocaleString()} o menos.`, 422);
+      }
+      const maxAllowed = limits.cap - clientBalance;
+      if (amount > maxAllowed) {
+        return error(res, `Importe máximo permitido para este cliente: ${maxAllowed.toLocaleString()} ${currency} (techo ${limits.cap.toLocaleString()} ${currency}).`, 422);
+      }
+    }
 
     await prisma.$transaction([
       prisma.wallet.upsert({
@@ -96,7 +148,7 @@ router.post('/topup-client', requireAuth, async (req, res) => {
         data: {
           id: `circ_topup_${circ.id}_${Date.now()}`,
           type: 'topup',
-          userId: req.user.id,
+          userId: uid(req),
           recipientId: clientId,
           amountSent: amount, currencySent: currency,
           amountReceived: amount, currencyReceived: currency,
@@ -137,7 +189,7 @@ router.post('/topup-client', requireAuth, async (req, res) => {
 router.get('/my-operations', requireAuth, async (req, res) => {
   try {
     const circ = await prisma.circular.findUnique({
-      where: { userId: req.user.id }, include: { account: true }
+      where: { userId: uid(req) }, include: { account: true }
     });
     if (!circ) return error(res, 'No eres Circular Autorizada', 403);
 
@@ -185,7 +237,7 @@ router.post('/authorize', requireAuth, async (req, res) => {
     // Si es un representante, buscamos su registro
     let repId = null;
     if (isRep) {
-      const rep = await prisma.representative.findUnique({ where: { userId: req.user.id } });
+      const rep = await prisma.representative.findUnique({ where: { userId: uid(req) } });
       if (!rep) return error(res, 'No se encontró tu registro de representante', 403);
       repId = rep.id;
     }
@@ -197,7 +249,7 @@ router.post('/authorize', requireAuth, async (req, res) => {
         country,
         commissionRate: COMMISSION,
         status: 'active',
-        authorizedBy: req.user.id,
+        authorizedBy: uid(req),
         authorizedByType: isAdmin ? 'admin' : 'representative',
         repId,
         notes: notes || null
@@ -227,7 +279,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     let where = {};
     if (isRep) {
-      const rep = await prisma.representative.findUnique({ where: { userId: req.user.id } });
+      const rep = await prisma.representative.findUnique({ where: { userId: uid(req) } });
       if (rep) where = { repId: rep.id }; // rep solo ve sus circulares
     }
 
@@ -275,7 +327,7 @@ router.post('/purchases/:id/confirm', requireAuth, requireRole('admin', 'super_a
     await prisma.$transaction([
       prisma.circularPurchase.update({
         where: { id: purchase.id },
-        data: { status: 'confirmed', confirmedBy: req.user.id, confirmedAt: new Date() }
+        data: { status: 'confirmed', confirmedBy: uid(req), confirmedAt: new Date() }
       }),
       prisma.circularAccount.upsert({
         where: { circularId },
@@ -319,7 +371,7 @@ router.post('/purchases/:id/reject', requireAuth, requireRole('admin', 'super_ad
     const { reason } = req.body;
     await prisma.circularPurchase.update({
       where: { id: req.params.id },
-      data: { status: 'rejected', rejectedReason: reason || 'Rechazado por admin', confirmedBy: req.user.id, confirmedAt: new Date() }
+      data: { status: 'rejected', rejectedReason: reason || 'Rechazado por admin', confirmedBy: uid(req), confirmedAt: new Date() }
     });
     return ok(res, { message: 'Solicitud rechazada' });
   } catch (e) { return error(res, e.message); }

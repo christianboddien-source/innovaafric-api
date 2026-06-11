@@ -405,7 +405,7 @@ router.post('/unlock-requests/:id/reject', requireAuth, async (req, res) => {
 router.post('/generate-access-url', requireAuth, async (req, res) => {
   const actorRole = req.user.role;
   const isSuper   = ['super_admin', 'admin'].includes(actorRole);
-  const { userId, expiresInDays = 30, dashboardUrl = 'https://innovaafric-prod.vercel.app/InnovaAFRIC_Admin.html' } = req.body;
+  const { userId, expiresInDays = 30, dashboardUrl } = req.body;
 
   // Determinar el usuario objetivo
   const targetId = userId && isSuper ? userId : req.user.id || req.user.sub;
@@ -415,6 +415,12 @@ router.post('/generate-access-url', requireAuth, async (req, res) => {
     select: { id: true, email: true, name: true, role: true, country: true }
   });
   if (!user) return error(res, 'Usuario no encontrado', 404);
+
+  // URL destino por defecto según el rol: las circulares tienen su propia app
+  const baseUrl = process.env.PUBLIC_URL || 'https://innovaafric-api-production.up.railway.app';
+  const targetUrl = dashboardUrl || (user.role === 'circular_autorizada'
+    ? `${baseUrl}/circular`
+    : 'https://innovaafric-prod.vercel.app/InnovaAFRIC_Admin.html');
 
   // Solo super_admin puede generar URLs para otros
   if (userId && userId !== (req.user.id || req.user.sub) && !isSuper) {
@@ -434,7 +440,7 @@ router.post('/generate-access-url', requireAuth, async (req, res) => {
     { expiresIn }
   );
 
-  const url = `${dashboardUrl}#token=${token}`;
+  const url = `${targetUrl}#token=${token}`;
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
   return success(res, {

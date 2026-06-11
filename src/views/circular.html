@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Circular Autorizada — InnovaAFRIC</title>
+<style>
+  :root{
+    --bg:#0b0f17; --card:#121826; --card2:#1a2234; --border:#232d42;
+    --text:#e8edf5; --muted:#8493ab; --accent:#22d3ee; --accent-dark:#0e7490;
+    --green:#34d399; --red:#f87171; --amber:#fbbf24;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+  body{background:var(--bg);color:var(--text);min-height:100vh}
+  .hidden{display:none!important}
+
+  /* ── Login ── */
+  #loginScreen{max-width:420px;margin:0 auto;padding:48px 24px;display:flex;flex-direction:column;justify-content:center;min-height:100vh}
+  .logo{text-align:center;margin-bottom:32px}
+  .logo .brand{font-size:26px;font-weight:800;color:var(--accent);letter-spacing:.5px;margin-top:14px}
+  .logo .tagline{font-size:12px;font-weight:700;color:var(--text);letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+  .logo .badge{display:inline-block;background:linear-gradient(135deg,var(--accent-dark),var(--accent));color:#03151a;font-weight:800;border-radius:14px;padding:9px 18px;font-size:16px;margin-top:18px}
+  .logo p{color:var(--muted);margin-top:10px;font-size:14px}
+
+  /* ── Logo InnovaAFRIC animado ── */
+  .ia-logo{display:inline-block}
+  .ia-logo .net{transform-origin:60px 60px;animation:iaSpin 40s linear infinite}
+  .ia-logo .node{animation:iaPulse 2.4s ease-in-out infinite}
+  .ia-logo .node:nth-child(2n){animation-delay:.4s}
+  .ia-logo .node:nth-child(3n){animation-delay:.9s}
+  .ia-logo .node:nth-child(5n){animation-delay:1.4s}
+  .ia-logo .globe{transform-origin:60px 60px;animation:iaBreath 3.5s ease-in-out infinite}
+  @keyframes iaSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  @keyframes iaPulse{0%,100%{opacity:.45}50%{opacity:1}}
+  @keyframes iaBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  header .ia-logo .net{animation-duration:25s}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:13px 14px;font-size:16px;outline:none}
+  input:focus,select:focus{border-color:var(--accent)}
+  .btn{width:100%;background:linear-gradient(135deg,var(--accent-dark),var(--accent));color:#03151a;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;margin-top:18px}
+  .btn:disabled{opacity:.5}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:600}
+  .err{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4);color:var(--red);border-radius:10px;padding:11px 14px;font-size:14px;margin-top:14px}
+  .okmsg{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.4);color:var(--green);border-radius:10px;padding:11px 14px;font-size:14px;margin-top:14px}
+
+  /* ── App shell ── */
+  #appScreen{max-width:480px;margin:0 auto;padding-bottom:84px}
+  header{padding:18px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+  header .who b{font-size:15px}
+  header .who span{display:block;font-size:12px;color:var(--muted)}
+  header button{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer}
+  main{padding:18px 16px}
+  h2{font-size:16px;margin-bottom:14px}
+  .balance-card{background:linear-gradient(135deg,#0c4a6e,#155e75);border:1px solid var(--accent-dark);border-radius:18px;padding:22px;text-align:center;margin-bottom:16px}
+  .balance-card .lbl{font-size:12px;color:#a5f3fc;text-transform:uppercase;letter-spacing:1px}
+  .balance-card .amt{font-size:36px;font-weight:800;margin:6px 0}
+  .balance-card .sub{font-size:13px;color:#a5f3fc}
+  .alert{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.45);color:var(--amber);border-radius:12px;padding:12px 15px;font-size:14px;margin-bottom:16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+  .stat .v{font-size:19px;font-weight:700}
+  .stat .k{font-size:11px;color:var(--muted);margin-top:3px}
+  .info{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;font-size:14px;color:var(--muted);line-height:1.6}
+  .info b{color:var(--text)}
+  .info ul{margin:8px 0 0 18px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;padding:8px 6px;border-bottom:1px solid var(--border)}
+  td{padding:10px 6px;border-bottom:1px solid var(--border)}
+  .tag{display:inline-block;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600}
+  .tag.completed,.tag.confirmed{background:rgba(52,211,153,.15);color:var(--green)}
+  .tag.pending{background:rgba(251,191,36,.15);color:var(--amber)}
+  .tag.rejected{background:rgba(248,113,113,.15);color:var(--red)}
+
+  /* búsqueda cliente */
+  .client-result{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  .client-result:hover{border-color:var(--accent)}
+  .client-result .nm{font-weight:600;font-size:14px}
+  .client-result .ph{font-size:12px;color:var(--muted)}
+  .client-selected{border-color:var(--green)!important;background:rgba(52,211,153,.08)}
+  .calc{background:var(--card2);border-radius:10px;padding:13px;margin-top:14px;font-size:14px;line-height:1.8}
+  .calc .row{display:flex;justify-content:space-between}
+  .calc .row b.save{color:var(--green)}
+
+  /* tab bar */
+  nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;max-width:480px;margin:0 auto}
+  nav button{flex:1;background:none;border:none;color:var(--muted);padding:11px 4px 13px;font-size:11px;cursor:pointer}
+  nav button .ic{display:block;font-size:20px;margin-bottom:3px}
+  nav button.active{color:var(--accent)}
+  .spinner{text-align:center;color:var(--muted);padding:30px;font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- ════════ LOGIN ════════ -->
+<div id="loginScreen">
+  <div class="logo">
+    <svg class="ia-logo" width="110" height="110" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-label="InnovaAFRIC">
+      <rect x="4" y="4" width="112" height="112" rx="26" fill="#0e1c30"/>
+      <g class="net" stroke="#22d3ee" stroke-width="2.4" fill="#22d3ee">
+        <g id="spokes">
+          <line x1="60" y1="60" x2="60" y2="16"/>   <circle class="node" cx="60" cy="16" r="4"/><circle class="node" cx="60" cy="33" r="2.2"/>
+          <line x1="60" y1="60" x2="60" y2="104"/>  <circle class="node" cx="60" cy="104" r="4"/><circle class="node" cx="60" cy="87" r="2.2"/>
+          <line x1="60" y1="60" x2="16" y2="60"/>   <circle class="node" cx="16" cy="60" r="4"/><circle class="node" cx="33" cy="60" r="2.2"/>
+          <line x1="60" y1="60" x2="104" y2="60"/>  <circle class="node" cx="104" cy="60" r="4"/><circle class="node" cx="87" cy="60" r="2.2"/>
+          <line x1="60" y1="60" x2="29" y2="29"/>   <circle class="node" cx="29" cy="29" r="4"/>
+          <line x1="60" y1="60" x2="91" y2="29"/>   <circle class="node" cx="91" cy="29" r="4"/>
+          <line x1="60" y1="60" x2="29" y2="91"/>   <circle class="node" cx="29" cy="91" r="4"/>
+          <line x1="60" y1="60" x2="91" y2="91"/>   <circle class="node" cx="91" cy="91" r="4"/>
+          <line x1="60" y1="60" x2="38" y2="20"/>   <circle class="node" cx="38" cy="20" r="3"/>
+          <line x1="60" y1="60" x2="82" y2="100"/>  <circle class="node" cx="82" cy="100" r="3"/>
+          <line x1="60" y1="60" x2="20" y2="82"/>   <circle class="node" cx="20" cy="82" r="3"/>
+          <line x1="60" y1="60" x2="100" y2="38"/>  <circle class="node" cx="100" cy="38" r="3"/>
+        </g>
+      </g>
+      <g class="globe" stroke="#22d3ee" stroke-width="2.4" fill="#0e1c30">
+        <circle cx="60" cy="60" r="15"/>
+        <ellipse cx="60" cy="60" rx="7" ry="15"/>
+        <line x1="45" y1="60" x2="75" y2="60"/>
+        <path d="M48 51 Q60 57 72 51" fill="none"/>
+        <path d="M48 69 Q60 63 72 69" fill="none"/>
+      </g>
+    </svg>
+    <div class="brand">InnovaAFRIC</div>
+    <div class="tagline">We Simplify Life</div>
+    <span class="badge">⚡ Circular Autorizada</span>
+    <p>App oficial de recargas</p>
+  </div>
+  <div class="card">
+    <label>Email</label>
+    <input id="loginEmail" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="username">
+    <label>Contraseña</label>
+    <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn" id="loginBtn" onclick="doLogin()">Entrar</button>
+    <div id="loginErr" class="err hidden"></div>
+  </div>
+  <p style="text-align:center;color:var(--muted);font-size:12px">Solo para Circulares Autorizadas por InnovaAFRIC<br>o por un representante oficial.</p>
+</div>
+
+<!-- ════════ APP ════════ -->
+<div id="appScreen" class="hidden">
+  <header>
+    <div style="display:flex;align-items:center;gap:11px">
+      <svg class="ia-logo" width="38" height="38" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-label="InnovaAFRIC">
+        <rect x="4" y="4" width="112" height="112" rx="26" fill="#0e1c30"/>
+        <g class="net" stroke="#22d3ee" stroke-width="3" fill="#22d3ee">
+          <line x1="60" y1="60" x2="60" y2="18"/>  <circle class="node" cx="60" cy="18" r="5"/>
+          <line x1="60" y1="60" x2="60" y2="102"/> <circle class="node" cx="60" cy="102" r="5"/>
+          <line x1="60" y1="60" x2="18" y2="60"/>  <circle class="node" cx="18" cy="60" r="5"/>
+          <line x1="60" y1="60" x2="102" y2="60"/> <circle class="node" cx="102" cy="60" r="5"/>
+          <line x1="60" y1="60" x2="31" y2="31"/>  <circle class="node" cx="31" cy="31" r="5"/>
+          <line x1="60" y1="60" x2="89" y2="31"/>  <circle class="node" cx="89" cy="31" r="5"/>
+          <line x1="60" y1="60" x2="31" y2="89"/>  <circle class="node" cx="31" cy="89" r="5"/>
+          <line x1="60" y1="60" x2="89" y2="89"/>  <circle class="node" cx="89" cy="89" r="5"/>
+        </g>
+        <g class="globe" stroke="#22d3ee" stroke-width="3" fill="#0e1c30">
+          <circle cx="60" cy="60" r="16"/>
+          <ellipse cx="60" cy="60" rx="7.5" ry="16"/>
+          <line x1="44" y1="60" x2="76" y2="60"/>
+        </g>
+      </svg>
+      <div class="who"><b id="whoName">—</b><span id="whoZone">—</span></div>
+    </div>
+    <button onclick="logout()">Salir</button>
+  </header>
+
+  <main>
+    <!-- INICIO -->
+    <section id="page-home">
+      <div class="balance-card">
+        <div class="lbl">Mis unidades de valor</div>
+        <div class="amt" id="unitBalance">—</div>
+        <div class="sub" id="accountStatus">Cuenta activa</div>
+      </div>
+      <div id="lowAlert" class="alert hidden">⚠️ Saldo bajo. Compra más unidades para seguir recargando clientes.</div>
+      <div class="grid2">
+        <div class="stat"><div class="v" id="stTotalBought">—</div><div class="k">Unidades compradas</div></div>
+        <div class="stat"><div class="v" id="stTotalUsed">—</div><div class="k">Unidades vendidas</div></div>
+        <div class="stat"><div class="v" id="stTotalSaved" style="color:var(--green)">—</div><div class="k">Ganancia acumulada (5%)</div></div>
+        <div class="stat"><div class="v" id="stTopups">—</div><div class="k">Recargas realizadas</div></div>
+      </div>
+      <div class="info">
+        <b>📌 Tus techos como Circular</b>
+        <ul>
+          <li>XAF / XOF (FCFA): máximo <b>2.000.000</b></li>
+          <li>EUR / USD: máximo <b>3.000</b></li>
+        </ul>
+        <br>
+        <b>🏦 ¿Dónde depositar el efectivo cobrado?</b><br>
+        Deposita el dinero cobrado a tus clientes directamente en una
+        <b>sucursal de InnovaAFRIC</b> o en la <b>oficina de tu representante</b>.
+        Al solicitar unidades recibirás la referencia de transferencia.
+      </div>
+    </section>
+
+    <!-- RECARGAR CLIENTE -->
+    <section id="page-topup" class="hidden">
+      <h2>💸 Recargar wallet de un cliente</h2>
+      <div class="card">
+        <label>Buscar cliente (teléfono, email o nombre)</label>
+        <input id="clientSearch" placeholder="Ej: +2376..., maria@..." oninput="searchClient()">
+        <div id="clientResults"></div>
+        <div id="clientChosen" class="hidden" style="margin-top:12px"></div>
+        <label>Importe</label>
+        <input id="topupAmount" type="number" min="1" placeholder="0">
+        <label>Divisa</label>
+        <select id="topupCurrency">
+          <option value="XAF">XAF (FCFA)</option>
+          <option value="XOF">XOF (FCFA)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="USD">USD ($)</option>
+        </select>
+        <button class="btn" id="topupBtn" onclick="doTopup()" disabled>Recargar cliente</button>
+        <div id="topupMsg"></div>
+      </div>
+    </section>
+
+    <!-- COMPRAR UNIDADES -->
+    <section id="page-units" class="hidden">
+      <h2>🛒 Comprar unidades a InnovaAFRIC</h2>
+      <div class="card">
+        <label>Unidades que necesitas</label>
+        <input id="unitsAmount" type="number" min="1" placeholder="Ej: 100000" oninput="calcUnits()">
+        <label>Divisa</label>
+        <select id="unitsCurrency" onchange="calcUnits()">
+          <option value="XAF">XAF (FCFA)</option>
+          <option value="XOF">XOF (FCFA)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="USD">USD ($)</option>
+        </select>
+        <div class="calc" id="unitsCalc" style="display:none">
+          <div class="row"><span>Unidades a recibir</span><b id="cUnits">—</b></div>
+          <div class="row"><span>Pagas (95%)</span><b id="cPay">—</b></div>
+          <div class="row"><span>Tu ganancia (5%)</span><b class="save" id="cSave">—</b></div>
+        </div>
+        <button class="btn" onclick="doPurchase()">Solicitar unidades</button>
+        <div id="unitsMsg"></div>
+      </div>
+      <div class="info">
+        Tras solicitar, <b>deposita el importe a pagar</b> en una sucursal de InnovaAFRIC
+        o en la oficina de tu representante, <b>indicando la referencia</b> que te daremos.
+        Cuando InnovaAFRIC confirme el pago, las unidades se acreditarán a tu cuenta.
+      </div>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section id="page-history" class="hidden">
+      <h2>📋 Mi historial</h2>
+      <div class="card">
+        <b style="font-size:14px">Recargas a clientes</b>
+        <div style="overflow-x:auto;margin-top:8px">
+          <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Importe</th><th>Estado</th></tr></thead>
+          <tbody id="histTopups"><tr><td colspan="4" class="spinner">—</td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <b style="font-size:14px">Compras de unidades</b>
+        <div style="overflow-x:auto;margin-top:8px">
+          <table><thead><tr><th>Fecha</th><th>Unidades</th><th>Pagado</th><th>Estado</th></tr></thead>
+          <tbody id="histPurchases"><tr><td colspan="4" class="spinner">—</td></tr></tbody></table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="active" onclick="go('home',this)"><span class="ic">🏠</span>Inicio</button>
+    <button onclick="go('topup',this)"><span class="ic">💸</span>Recargar</button>
+    <button onclick="go('units',this)"><span class="ic">🛒</span>Unidades</button>
+    <button onclick="go('history',this)"><span class="ic">📋</span>Historial</button>
+  </nav>
+</div>
+
+<script>
+'use strict';
+const API = '/v1';
+let TOKEN = null, ME = null, selectedClient = null, searchTimer = null;
+
+// ── helpers ──
+async function api(method, path, body) {
+  const res = await fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}) },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) {
+    throw new Error(json.error?.message || 'Error de conexión');
+  }
+  return json.data;
+}
+const fmt = (n) => Number(n || 0).toLocaleString('es-ES');
+const fmtDate = (d) => new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+function msg(elId, text, ok) {
+  const el = document.getElementById(elId);
+  el.innerHTML = text ? `<div class="${ok ? 'okmsg' : 'err'}">${text}</div>` : '';
+}
+
+// ── sesión ──
+function init() {
+  // 1. token en la URL (#token=...) — URL de acceso directo generada por InnovaAFRIC
+  const hash = new URLSearchParams(location.hash.slice(1));
+  if (hash.get('token')) {
+    TOKEN = hash.get('token');
+    localStorage.setItem('circ_token', TOKEN);
+    history.replaceState(null, '', location.pathname); // limpiar el token de la barra
+  } else {
+    TOKEN = localStorage.getItem('circ_token');
+  }
+  if (TOKEN) enterApp(); else showLogin();
+}
+
+function showLogin() {
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('appScreen').classList.add('hidden');
+}
+
+async function doLogin() {
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; msg('loginErr', '');
+  document.getElementById('loginErr').classList.add('hidden');
+  try {
+    const data = await api('POST', '/auth/token', {
+      grant_type: 'password',
+      email: document.getElementById('loginEmail').value.trim(),
+      password: document.getElementById('loginPass').value
+    });
+    TOKEN = data.access_token;
+    localStorage.setItem('circ_token', TOKEN);
+    await enterApp();
+  } catch (e) {
+    const el = document.getElementById('loginErr');
+    el.textContent = e.message; el.classList.remove('hidden');
+  } finally { btn.disabled = false; }
+}
+
+async function enterApp() {
+  try {
+    ME = await api('GET', '/circulares/me');
+  } catch (e) {
+    localStorage.removeItem('circ_token'); TOKEN = null;
+    showLogin();
+    const el = document.getElementById('loginErr');
+    el.textContent = e.message.includes('Circular') ? 'Esta cuenta no es una Circular Autorizada.' : e.message;
+    el.classList.remove('hidden');
+    return;
+  }
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appScreen').classList.remove('hidden');
+  renderHome();
+}
+
+function logout() {
+  localStorage.removeItem('circ_token');
+  TOKEN = null; ME = null;
+  location.reload();
+}
+
+// ── navegación ──
+function go(page, btn) {
+  ['home', 'topup', 'units', 'history'].forEach(p =>
+    document.getElementById('page-' + p).classList.toggle('hidden', p !== page));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (page === 'history') loadHistory();
+  if (page === 'home') refreshMe();
+}
+
+// ── inicio ──
+async function refreshMe() {
+  try { ME = await api('GET', '/circulares/me'); renderHome(); } catch {}
+}
+
+function renderHome() {
+  const acc = ME.account || {};
+  document.getElementById('whoName').textContent = '⚡ Circular Autorizada';
+  document.getElementById('whoZone').textContent = `${ME.neighborhood || ''} · ${ME.country || ''}`;
+  document.getElementById('unitBalance').textContent = fmt(acc.unitBalance);
+  document.getElementById('accountStatus').textContent =
+    ME.status === 'active' ? 'Cuenta activa' : `Cuenta ${ME.status === 'suspended' ? 'suspendida' : 'pendiente'}`;
+  document.getElementById('stTotalBought').textContent = fmt(acc.totalUnitsBought);
+  document.getElementById('stTotalUsed').textContent = fmt(acc.totalUnitsUsed);
+  document.getElementById('stTotalSaved').textContent = fmt(acc.totalSaved);
+  document.getElementById('stTopups').textContent = fmt(ME._count?.topUps ?? 0);
+  document.getElementById('lowAlert').classList.toggle('hidden', !(acc.unitBalance < (acc.alertThreshold ?? 50)));
+}
+
+// ── recargar cliente ──
+function searchClient() {
+  clearTimeout(searchTimer);
+  const q = document.getElementById('clientSearch').value.trim();
+  selectedClient = null;
+  document.getElementById('topupBtn').disabled = true;
+  document.getElementById('clientChosen').classList.add('hidden');
+  if (q.length < 3) { document.getElementById('clientResults').innerHTML = ''; return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const data = await api('GET', '/circulares/find-client?q=' + encodeURIComponent(q));
+      document.getElementById('clientResults').innerHTML = data.clients.length
+        ? data.clients.map(c =>
+            `<div class="client-result" onclick='pickClient(${JSON.stringify(c).replace(/'/g, "&#39;")})'>
+               <div><div class="nm">${c.name || '(sin nombre)'}</div><div class="ph">${c.phone || c.id}</div></div><div>›</div>
+             </div>`).join('')
+        : '<div class="client-result">Sin resultados</div>';
+    } catch (e) {
+      document.getElementById('clientResults').innerHTML = `<div class="err">${e.message}</div>`;
+    }
+  }, 350);
+}
+
+function pickClient(c) {
+  selectedClient = c;
+  document.getElementById('clientResults').innerHTML = '';
+  document.getElementById('clientSearch').value = '';
+  const el = document.getElementById('clientChosen');
+  el.classList.remove('hidden');
+  el.innerHTML = `<div class="client-result client-selected">
+      <div><div class="nm">✓ ${c.name || '(sin nombre)'}</div><div class="ph">${c.phone || c.id}</div></div>
+      <div onclick="clearClient()" style="cursor:pointer;color:var(--muted)">✕</div></div>`;
+  document.getElementById('topupBtn').disabled = false;
+}
+
+function clearClient() {
+  selectedClient = null;
+  document.getElementById('clientChosen').classList.add('hidden');
+  document.getElementById('topupBtn').disabled = true;
+}
+
+async function doTopup() {
+  if (!selectedClient) return;
+  const amount = Number(document.getElementById('topupAmount').value);
+  const currency = document.getElementById('topupCurrency').value;
+  if (!amount || amount <= 0) return msg('topupMsg', 'Introduce un importe válido', false);
+  const btn = document.getElementById('topupBtn');
+  btn.disabled = true; msg('topupMsg', '');
+  try {
+    const data = await api('POST', '/circulares/topup-client', {
+      clientId: selectedClient.id, amount, currency
+    });
+    msg('topupMsg', `${data.message}<br>Saldo de unidades restante: <b>${fmt(data.newBalance)}</b>` +
+      (data.alertLow ? '<br>' + data.alertMessage : ''), true);
+    document.getElementById('topupAmount').value = '';
+    clearClient();
+    refreshMe();
+  } catch (e) {
+    msg('topupMsg', e.message, false);
+    btn.disabled = false;
+  }
+}
+
+// ── comprar unidades ──
+function calcUnits() {
+  const u = Number(document.getElementById('unitsAmount').value);
+  const cur = document.getElementById('unitsCurrency').value;
+  const box = document.getElementById('unitsCalc');
+  if (!u || u <= 0) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  document.getElementById('cUnits').textContent = fmt(u) + ' unidades';
+  document.getElementById('cPay').textContent = fmt(Math.round(u * 0.95 * 100) / 100) + ' ' + cur;
+  document.getElementById('cSave').textContent = fmt(Math.round(u * 0.05 * 100) / 100) + ' ' + cur;
+}
+
+async function doPurchase() {
+  const u = Number(document.getElementById('unitsAmount').value);
+  const currency = document.getElementById('unitsCurrency').value;
+  if (!u || u <= 0) return msg('unitsMsg', 'Introduce las unidades que necesitas', false);
+  msg('unitsMsg', '');
+  try {
+    const data = await api('POST', '/circulares/purchase-units', { unitsRequested: u, currency });
+    msg('unitsMsg',
+      `✅ Solicitud registrada.<br>Deposita <b>${fmt(data.instructions.amountToPay)} ${currency}</b> en una sucursal
+       de InnovaAFRIC o en la oficina de tu representante.<br>
+       Referencia: <b>${data.instructions.transferRef}</b><br>
+       Tu ganancia: <b>${fmt(data.instructions.saved)} ${currency}</b>`, true);
+    document.getElementById('unitsAmount').value = '';
+    calcUnits();
+  } catch (e) { msg('unitsMsg', e.message, false); }
+}
+
+// ── historial ──
+async function loadHistory() {
+  try {
+    const data = await api('GET', '/circulares/my-operations');
+    document.getElementById('histTopups').innerHTML = data.topUps.length
+      ? data.topUps.map(t => `<tr><td>${fmtDate(t.createdAt)}</td><td>${t.clientName || t.clientId}</td>
+          <td>${fmt(t.amount)} ${t.currency}</td><td><span class="tag ${t.status}">${t.status}</span></td></tr>`).join('')
+      : '<tr><td colspan="4" class="spinner">Aún no has hecho recargas</td></tr>';
+    document.getElementById('histPurchases').innerHTML = data.purchases.length
+      ? data.purchases.map(p => `<tr><td>${fmtDate(p.createdAt)}</td><td>${fmt(p.unitsRequested)}</td>
+          <td>${fmt(p.amountToPay)} ${p.currency}</td><td><span class="tag ${p.status}">${p.status}</span></td></tr>`).join('')
+      : '<tr><td colspan="4" class="spinner">Aún no has comprado unidades</td></tr>';
+  } catch (e) {
+    document.getElementById('histTopups').innerHTML = `<tr><td colspan="4" class="spinner">${e.message}</td></tr>`;
+  }
+}
+
+document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+init();
+</script>
+</body>
+</html>

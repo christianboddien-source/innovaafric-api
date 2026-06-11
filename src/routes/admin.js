@@ -1670,13 +1670,8 @@ router.post('/reset-all-balances', requireAuth, requireLevel(5), async (req, res
 //  LÍMITES DE WALLET POR DIVISA
 // ══════════════════════════════════════════════════════
 
-// Techo máximo y umbral mínimo para poder recargar
-const WALLET_LIMITS = {
-  EUR: { cap: 3000,       reloadThreshold: 2800 },
-  USD: { cap: 3000,       reloadThreshold: 2800 },
-  XAF: { cap: 2000000,    reloadThreshold: 1800000 },
-  XOF: { cap: 2000000,    reloadThreshold: 1800000 }
-};
+// Techo máximo y umbral mínimo para poder recargar (config compartida)
+const { WALLET_LIMITS } = require('../config/walletLimits');
 
 // GET /v1/money/limits — Consultar los límites vigentes
 router.get('/limits', async (req, res) => {
