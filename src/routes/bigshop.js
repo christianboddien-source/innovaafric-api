@@ -40,9 +40,16 @@ router.post('/orders', requireAuth, async (req, res) => {
   const wallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
   if (!wallet || wallet.balanceXaf < total_xaf) return error(res, 'Saldo XAF insuficiente', 422);
 
-  const assigned_rider = await prisma.rider.findFirst({ where: { status: 'available' } });
-  if (assigned_rider) {
-    await prisma.rider.update({ where: { id: assigned_rider.id }, data: { status: 'busy' } });
+  // Comercio del pedido: el de la tienda del primer producto.
+  // El rider ya NO se asigna automáticamente — el comercio prepara la comanda,
+  // la marca "lista" en su app y un rider disponible la acepta.
+  let merchantId = null;
+  const firstProduct = await prisma.groceryProduct.findFirst({ where: { id: items[0].product_id } });
+  if (firstProduct?.store) {
+    const merchant = await prisma.merchant.findFirst({
+      where: { name: { equals: firstProduct.store, mode: 'insensitive' }, active: true }
+    });
+    merchantId = merchant?.id || null;
   }
 
   const [gorder] = await prisma.$transaction([
@@ -53,12 +60,13 @@ router.post('/orders', requireAuth, async (req, res) => {
         totalXaf: total_xaf,
         notes: notes || null,
         deliveryAddress: delivery_address,
-        riderId: assigned_rider?.id || null,
+        merchantId,
         status: 'preparing',
         estimatedDelivery: '25-30 minutos',
+        riderFeeXaf: Math.max(500, Math.round(total_xaf * 0.10)), // pago del rider: 10% (mín. 500 XAF)
         items: { create: orderItems }
       },
-      include: { items: true, rider: { select: { id: true, name: true, phone: true } } }
+      include: { items: true }
     }),
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { balanceXaf: { decrement: total_xaf } } })
   ]);

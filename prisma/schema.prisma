@@ -211,6 +211,7 @@ model GroceryOrder {
   notes             String?
   deliveryAddress   String
   riderId           String?
+  merchantId        String?   // comercio que prepara la comanda
   status            String    @default("preparing")
   estimatedDelivery String?
   deliveryProof     String?
@@ -283,9 +284,17 @@ model PayrollItem {
 model Merchant {
   id         String  @id
   name       String
-  circularId String
+  circularId String?
   qrCode     String  @unique
   active     Boolean @default(true)
+  // App del comercio (/comercio)
+  userId     String?  @unique   // enlace a User para login
+  phone      String?
+  address    String?
+  city       String?
+  country    String?
+  category   String?
+  createdAt  DateTime @default(now())
 }
 
 model ApiClient {

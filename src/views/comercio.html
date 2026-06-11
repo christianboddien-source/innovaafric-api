@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Comercio — XenderBigShop by InnovaAFRIC</title>
+<style>
+  :root{
+    --bg:#0b0f17; --card:#121826; --card2:#1a2234; --border:#232d42;
+    --text:#e8edf5; --muted:#8493ab; --accent:#22d3ee; --accent-dark:#0e7490;
+    --green:#34d399; --red:#f87171; --amber:#fbbf24;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+  body{background:var(--bg);color:var(--text);min-height:100vh}
+  .hidden{display:none!important}
+
+  #loginScreen{max-width:420px;margin:0 auto;padding:48px 24px;display:flex;flex-direction:column;justify-content:center;min-height:100vh}
+  .logo{text-align:center;margin-bottom:32px}
+  .logo .brand{font-size:26px;font-weight:800;color:var(--accent);letter-spacing:.5px;margin-top:14px}
+  .logo .tagline{font-size:12px;font-weight:700;color:var(--text);letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+  .logo .badge{display:inline-block;background:linear-gradient(135deg,var(--accent-dark),var(--accent));color:#03151a;font-weight:800;border-radius:14px;padding:9px 18px;font-size:16px;margin-top:18px}
+  .logo p{color:var(--muted);margin-top:10px;font-size:14px}
+  .ia-logo{display:inline-block}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:13px 14px;font-size:16px;outline:none}
+  input:focus,select:focus{border-color:var(--accent)}
+  .btn{width:100%;background:linear-gradient(135deg,var(--accent-dark),var(--accent));color:#03151a;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;margin-top:18px}
+  .btn:disabled{opacity:.5}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:600}
+  .err{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4);color:var(--red);border-radius:10px;padding:11px 14px;font-size:14px;margin-top:14px}
+  .okmsg{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.4);color:var(--green);border-radius:10px;padding:11px 14px;font-size:14px;margin-top:14px}
+
+  #appScreen{max-width:480px;margin:0 auto;padding-bottom:84px}
+  header{padding:18px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+  header .who b{font-size:15px}
+  header .who span{display:block;font-size:12px;color:var(--muted)}
+  header button{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer}
+  main{padding:18px 16px}
+  h2{font-size:16px;margin-bottom:14px}
+  .balance-card{background:linear-gradient(135deg,#0c4a6e,#155e75);border:1px solid var(--accent-dark);border-radius:18px;padding:22px;text-align:center;margin-bottom:16px}
+  .balance-card .lbl{font-size:12px;color:#a5f3fc;text-transform:uppercase;letter-spacing:1px}
+  .balance-card .amt{font-size:36px;font-weight:800;margin:6px 0}
+  .balance-card .sub{font-size:13px;color:#a5f3fc}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+  .stat .v{font-size:19px;font-weight:700}
+  .stat .k{font-size:11px;color:var(--muted);margin-top:3px}
+  .qa{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 10px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:center}
+  .qa:active,.qa:hover{border-color:var(--accent)}
+  .info{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;font-size:14px;color:var(--muted);line-height:1.6}
+  .info b{color:var(--text)}
+  .tag{display:inline-block;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600}
+  .tag.delivered{background:rgba(52,211,153,.15);color:var(--green)}
+  .tag.preparing{background:rgba(251,191,36,.15);color:var(--amber)}
+  .tag.ready{background:rgba(34,211,238,.15);color:var(--accent)}
+  .tag.in_transit{background:rgba(251,191,36,.15);color:var(--amber)}
+  .tag.cancelled{background:rgba(248,113,113,.15);color:var(--red)}
+
+  .order-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px;margin-bottom:10px}
+  .order-card.new{border-color:var(--amber)}
+  .order-card .top{display:flex;justify-content:space-between;align-items:center}
+  .order-card .addr{font-weight:700;font-size:14px;margin-top:6px}
+  .order-card .meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+  .order-card .btn{padding:11px;margin-top:12px;font-size:14px}
+
+  nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;max-width:480px;margin:0 auto}
+  nav button{flex:1;background:none;border:none;color:var(--muted);padding:11px 4px 13px;font-size:11px;cursor:pointer;position:relative}
+  nav button .ic{display:block;font-size:20px;margin-bottom:3px}
+  nav button.active{color:var(--accent)}
+  .spinner{text-align:center;color:var(--muted);padding:30px;font-size:14px}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto}
+  .bubble{max-width:82%;padding:9px 13px;border-radius:14px;font-size:14px;line-height:1.45;word-break:break-word}
+  .bubble.me{align-self:flex-end;background:var(--accent-dark);color:#eafdff;border-bottom-right-radius:4px}
+  .bubble.them{align-self:flex-start;background:var(--card2);border:1px solid var(--border);border-bottom-left-radius:4px}
+  .bubble .meta{font-size:10px;opacity:.65;margin-top:4px}
+</style>
+</head>
+<body>
+
+<!-- ════════ LOGIN ════════ -->
+<div id="loginScreen">
+  <div class="logo">
+    <svg class="ia-logo" width="110" height="110" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-label="InnovaAFRIC">
+      <rect x="4" y="4" width="112" height="112" rx="26" fill="#0d1b2e"/>
+      <g stroke="#2fd3f7" stroke-width="2.6" fill="none" stroke-linecap="round">
+        <circle cx="60" cy="60" r="13"/>
+        <line x1="47" y1="60" x2="73" y2="60"/>
+        <line x1="60" y1="47" x2="60" y2="73"/>
+        <line x1="50.8" y1="50.8" x2="69.2" y2="69.2"/>
+        <line x1="50.8" y1="69.2" x2="69.2" y2="50.8"/>
+        <line x1="75" y1="60" x2="104" y2="60"/>
+        <line x1="73" y1="67.5" x2="91" y2="78"/>
+        <line x1="67.5" y1="73" x2="82" y2="98"/>
+        <line x1="60" y1="75" x2="60" y2="96"/>
+        <line x1="52.5" y1="73" x2="38" y2="98"/>
+        <line x1="47" y1="67.5" x2="29" y2="78"/>
+        <line x1="45" y1="60" x2="16" y2="60"/>
+        <line x1="47" y1="52.5" x2="29" y2="42"/>
+        <line x1="52.5" y1="47" x2="38" y2="22"/>
+        <line x1="60" y1="45" x2="60" y2="24"/>
+        <line x1="67.5" y1="47" x2="82" y2="22"/>
+        <line x1="73" y1="52.5" x2="91" y2="42"/>
+      </g>
+      <g fill="#2fd3f7">
+        <circle cx="104" cy="60" r="4.5"/><circle cx="91" cy="78" r="3"/>
+        <circle cx="82" cy="98" r="4.5"/><circle cx="60" cy="96" r="3"/>
+        <circle cx="38" cy="98" r="4.5"/><circle cx="29" cy="78" r="3"/>
+        <circle cx="16" cy="60" r="4.5"/><circle cx="29" cy="42" r="3"/>
+        <circle cx="38" cy="22" r="4.5"/><circle cx="60" cy="24" r="3"/>
+        <circle cx="82" cy="22" r="4.5"/><circle cx="91" cy="42" r="3"/>
+      </g>
+    </svg>
+    <div class="brand">InnovaAFRIC</div>
+    <div class="tagline">We Simplify Life</div>
+    <span class="badge">🏪 Comercio</span>
+    <p>Panel oficial de comercios XenderBigShop</p>
+  </div>
+  <div class="card">
+    <label>Email</label>
+    <input id="loginEmail" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="username">
+    <label>Contraseña</label>
+    <div style="position:relative">
+      <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:48px">
+      <button type="button" onclick="toggleEye('loginPass',this)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;cursor:pointer">👁️</button>
+    </div>
+    <button class="btn" id="loginBtn" onclick="doLogin()">Entrar</button>
+    <div style="text-align:center;margin-top:14px">
+      <a href="#" onclick="openForgot();return false" style="color:var(--accent);font-size:13px;text-decoration:none">¿Has olvidado tu contraseña?</a>
+    </div>
+    <div id="loginErr" class="err hidden"></div>
+  </div>
+  <p style="text-align:center;color:var(--muted);font-size:12px">Solo para comercios registrados por InnovaAFRIC.</p>
+</div>
+
+<!-- ════════ APP ════════ -->
+<div id="appScreen" class="hidden">
+  <header>
+    <div class="who"><b id="whoName">—</b><span id="whoZone">—</span></div>
+    <div style="display:flex;gap:8px">
+      <button id="chatBtn" onclick="openChat()" style="font-size:15px;position:relative">💬<span id="chatDot" class="hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:var(--red);border:2px solid var(--card)"></span></button>
+      <button onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- INICIO -->
+    <section id="page-home">
+      <div class="balance-card">
+        <div class="lbl">Ventas entregadas</div>
+        <div class="amt" id="totalSales">—</div>
+        <div class="sub">XAF acumulados</div>
+      </div>
+      <div class="grid2">
+        <div class="stat"><div class="v" id="stPreparing" style="color:var(--amber)">—</div><div class="k">🧑‍🍳 Por preparar</div></div>
+        <div class="stat"><div class="v" id="stReady" style="color:var(--accent)">—</div><div class="k">📢 Esperando rider</div></div>
+        <div class="stat"><div class="v" id="stTransit">—</div><div class="k">🛵 En camino</div></div>
+        <div class="stat"><div class="v" id="stDelivered" style="color:var(--green)">—</div><div class="k">✅ Entregadas</div></div>
+      </div>
+      <div class="grid2">
+        <button class="qa" onclick="navTo(1)">📦<br>Ver comandas</button>
+        <button class="qa" onclick="openChat()">💬<br>Mensajes</button>
+      </div>
+      <div class="card" style="text-align:center">
+        <b style="font-size:14px">💳 Mi QR de cobro</b>
+        <p style="font-size:12px;color:var(--muted);margin:6px 0 10px">Los clientes pagan al instante escaneándolo con XenderMoney</p>
+        <div id="payQrBox"><button class="btn" style="margin-top:4px" onclick="showPayQR()">Mostrar QR</button></div>
+      </div>
+      <div class="info">
+        <b>🏪 Cómo funciona</b><br>
+        Cuando un cliente hace un pedido a tu tienda, aparece en <b>Comandas</b>.
+        Prepáralo y pulsa <b>"Lista — avisar riders"</b>: los riders disponibles
+        de tu ciudad la verán al instante y uno la aceptará para entregarla.
+      </div>
+    </section>
+
+    <!-- COMANDAS -->
+    <section id="page-orders" class="hidden">
+      <h2>📦 Comandas <span id="ordersBadge" style="font-size:12px;color:var(--muted)"></span></h2>
+      <div id="ordersList"><div class="spinner">Cargando…</div></div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="active" onclick="go('home',this)"><span class="ic">🏠</span>Inicio</button>
+    <button onclick="go('orders',this)"><span class="ic">📦</span>Comandas<span id="ordersDot" class="hidden" style="position:absolute;top:8px;right:26%;width:9px;height:9px;border-radius:50%;background:var(--amber)"></span></button>
+  </nav>
+</div>
+
+<!-- ════════ MODAL RECUPERAR CONTRASEÑA ════════ -->
+<div id="forgotModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <b style="font-size:15px">🔑 Recuperar contraseña</b>
+      <button onclick="closeForgot()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <label>Tu email</label>
+    <input id="forgotEmail" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="username">
+    <button class="btn" onclick="sendForgot()">📧 Enviarme enlace de recuperación</button>
+    <button class="btn btn-outline" onclick="sendUnlock()">🔓 Mi cuenta está bloqueada — solicitar desbloqueo</button>
+    <button class="btn btn-outline" onclick="window.location.href='mailto:soporte@innovaafric.com?subject=Recuperar acceso a mi cuenta'">✉️ Contactar con soporte InnovaAFRIC</button>
+    <div id="forgotMsg"></div>
+  </div>
+</div>
+
+<!-- ════════ MODAL CHAT ════════ -->
+<div id="chatModal" class="modal-overlay hidden">
+  <div class="modal-box" style="display:flex;flex-direction:column;height:80vh">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b style="font-size:15px">💬 Chat con InnovaAFRIC</b>
+      <button onclick="closeChat()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="chatMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <input id="chatInput" placeholder="Escribe tu mensaje…" style="flex:1">
+      <button class="btn" style="width:auto;margin:0;padding:0 18px" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const API = '/v1';
+let TOKEN = null, ME = null;
+
+async function api(method, path, body) {
+  const res = await fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}) },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success === false) throw new Error(json.error?.message || 'Error de conexión');
+  return json.data;
+}
+const fmt = (n) => Number(n || 0).toLocaleString('es-ES');
+const fmtTime = (d) => new Date(d).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+function msg(elId, text, ok) {
+  document.getElementById(elId).innerHTML = text ? `<div class="${ok ? 'okmsg' : 'err'}">${text}</div>` : '';
+}
+
+// ── sesión ──
+function init() {
+  const hash = new URLSearchParams(location.hash.slice(1));
+  if (hash.get('token')) {
+    TOKEN = hash.get('token');
+    localStorage.setItem('com_token', TOKEN);
+    history.replaceState(null, '', location.pathname);
+  } else {
+    TOKEN = localStorage.getItem('com_token');
+  }
+  if (TOKEN) enterApp(); else showLogin();
+}
+
+function showLogin() {
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('appScreen').classList.add('hidden');
+}
+
+async function doLogin() {
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  document.getElementById('loginErr').classList.add('hidden');
+  try {
+    const data = await api('POST', '/auth/token', {
+      grant_type: 'password',
+      email: document.getElementById('loginEmail').value.trim(),
+      password: document.getElementById('loginPass').value
+    });
+    TOKEN = data.access_token;
+    localStorage.setItem('com_token', TOKEN);
+    await enterApp();
+  } catch (e) {
+    const el = document.getElementById('loginErr');
+    el.textContent = e.message; el.classList.remove('hidden');
+  } finally { btn.disabled = false; }
+}
+
+async function enterApp() {
+  try {
+    ME = await api('GET', '/comercio/me');
+  } catch (e) {
+    localStorage.removeItem('com_token'); TOKEN = null;
+    showLogin();
+    const el = document.getElementById('loginErr');
+    el.textContent = e.message.includes('Comercio') ? 'Esta cuenta no es un Comercio registrado.' : e.message;
+    el.classList.remove('hidden');
+    return;
+  }
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appScreen').classList.remove('hidden');
+  renderHome();
+  checkUnread();
+  pollNewOrders();
+}
+
+function logout() {
+  localStorage.removeItem('com_token');
+  location.reload();
+}
+
+// ── navegación ──
+function go(page, btn) {
+  ['home', 'orders'].forEach(p =>
+    document.getElementById('page-' + p).classList.toggle('hidden', p !== page));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (page === 'home') refreshMe();
+  if (page === 'orders') loadOrders();
+}
+function navTo(i) { document.querySelectorAll('nav button')[i].click(); }
+
+async function refreshMe() {
+  try { ME = await api('GET', '/comercio/me'); renderHome(); } catch {}
+}
+
+function renderHome() {
+  document.getElementById('whoName').textContent = '🏪 ' + ME.name;
+  document.getElementById('whoZone').textContent = `${ME.city || ''} · ${ME.country || ''} · ${ME.category || 'comercio'}`;
+  document.getElementById('totalSales').textContent = fmt(ME.stats.totalSalesXaf);
+  document.getElementById('stPreparing').textContent = fmt(ME.stats.preparing);
+  document.getElementById('stReady').textContent = fmt(ME.stats.ready);
+  document.getElementById('stTransit').textContent = fmt(ME.stats.inTransit);
+  document.getElementById('stDelivered').textContent = fmt(ME.stats.delivered);
+  document.getElementById('ordersDot').classList.toggle('hidden', !ME.stats.preparing);
+}
+
+function showPayQR() {
+  const data = encodeURIComponent(ME.qrCode);
+  document.getElementById('payQrBox').innerHTML =
+    `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=${data}" alt="QR de cobro" style="border-radius:12px;background:#fff;padding:10px">
+     <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:monospace">${ME.qrCode}</p>`;
+}
+
+// ── comandas ──
+let POLL_TIMER = null;
+
+function pollNewOrders() {
+  clearInterval(POLL_TIMER);
+  POLL_TIMER = setInterval(refreshMe, 30000); // refresca contadores y enciende el aviso 🟡
+}
+
+async function loadOrders() {
+  const box = document.getElementById('ordersList');
+  try {
+    const data = await api('GET', '/comercio/orders');
+    document.getElementById('ordersBadge').textContent = `(${data.count})`;
+    box.innerHTML = data.orders.length
+      ? data.orders.map(o => `
+        <div class="order-card ${o.status === 'preparing' ? 'new' : ''}">
+          <div class="top"><b>${fmt(o.totalXaf)} XAF</b><span class="tag ${o.status}">${
+            o.status === 'preparing' ? '🧑‍🍳 por preparar'
+            : o.status === 'ready' ? '📢 esperando rider'
+            : o.status === 'in_transit' ? '🛵 en camino'
+            : o.status === 'delivered' ? '✅ entregada' : o.status}</span></div>
+          <div class="addr">📍 ${o.deliveryAddress}</div>
+          <div class="meta">${fmtTime(o.createdAt)} · Cliente: ${o.user?.name || '—'} ${o.user?.phone || ''}<br>
+            ${(o.items || []).length} artículo(s)${o.notes ? ' · 📝 ' + o.notes : ''}
+            ${o.rider ? `<br>🛵 Rider: <b>${o.rider.name}</b> (${o.rider.vehicle}) ${o.rider.phone}` : ''}</div>
+          ${o.status === 'preparing' ? `
+            <button class="btn" onclick="markReady('${o.id}')">📢 Lista — avisar riders</button>
+            <button class="btn btn-outline" style="margin-top:8px;padding:9px" onclick="cancelOrder('${o.id}')">✕ Cancelar y reembolsar</button>` : ''}
+        </div>`).join('')
+      : '<div class="card"><div class="spinner">Aún no tienes comandas — llegarán cuando los clientes pidan a tu tienda</div></div>';
+  } catch (e) {
+    box.innerHTML = `<div class="err">${e.message}</div>`;
+  }
+}
+
+async function markReady(id) {
+  try {
+    const d = await api('POST', `/comercio/orders/${id}/ready`, {});
+    alert(d.message);
+    loadOrders();
+    refreshMe();
+  } catch (e) { alert(e.message); }
+}
+
+async function cancelOrder(id) {
+  const reason = prompt('Motivo de la cancelación (se reembolsará al cliente):', 'Sin stock');
+  if (reason === null) return;
+  try {
+    const d = await api('POST', `/comercio/orders/${id}/cancel`, { reason });
+    alert(d.message);
+    loadOrders();
+    refreshMe();
+  } catch (e) { alert(e.message); }
+}
+
+// ── chat ──
+let chatTimer = null;
+const chatRoom = () => 'user_' + (ME.userId || '');
+
+function openChat() {
+  document.getElementById('chatModal').classList.remove('hidden');
+  loadChat();
+  chatTimer = setInterval(loadChat, 15000);
+}
+function closeChat() {
+  document.getElementById('chatModal').classList.add('hidden');
+  clearInterval(chatTimer);
+}
+
+async function checkUnread() {
+  if (!TOKEN || !ME) return;
+  try {
+    const d = await api('GET', '/chat/my-unread');
+    const last = d.rooms[chatRoom()];
+    const unread = last && new Date(last) > new Date(localStorage.getItem('seen_' + chatRoom()) || 0);
+    document.getElementById('chatDot').classList.toggle('hidden', !unread);
+  } catch {}
+}
+setInterval(checkUnread, 30000);
+
+async function loadChat() {
+  try {
+    const data = await api('GET', '/chat/messages?room=' + chatRoom());
+    const box = document.getElementById('chatMessages');
+    box.innerHTML = data.messages.length
+      ? data.messages.map(m => {
+          const mine = m.fromId === ME.userId;
+          const d = new Date(m.createdAt);
+          return `<div class="bubble ${mine ? 'me' : 'them'}">${m.message}
+            <div class="meta">${mine ? 'Tú' : (m.from?.name || 'InnovaAFRIC')} · ${d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div></div>`;
+        }).join('')
+      : '<div class="spinner">Escribe tu primer mensaje a InnovaAFRIC</div>';
+    box.scrollTop = box.scrollHeight;
+    localStorage.setItem('seen_' + chatRoom(), new Date().toISOString());
+    document.getElementById('chatDot').classList.add('hidden');
+  } catch {}
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chatInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  try {
+    await api('POST', '/chat/messages', { message: text, room: chatRoom() });
+    loadChat();
+  } catch (e) { inp.value = text; }
+}
+
+// ── ojo + recuperación ──
+function toggleEye(id, btn) {
+  const i = document.getElementById(id);
+  i.type = i.type === 'password' ? 'text' : 'password';
+  btn.textContent = i.type === 'password' ? '👁️' : '🙈';
+}
+function openForgot() {
+  document.getElementById('forgotEmail').value = document.getElementById('loginEmail').value;
+  msg('forgotMsg', '');
+  document.getElementById('forgotModal').classList.remove('hidden');
+}
+function closeForgot() { document.getElementById('forgotModal').classList.add('hidden'); }
+async function sendForgot() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) return msg('forgotMsg', 'Escribe tu email', false);
+  msg('forgotMsg', 'Enviando…', true);
+  try {
+    const d = await api('POST', '/auth/forgot-password', { email });
+    msg('forgotMsg', d.message, true);
+  } catch (e) { msg('forgotMsg', e.message, false); }
+}
+async function sendUnlock() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) return msg('forgotMsg', 'Escribe tu email', false);
+  try {
+    const d = await api('POST', '/auth/unlock-request', { email, message: 'Solicitud enviada desde la app Comercio' });
+    msg('forgotMsg', d.message || '✅ Solicitud enviada. InnovaAFRIC la revisará pronto.', true);
+  } catch (e) { msg('forgotMsg', e.message, false); }
+}
+
+document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+init();
+</script>
+</body>
+</html>
