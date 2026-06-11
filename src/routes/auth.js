@@ -496,11 +496,24 @@ router.post('/generate-access-url', requireAuth, async (req, res) => {
   });
   if (!user) return error(res, 'Usuario no encontrado', 404);
 
-  // URL destino por defecto según el rol: las circulares tienen su propia app
+  // URL destino por defecto según el perfil: cada uno tiene su propia app
   const baseUrl = process.env.PUBLIC_URL || 'https://innovaafric-api-production.up.railway.app';
-  const targetUrl = dashboardUrl || (user.role === 'circular_autorizada'
-    ? `${baseUrl}/circular`
-    : 'https://innovaafric-prod.vercel.app/InnovaAFRIC_Admin.html');
+  let targetUrl = dashboardUrl;
+  if (!targetUrl) {
+    if (user.role === 'circular_autorizada') {
+      targetUrl = `${baseUrl}/circular`;
+    } else {
+      const [isRep, isRider, isMerchant] = await Promise.all([
+        prisma.representative.findUnique({ where: { userId: user.id } }).catch(() => null),
+        prisma.rider.findUnique({ where: { userId: user.id } }).catch(() => null),
+        prisma.merchant.findUnique({ where: { userId: user.id } }).catch(() => null)
+      ]);
+      targetUrl = isRep ? `${baseUrl}/representante`
+                : isRider ? `${baseUrl}/rider`
+                : isMerchant ? `${baseUrl}/comercio`
+                : 'https://innovaafric-prod.vercel.app/InnovaAFRIC_Admin.html';
+    }
+  }
 
   // Solo super_admin puede generar URLs para otros
   if (userId && userId !== (req.user.id || req.user.sub) && !isSuper) {

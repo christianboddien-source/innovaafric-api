@@ -1,9 +1,12 @@
 'use strict';
 const router = require('express').Router();
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcryptjs');
 const prisma = require('../config/prisma');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
+
+const ADMIN = ['admin', 'super_admin', 'business_developer', 'country_manager'];
 
 // El JWT lleva el id del usuario en `sub`
 const uid = (req) => req.user.sub || req.user.id;
@@ -11,6 +14,94 @@ const uid = (req) => req.user.sub || req.user.id;
 async function myMerchant(req) {
   return prisma.merchant.findUnique({ where: { userId: uid(req) } });
 }
+
+// ─────────────────────────────────────────────────────────────
+// ADMIN: alta y listado de comercios con app
+// ─────────────────────────────────────────────────────────────
+
+// POST /v1/comercio/register — crea el usuario + comercio en un paso (admin)
+router.post('/register', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const { name, email, phone, address, city, country, category, password } = req.body;
+    if (!name || !email || !country) return error(res, 'name, email y country son obligatorios', 400);
+
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (user) {
+      const already = await prisma.merchant.findUnique({ where: { userId: user.id } });
+      if (already) return error(res, 'Este email ya tiene un comercio registrado', 409);
+    }
+
+    // Contraseña generada si no se indica
+    const plainPass = password || `IA-${uuidv4().slice(0, 8)}`;
+    const isNewUser = !user;
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          id: uuidv4(),
+          email,
+          name,
+          phone: phone || '',
+          country,
+          city: city || null,
+          role: 'supplier',
+          passwordHash: bcrypt.hashSync(plainPass, 10),
+          kycStatus: 'verified'
+        }
+      });
+    }
+
+    const merchant = await prisma.merchant.create({
+      data: {
+        id: `mer_${uuidv4().slice(0, 8)}`,
+        name,
+        qrCode: `qr_${uuidv4().slice(0, 10)}`,
+        active: true,
+        userId: user.id,
+        phone: phone || null,
+        address: address || null,
+        city: city || null,
+        country,
+        category: category || null
+      }
+    });
+
+    const baseUrl = process.env.PUBLIC_URL || 'https://innovaafric-api-production.up.railway.app';
+    return ok(res, {
+      message: `✅ Comercio "${name}" creado`,
+      merchant,
+      appUrl: `${baseUrl}/comercio`,
+      credentials: isNewUser
+        ? { email, password: plainPass, note: 'Entrega estas credenciales al comercio. Puede cambiar la contraseña con "He olvidado mi contraseña".' }
+        : { email, note: 'El usuario ya existía — usa su contraseña habitual.' }
+    }, 201);
+  } catch (e) { return error(res, e.message); }
+});
+
+// GET /v1/comercio/list — todos los comercios con app (admin)
+router.get('/list', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const merchants = await prisma.merchant.findMany({ orderBy: { createdAt: 'desc' } });
+    const users = await prisma.user.findMany({
+      where: { id: { in: merchants.map(m => m.userId).filter(Boolean) } },
+      select: { id: true, email: true, phone: true }
+    });
+    const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+    const withUsers = merchants.map(m => ({ ...m, user: m.userId ? userMap[m.userId] || null : null }));
+    return ok(res, { count: withUsers.length, merchants: withUsers });
+  } catch (e) { return error(res, e.message); }
+});
+
+// PATCH /v1/comercio/:id/active — admin activa/suspende un comercio
+router.patch('/:id/active', requireAuth, requireRole(...ADMIN), async (req, res) => {
+  try {
+    const { active } = req.body;
+    const m = await prisma.merchant.update({
+      where: { id: req.params.id },
+      data: { active: !!active }
+    });
+    return ok(res, { message: `Comercio ${m.active ? 'activado' : 'suspendido'}`, merchant: m });
+  } catch (e) { return error(res, e.message); }
+});
 
 // GET /v1/comercio/me — perfil del comercio + resumen de comandas
 router.get('/me', requireAuth, async (req, res) => {
