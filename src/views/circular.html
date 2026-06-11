@@ -22,18 +22,8 @@
   .logo .badge{display:inline-block;background:linear-gradient(135deg,var(--accent-dark),var(--accent));color:#03151a;font-weight:800;border-radius:14px;padding:9px 18px;font-size:16px;margin-top:18px}
   .logo p{color:var(--muted);margin-top:10px;font-size:14px}
 
-  /* ── Logo InnovaAFRIC animado ── */
+  /* ── Logo InnovaAFRIC ── */
   .ia-logo{display:inline-block}
-  .ia-logo .net{transform-origin:60px 60px;animation:iaSpin 40s linear infinite}
-  .ia-logo .node{animation:iaPulse 2.4s ease-in-out infinite}
-  .ia-logo .node:nth-child(2n){animation-delay:.4s}
-  .ia-logo .node:nth-child(3n){animation-delay:.9s}
-  .ia-logo .node:nth-child(5n){animation-delay:1.4s}
-  .ia-logo .globe{transform-origin:60px 60px;animation:iaBreath 3.5s ease-in-out infinite}
-  @keyframes iaSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-  @keyframes iaPulse{0%,100%{opacity:.45}50%{opacity:1}}
-  @keyframes iaBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-  header .ia-logo .net{animation-duration:25s}
   .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
   label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px}
   input,select{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:13px 14px;font-size:16px;outline:none}
@@ -274,7 +264,7 @@
 <script>
 'use strict';
 const API = '/v1';
-let TOKEN = null, ME = null, selectedClient = null, searchTimer = null;
+let TOKEN = null, ME = null, selectedClient = null, searchTimer = null, lastResults = [];
 
 // ── helpers ──
 async function api(method, path, body) {
@@ -396,9 +386,10 @@ function searchClient() {
   searchTimer = setTimeout(async () => {
     try {
       const data = await api('GET', '/circulares/find-client?q=' + encodeURIComponent(q));
+      lastResults = data.clients;
       document.getElementById('clientResults').innerHTML = data.clients.length
-        ? data.clients.map(c =>
-            `<div class="client-result" onclick='pickClient(${JSON.stringify(c).replace(/'/g, "&#39;")})'>
+        ? data.clients.map((c, i) =>
+            `<div class="client-result" onclick="pickClientIdx(${i})">
                <div><div class="nm">${c.name || '(sin nombre)'}</div><div class="ph">${c.phone || c.id}</div></div><div>›</div>
              </div>`).join('')
         : '<div class="client-result">Sin resultados</div>';
@@ -407,6 +398,8 @@ function searchClient() {
     }
   }, 350);
 }
+
+function pickClientIdx(i) { if (lastResults[i]) pickClient(lastResults[i]); }
 
 function pickClient(c) {
   selectedClient = c;
