@@ -6,8 +6,11 @@ const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-// GET /v1/chat/rooms — salas activas (admin)
-router.get('/rooms', requireAuth, requireRole('admin'), async (_req, res) => {
+// Roles de staff que gestionan el chat desde el dashboard
+const CHAT_STAFF = ['admin', 'super_admin', 'support_agent', 'support_supervisor'];
+
+// GET /v1/chat/rooms — salas activas (staff)
+router.get('/rooms', requireAuth, requireRole(...CHAT_STAFF), async (_req, res) => {
   const messages = await prisma.chatMessage.findMany({
     orderBy: { createdAt: 'desc' },
     include: { from: { select: { name: true, role: true } } }
@@ -31,7 +34,11 @@ router.get('/rooms', requireAuth, requireRole('admin'), async (_req, res) => {
 router.get('/messages', requireAuth, async (req, res) => {
   const { room = 'support', limit = 100 } = req.query;
   const where = { room };
-  if (req.user.role !== 'admin') where.OR = [{ fromId: req.user.sub }, { toId: req.user.sub }];
+  // Staff ve cualquier sala; un usuario normal ve su sala personal (user_<id>) completa
+  // o, en salas compartidas, solo los mensajes que envió o recibió
+  if (!CHAT_STAFF.includes(req.user.role) && room !== `user_${req.user.sub}`) {
+    where.OR = [{ fromId: req.user.sub }, { toId: req.user.sub }];
+  }
   const messages = await prisma.chatMessage.findMany({
     where, orderBy: { createdAt: 'asc' }, take: parseInt(limit),
     include: { from: { select: { name: true, role: true } } }
@@ -54,7 +61,7 @@ router.post('/messages', requireAuth, async (req, res) => {
 });
 
 // PATCH /v1/chat/read — marcar como leídos
-router.patch('/read', requireAuth, requireRole('admin'), async (req, res) => {
+router.patch('/read', requireAuth, requireRole(...CHAT_STAFF), async (req, res) => {
   const { room } = req.body;
   if (!room) return error(res, 'room requerido', 400);
   const { count } = await prisma.chatMessage.updateMany({ where: { room, read: false }, data: { read: true } });
@@ -62,7 +69,7 @@ router.patch('/read', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // GET /v1/chat/unread — total no leídos (admin)
-router.get('/unread', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/unread', requireAuth, requireRole(...CHAT_STAFF), async (_req, res) => {
   const count = await prisma.chatMessage.count({ where: { read: false } });
   return success(res, { unread: count });
 });

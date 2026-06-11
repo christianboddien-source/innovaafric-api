@@ -280,11 +280,11 @@ router.post('/transfer-to-wallet', requireAuth, async (req, res) => {
       return error(res, `Saldo insuficiente. Tienes ${circ.account.unitBalance.toLocaleString()} unidades`, 400);
     }
 
-    // Impuestos del país si están configurados; si no, retención por defecto
+    // Impuestos del país (tipo circular_cashout) si están configurados; si no, retención por defecto
     let taxRate = TRANSFER_TAX_DEFAULT;
     let taxName = 'Retención InnovaAFRIC';
     const countryTaxes = await prisma.tax.findMany({
-      where: { country: (circ.country || '').toUpperCase(), active: true }
+      where: { country: (circ.country || '').toUpperCase(), active: true, type: 'circular_cashout' }
     }).catch(() => []);
     if (countryTaxes.length) {
       taxRate = countryTaxes.reduce((s, t) => s + t.rate, 0) / 100;
