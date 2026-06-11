@@ -20,6 +20,30 @@ router.get('/products', async (req, res) => {
   return success(res, { items: products, total: products.length, delivery_time: 'Menos de 30 minutos' });
 });
 
+// GET /v1/bigshop/my-orders — pedidos del cliente (para el tracking)
+router.get('/my-orders', requireAuth, async (req, res) => {
+  const orders = await prisma.groceryOrder.findMany({
+    where: { userId: req.user.sub },
+    include: {
+      items: true,
+      rider: { select: { name: true, vehicle: true } }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 20
+  });
+  // Nombre del comercio de cada pedido
+  const merchantIds = [...new Set(orders.map(o => o.merchantId).filter(Boolean))];
+  const merchants = merchantIds.length ? await prisma.merchant.findMany({
+    where: { id: { in: merchantIds } },
+    select: { id: true, name: true }
+  }) : [];
+  const mMap = Object.fromEntries(merchants.map(m => [m.id, m.name]));
+  return success(res, {
+    count: orders.length,
+    orders: orders.map(o => ({ ...o, merchantName: o.merchantId ? mMap[o.merchantId] || null : null }))
+  });
+});
+
 // POST /v1/bigshop/orders — Pedido grocery express
 router.post('/orders', requireAuth, async (req, res) => {
   const { items, delivery_address, notes } = req.body;

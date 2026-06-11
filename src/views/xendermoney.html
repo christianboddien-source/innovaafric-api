@@ -283,6 +283,7 @@ footer p { color:var(--muted); font-size:0.8rem; }
         <button class="ptab" onclick="switchPTab('enviar')">📤 Enviar dinero</button>
         <button class="ptab" onclick="switchPTab('historial')">📋 Historial</button>
         <button class="ptab" onclick="switchPTab('qr')">📱 Pago QR</button>
+        <button class="ptab" onclick="switchPTab('pedidos')">📦 Mis pedidos</button>
       </div>
 
       <!-- WALLET -->
@@ -365,6 +366,16 @@ footer p { color:var(--muted); font-size:0.8rem; }
               <button class="form-submit" onclick="showMyQR()">📱 Mostrar mi QR</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- MIS PEDIDOS -->
+      <div id="ptab-pedidos" class="ptab-panel">
+        <div class="form-container">
+          <h3 style="margin-bottom:0.5rem">Mis pedidos XenderBigShop</h3>
+          <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.5rem">Sigue tu comanda en tiempo real: del comercio a tu puerta</p>
+          <div id="alert-pedidos" class="alert"></div>
+          <div id="myOrdersList" style="text-align:left"><p style="color:var(--muted)">Cargando…</p></div>
         </div>
       </div>
     </div>
@@ -453,8 +464,9 @@ calcular();
 
 function switchPTab(id) {
   document.querySelectorAll('.ptab').forEach((b,i)=>{
-    b.classList.toggle('active', ['wallet','enviar','historial','qr'][i]===id);
+    b.classList.toggle('active', ['wallet','enviar','historial','qr','pedidos'][i]===id);
   });
+  if (id==='pedidos') loadMyOrders();
   document.querySelectorAll('.ptab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('ptab-'+id).classList.add('active');
   if(id==='wallet') loadWallet();
@@ -528,6 +540,123 @@ async function sendMoney(e) {
     if(!res.ok) throw new Error(json.message||json.error||'Error al enviar');
     showAlert('alert-send','✅ Dinero enviado correctamente','success');
   } catch(err) { showAlert('alert-send','❌ '+err.message,'error'); }
+}
+
+// ── Mis pedidos + tracking en vivo ──────────────────────────
+const ORDER_LABELS = {
+  preparing: '🧑‍🍳 Preparando', ready: '📢 Buscando rider',
+  in_transit: '🛵 En camino', delivered: '✅ Entregado', cancelled: '✕ Cancelado'
+};
+
+async function loadMyOrders() {
+  if (!token) { document.getElementById('myOrdersList').innerHTML = '<p style="color:var(--muted)">Inicia sesión para ver tus pedidos</p>'; return; }
+  try {
+    const res = await fetch(API + '/v1/bigshop/my-orders', { headers: { Authorization: 'Bearer ' + token } });
+    const j = await res.json();
+    if (!j.success) throw new Error(j.error?.message);
+    const orders = j.data.orders;
+    document.getElementById('myOrdersList').innerHTML = orders.length
+      ? orders.map(o => `
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b>${Number(o.totalXaf).toLocaleString('es-ES')} XAF</b>
+            <span style="font-size:12px">${ORDER_LABELS[o.status] || o.status}</span>
+          </div>
+          <div style="font-size:13px;margin-top:5px">📍 ${o.deliveryAddress}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">
+            ${o.merchantName ? '🏪 ' + o.merchantName + ' · ' : ''}${new Date(o.createdAt).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            ${o.rider ? '<br>🛵 ' + o.rider.name + ' (' + o.rider.vehicle + ')' : ''}
+          </div>
+          ${['preparing', 'ready', 'in_transit'].includes(o.status)
+            ? `<button class="form-submit" style="margin-top:10px;padding:9px" onclick="trackOrder('${o.id}')">📍 Seguir mi pedido</button>` : ''}
+        </div>`).join('')
+      : '<p style="color:var(--muted)">Aún no tienes pedidos — haz tu primera compra en XenderBigShop</p>';
+  } catch (e) {
+    document.getElementById('myOrdersList').innerHTML = '<p style="color:var(--muted)">' + e.message + '</p>';
+  }
+}
+
+let TRACK_TIMER = null, TRACK_MAP = null, TRACK_MARKER = null;
+
+function loadLeafletXM() {
+  return new Promise((resolve, reject) => {
+    if (window.L) return resolve();
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = resolve; s.onerror = () => reject(new Error('No se pudo cargar el mapa'));
+    document.head.appendChild(s);
+  });
+}
+
+function closeTrack() {
+  clearInterval(TRACK_TIMER);
+  if (TRACK_MAP) { TRACK_MAP.remove(); TRACK_MAP = null; TRACK_MARKER = null; }
+  const ov = document.getElementById('track-overlay');
+  if (ov) ov.remove();
+}
+
+async function trackOrder(orderId) {
+  closeTrack();
+  const ov = document.createElement('div');
+  ov.id = 'track-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px';
+  ov.onclick = e => { if (e.target === ov) closeTrack(); };
+  ov.innerHTML = `
+    <div style="background:#0e1626;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:18px;width:min(440px,94vw);max-height:88vh;overflow-y:auto;color:#e8edf5">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <b>📦 Seguimiento del pedido</b>
+        <button onclick="closeTrack()" style="background:none;border:none;color:#8493ab;font-size:20px;cursor:pointer">✕</button>
+      </div>
+      <div id="track-timeline" style="font-size:13px;line-height:2"></div>
+      <div id="track-rider" style="font-size:13px;margin:8px 0"></div>
+      <div id="track-map" style="height:42vh;border-radius:12px;overflow:hidden;display:none"></div>
+      <div id="track-note" style="font-size:11px;color:#8493ab;margin-top:8px"></div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const refresh = async () => {
+    try {
+      const res = await fetch(API + '/v1/delivery/track-order/' + orderId, { headers: { Authorization: 'Bearer ' + token } });
+      const j = await res.json();
+      if (!j.success) throw new Error(j.error?.message);
+      const d = j.data;
+      document.getElementById('track-timeline').innerHTML = d.timeline.map(t =>
+        `<div style="opacity:${t.done ? 1 : .35}">${t.done ? '●' : '○'} ${t.label}</div>`).join('');
+      document.getElementById('track-rider').innerHTML = d.rider
+        ? `🛵 <b>${d.rider.name}</b> (${d.rider.vehicle}) · <a href="tel:${d.rider.phone}" style="color:#22d3ee">${d.rider.phone}</a>`
+        : (d.merchant ? `🏪 ${d.merchant.name}${d.merchant.phone ? ' · ' + d.merchant.phone : ''}` : '');
+
+      if (d.rider?.position) {
+        document.getElementById('track-map').style.display = 'block';
+        await loadLeafletXM();
+        const { lat, lng } = d.rider.position;
+        if (!TRACK_MAP) {
+          TRACK_MAP = L.map('track-map').setView([lat, lng], 15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(TRACK_MAP);
+          TRACK_MARKER = L.marker([lat, lng], {
+            icon: L.divIcon({ className: '', html: '<div style="font-size:24px;text-shadow:0 0 4px #000">🛵</div>', iconSize: [26, 26], iconAnchor: [13, 13] })
+          }).addTo(TRACK_MAP).bindPopup('Tu rider: ' + d.rider.name);
+          setTimeout(() => TRACK_MAP.invalidateSize(), 200);
+        } else {
+          TRACK_MARKER.setLatLng([lat, lng]);
+        }
+        document.getElementById('track-note').textContent =
+          'Posición del rider actualizada hace ' + Math.round((Date.now() - d.rider.position.lastSeen) / 1000) + 's. Se refresca cada 15 segundos.';
+      } else {
+        document.getElementById('track-note').textContent = d.status === 'in_transit'
+          ? 'El rider va en camino — su posición aparecerá cuando su app esté activa.'
+          : 'El mapa se activará cuando un rider acepte tu pedido.';
+      }
+      if (d.status === 'delivered') { clearInterval(TRACK_TIMER); }
+    } catch (e) {
+      document.getElementById('track-note').textContent = e.message;
+    }
+  };
+  refresh();
+  TRACK_TIMER = setInterval(refresh, 15000);
 }
 
 function showMyQR() {

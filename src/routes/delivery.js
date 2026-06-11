@@ -196,6 +196,57 @@ router.get('/my-deliveries', requireAuth, async (req, res) => {
   return success(res, { count: orders.length, orders });
 });
 
+// GET /v1/delivery/track-order/:id — el cliente sigue su comanda (estado + rider en vivo)
+router.get('/track-order/:id', requireAuth, async (req, res) => {
+  const order = await prisma.groceryOrder.findUnique({
+    where: { id: req.params.id },
+    include: { rider: { select: { name: true, phone: true, vehicle: true, userId: true } } }
+  });
+  if (!order) return error(res, 'Pedido no encontrado', 404);
+  if (order.userId !== uid(req)) return error(res, 'Este pedido no es tuyo', 403);
+
+  // Comercio que lo prepara
+  let merchant = null;
+  if (order.merchantId) {
+    merchant = await prisma.merchant.findUnique({
+      where: { id: order.merchantId },
+      select: { name: true, address: true, city: true, phone: true }
+    });
+  }
+
+  // Posición en vivo del rider (si su app está abierta)
+  let riderPosition = null;
+  if (order.rider?.userId) {
+    const { getPresence } = require('./locations');
+    riderPosition = getPresence(order.rider.userId);
+  }
+
+  const FLOW = ['preparing', 'ready', 'in_transit', 'delivered'];
+  const FLOW_LABELS = {
+    preparing: '🧑‍🍳 El comercio prepara tu pedido',
+    ready: '📢 Buscando rider',
+    in_transit: '🛵 Tu rider va en camino',
+    delivered: '✅ Entregado'
+  };
+  const idx = FLOW.indexOf(order.status);
+
+  return success(res, {
+    orderId: order.id,
+    status: order.status,
+    statusLabel: FLOW_LABELS[order.status] || order.status,
+    timeline: FLOW.map((s, i) => ({ step: s, label: FLOW_LABELS[s], done: idx >= 0 ? i <= idx : false })),
+    deliveryAddress: order.deliveryAddress,
+    totalXaf: order.totalXaf,
+    estimatedDelivery: order.estimatedDelivery,
+    merchant,
+    rider: order.rider ? {
+      name: order.rider.name, phone: order.rider.phone, vehicle: order.rider.vehicle,
+      position: riderPosition
+    } : null,
+    deliveredAt: order.confirmedAt
+  });
+});
+
 // GET /v1/delivery/riders
 router.get('/riders', requireAuth, requireRole('circular_autorizada', 'admin'), async (req, res) => {
   const { zone, status } = req.query;

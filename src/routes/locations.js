@@ -85,3 +85,9 @@ router.get('/nearby', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+// Posición en vivo de un usuario concreto (para el tracking del pedido del cliente)
+module.exports.getPresence = (userId) => {
+  const p = PRESENCE.get(userId);
+  if (!p || Date.now() - p.ts > TTL_MS) return null;
+  return { lat: p.lat, lng: p.lng, lastSeen: p.ts };
+};
