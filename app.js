@@ -75,6 +75,7 @@ const circularesRoutes       = require('./src/routes/circulares');
 const { error }      = require('./src/helpers/response');
 
 const app = express();
+app.set('trust proxy', 1); // detrás del proxy de Railway — necesario para rate-limit y IPs reales
 
 // ── Seguridad y parseo ──────────────────────────────────
 app.use(helmet({
