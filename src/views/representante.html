@@ -44,6 +44,8 @@
   .balance-card .amt{font-size:36px;font-weight:800;margin:6px 0}
   .balance-card .sub{font-size:13px;color:#a5f3fc}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .qa{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 10px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:center}
+  .qa:active,.qa:hover{border-color:var(--accent)}
   .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
   .stat .v{font-size:19px;font-weight:700}
   .stat .k{font-size:11px;color:var(--muted);margin-top:3px}
@@ -198,6 +200,22 @@
         de cada compra de unidades que ellas hacen. Recibes los depósitos de efectivo
         de tus circulares y los entregas a InnovaAFRIC.
       </div>
+
+      <h2 style="margin-top:18px">⚡ Acciones rápidas</h2>
+      <div class="grid2">
+        <button class="qa" onclick="navTo(1)">⚡<br>Mi red</button>
+        <button class="qa" onclick="navTo(2)">💰<br>Comisiones</button>
+        <button class="qa" onclick="openChat()">💬<br>Mensajes</button>
+        <button class="qa" onclick="downloadRepPDF()">🖨️<br>Informe PDF</button>
+      </div>
+
+      <div class="card">
+        <b style="font-size:14px">🕒 Actividad reciente de mi red</b>
+        <div style="overflow-x:auto;margin-top:8px">
+          <table><thead><tr><th>Fecha</th><th>Circular</th><th>Tu 50%</th></tr></thead>
+          <tbody id="recentList"><tr><td colspan="3" class="spinner">—</td></tr></tbody></table>
+        </div>
+      </div>
     </section>
 
     <!-- CIRCULARES -->
@@ -223,6 +241,10 @@
     <!-- COMISIONES -->
     <section id="page-comisiones" class="hidden">
       <h2>💰 Comisiones de mi red (50%)</h2>
+      <div class="btn-row" style="margin-bottom:12px">
+        <button class="btn" style="margin-top:0" onclick="downloadRepPDF()">🖨️ Descargar PDF</button>
+        <button class="btn" style="margin-top:0" onclick="shareComisiones()">📤 Compartir</button>
+      </div>
       <div id="comSummary"><div class="spinner">Cargando…</div></div>
 
       <div class="card">
@@ -395,6 +417,7 @@ async function enterApp() {
   document.getElementById('appScreen').classList.remove('hidden');
   renderHome();
   loadCirculares();
+  loadRecent();
   checkUnread();
 }
 
@@ -521,11 +544,59 @@ async function doAuthorize() {
   } catch (e) { msg('authMsg', e.message, false); }
 }
 
+// ── acciones rápidas + actividad reciente ──
+function navTo(i) { document.querySelectorAll('nav button')[i].click(); }
+
+async function loadRecent() {
+  try {
+    const data = await api('GET', '/representatives/network-commissions');
+    document.getElementById('recentList').innerHTML = data.operations.length
+      ? data.operations.slice(0, 5).map(o => `<tr><td>${fmtDate(o.date)}</td><td>${o.circularName}</td>
+          <td style="color:var(--green);font-weight:600">${fmt(o.myCommission)} ${o.currency}</td></tr>`).join('')
+      : '<tr><td colspan="3" class="spinner">Aún sin actividad — tu red genera comisión con cada compra de unidades</td></tr>';
+  } catch {}
+}
+
+// ── PDF y compartir ──
+function shareText(text) {
+  if (navigator.share) { navigator.share({ text }).catch(() => {}); }
+  else { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); }
+}
+
+async function downloadRepPDF() {
+  try {
+    const res = await fetch(API + `/representatives/${ME.id}/report/operations`, {
+      headers: { Authorization: 'Bearer ' + TOKEN }
+    });
+    if (!res.ok) throw new Error('No se pudo generar el PDF');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `informe_innovaafric_${new Date().toISOString().slice(0, 10)}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch (e) { alert(e.message); }
+}
+
+let COM = null;
+
+function shareComisiones() {
+  if (!COM) return;
+  const totals = Object.entries(COM.totalsByCurrency);
+  shareText(`💰 COMISIONES DE RED — InnovaAFRIC\n` +
+    `Representante: ${ME.user?.name || ''} — ${ME.zone}\n` +
+    `Disponible para cobrar: ${fmt(COM.totalEarned)}\n` +
+    (totals.length ? totals.map(([c, t]) => `Generado histórico: ${fmt(t)} ${c}`).join('\n') + '\n' : '') +
+    `Compras de mi red: ${COM.operations.length}`);
+}
+
 // ── comisiones de red ──
 async function loadComisiones() {
   const box = document.getElementById('comSummary');
   try {
     const data = await api('GET', '/representatives/network-commissions');
+    COM = data;
     const totals = Object.entries(data.totalsByCurrency);
     box.innerHTML = `
       <div class="card">

@@ -48,6 +48,8 @@
   .balance-card .sub{font-size:13px;color:#a5f3fc}
   .alert{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.45);color:var(--amber);border-radius:12px;padding:12px 15px;font-size:14px;margin-bottom:16px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .qa{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 10px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:center}
+  .qa:active,.qa:hover{border-color:var(--accent)}
   .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
   .stat .v{font-size:19px;font-weight:700}
   .stat .k{font-size:11px;color:var(--muted);margin-top:3px}
@@ -221,6 +223,22 @@
         <b>sucursal de InnovaAFRIC</b> o en la <b>oficina de tu representante</b>.
         Al solicitar unidades recibirás la referencia de transferencia.
       </div>
+
+      <h2 style="margin-top:18px">⚡ Acciones rápidas</h2>
+      <div class="grid2">
+        <button class="qa" onclick="navTo(1)">💸<br>Recargar cliente</button>
+        <button class="qa" onclick="navTo(2)">🛒<br>Comprar unidades</button>
+        <button class="qa" onclick="navTo(3)">💰<br>Cobrar comisiones</button>
+        <button class="qa" onclick="navTo(4)">🧾<br>Cierre de hoy</button>
+      </div>
+
+      <div class="card">
+        <b style="font-size:14px">🕒 Últimas recargas</b>
+        <div style="overflow-x:auto;margin-top:8px">
+          <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Importe</th></tr></thead>
+          <tbody id="recentList"><tr><td colspan="3" class="spinner">—</td></tr></tbody></table>
+        </div>
+      </div>
     </section>
 
     <!-- RECARGAR CLIENTE -->
@@ -333,6 +351,10 @@
     <!-- HISTORIAL -->
     <section id="page-history" class="hidden">
       <h2>📋 Mi historial</h2>
+      <div class="btn-row" style="margin-bottom:12px">
+        <button class="btn" style="margin-top:0" onclick="printHistorial()">🖨️ Imprimir / PDF</button>
+        <button class="btn" style="margin-top:0" onclick="shareHistorial()">📤 Compartir</button>
+      </div>
       <div class="card">
         <b style="font-size:14px">Recargas a clientes</b>
         <div style="overflow-x:auto;margin-top:8px">
@@ -534,6 +556,7 @@ async function enterApp() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appScreen').classList.remove('hidden');
   renderHome();
+  loadRecent();
   checkUnread();
 }
 
@@ -562,7 +585,7 @@ function go(page, btn) {
 
 // ── inicio ──
 async function refreshMe() {
-  try { ME = await api('GET', '/circulares/me'); renderHome(); } catch {}
+  try { ME = await api('GET', '/circulares/me'); renderHome(); loadRecent(); } catch {}
 }
 
 function renderHome() {
@@ -675,10 +698,65 @@ async function doPurchase() {
   } catch (e) { msg('unitsMsg', e.message, false); }
 }
 
+// ── acciones rápidas + actividad reciente ──
+function navTo(i) { document.querySelectorAll('nav button')[i].click(); }
+
+async function loadRecent() {
+  try {
+    const data = await api('GET', '/circulares/my-operations?limit=5');
+    document.getElementById('recentList').innerHTML = data.topUps.length
+      ? data.topUps.slice(0, 5).map(t => `<tr><td>${fmtDate(t.createdAt)}</td><td>${t.clientName || '—'}</td>
+          <td style="color:var(--green);font-weight:600">${fmt(t.amount)} ${t.currency}</td></tr>`).join('')
+      : '<tr><td colspan="3" class="spinner">Aún sin recargas — usa "Recargar cliente"</td></tr>';
+  } catch {}
+}
+
 // ── historial ──
+let HIST = null;
+
+function printHistorial() {
+  if (!HIST) return;
+  document.getElementById('printArea').innerHTML = printHeaderHTML('Historial — Circular Autorizada') + `
+    <table>
+      <tr><th>Circular Autorizada</th><td>${ME.user?.name || '—'}</td></tr>
+      <tr><th>Zona</th><td>${ME.neighborhood}, ${ME.country}</td></tr>
+      <tr><th>Saldo de unidades</th><td>${fmt(HIST.account?.unitBalance ?? 0)}</td></tr>
+    </table>
+    <h3 style="font-size:14px;margin:14px 0 4px">Recargas a clientes (${HIST.topUps.length})</h3>
+    <table>
+      <tr><th>Fecha</th><th>Cliente</th><th>Teléfono</th><th>Importe</th><th>Estado</th></tr>
+      ${HIST.topUps.map(t => `<tr><td>${new Date(t.createdAt).toLocaleString('es-ES')}</td>
+        <td>${t.clientName || t.clientId}</td><td>${t.clientPhone || '—'}</td>
+        <td>${fmt(t.amount)} ${t.currency}</td><td>${t.status}</td></tr>`).join('')}
+    </table>
+    <h3 style="font-size:14px;margin:14px 0 4px">Compras de unidades (${HIST.purchases.length})</h3>
+    <table>
+      <tr><th>Fecha</th><th>Unidades</th><th>Pagado</th><th>Ahorro 5%</th><th>Estado</th></tr>
+      ${HIST.purchases.map(p => `<tr><td>${new Date(p.createdAt).toLocaleDateString('es-ES')}</td>
+        <td>${fmt(p.unitsRequested)}</td><td>${fmt(p.amountToPay)} ${p.currency}</td>
+        <td>${fmt(p.amountSaved)} ${p.currency}</td><td>${p.status}</td></tr>`).join('')}
+    </table>`;
+  window.print();
+}
+
+function shareHistorial() {
+  if (!HIST) return;
+  const totals = {};
+  HIST.topUps.filter(t => t.status === 'completed').forEach(t => {
+    totals[t.currency] = (totals[t.currency] || 0) + t.amount;
+  });
+  shareText(`📋 HISTORIAL InnovaAFRIC — Circular Autorizada\n` +
+    `${ME.user?.name || ''} — ${ME.neighborhood}\n` +
+    `Recargas a clientes: ${HIST.topUps.length}\n` +
+    Object.entries(totals).map(([c, t]) => `Total recargado: ${fmt(t)} ${c}`).join('\n') +
+    `\nCompras de unidades: ${HIST.purchases.length}\n` +
+    `Saldo actual: ${fmt(HIST.account?.unitBalance ?? 0)} unidades`);
+}
+
 async function loadHistory() {
   try {
     const data = await api('GET', '/circulares/my-operations');
+    HIST = data;
     document.getElementById('histTopups').innerHTML = data.topUps.length
       ? data.topUps.map(t => `<tr><td>${fmtDate(t.createdAt)}</td><td>${t.clientName || t.clientId}</td>
           <td>${fmt(t.amount)} ${t.currency}</td><td><span class="tag ${t.status}">${t.status}</span></td></tr>`).join('')
