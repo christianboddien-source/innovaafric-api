@@ -19,7 +19,11 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const circ = await prisma.circular.findUnique({
       where: { userId: uid(req) },
-      include: { account: true, _count: { select: { topUps: true } } }
+      include: {
+        account: true,
+        user: { select: { name: true, email: true, phone: true } },
+        _count: { select: { topUps: true } }
+      }
     });
     if (!circ) return error(res, 'No estás registrado como Circular Autorizada', 403);
     return ok(res, circ);
@@ -138,7 +142,7 @@ router.post('/topup-client', requireAuth, async (req, res) => {
       }
     }
 
-    await prisma.$transaction([
+    const txResults = await prisma.$transaction([
       prisma.wallet.upsert({
         where: { userId: clientId },
         update: { [walletField]: { increment: amount } },
@@ -175,12 +179,20 @@ router.post('/topup-client', requireAuth, async (req, res) => {
 
     const updated = await prisma.circularAccount.findUnique({ where: { circularId: circ.id } });
     const alertLow = updated.unitBalance < updated.alertThreshold;
+    const topUpRec = txResults[3]; // registro CircularTopUp creado en la transacción
 
     return ok(res, {
       message: `✅ ${amount} ${currency} acreditados a ${client.name}`,
       newBalance: updated.unitBalance,
       alertLow,
-      alertMessage: alertLow ? `⚠️ Tu saldo es bajo (${updated.unitBalance} unidades). Solicita recarga.` : null
+      alertMessage: alertLow ? `⚠️ Tu saldo es bajo (${updated.unitBalance} unidades). Solicita recarga.` : null,
+      receipt: {
+        id: topUpRec.id,
+        date: topUpRec.createdAt,
+        clientName: client.name,
+        clientPhone: client.phone,
+        amount, currency
+      }
     });
   } catch (e) { return error(res, e.message); }
 });

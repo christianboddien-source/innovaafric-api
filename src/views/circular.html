@@ -78,6 +78,26 @@
   nav button .ic{display:block;font-size:20px;margin-bottom:3px}
   nav button.active{color:var(--accent)}
   .spinner{text-align:center;color:var(--muted);padding:30px;font-size:14px}
+
+  /* ── Recibo y cierre de caja ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:380px;max-height:85vh;overflow-y:auto}
+  .receipt-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:14px}
+  .receipt-line span:first-child{color:var(--muted)}
+  .btn-row{display:flex;gap:10px}
+  .total-line{display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding:10px 0;color:var(--green)}
+
+  /* ── Zona de impresión (PDF) ── */
+  #printArea{display:none}
+  @media print{
+    body *{visibility:hidden}
+    #printArea,#printArea *{visibility:visible}
+    #printArea{display:block!important;position:absolute;top:0;left:0;width:100%;background:#fff;color:#000;padding:20px;font-family:Arial,Helvetica,sans-serif}
+    #printArea table{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}
+    #printArea th,#printArea td{border:1px solid #999;padding:6px 8px;text-align:left;color:#000}
+    #printArea th{background:#eee}
+    nav{display:none!important}
+  }
 </style>
 </head>
 <body>
@@ -86,29 +106,33 @@
 <div id="loginScreen">
   <div class="logo">
     <svg class="ia-logo" width="110" height="110" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-label="InnovaAFRIC">
-      <rect x="4" y="4" width="112" height="112" rx="26" fill="#0e1c30"/>
-      <g class="net" stroke="#22d3ee" stroke-width="2.4" fill="#22d3ee">
-        <g id="spokes">
-          <line x1="60" y1="60" x2="60" y2="16"/>   <circle class="node" cx="60" cy="16" r="4"/><circle class="node" cx="60" cy="33" r="2.2"/>
-          <line x1="60" y1="60" x2="60" y2="104"/>  <circle class="node" cx="60" cy="104" r="4"/><circle class="node" cx="60" cy="87" r="2.2"/>
-          <line x1="60" y1="60" x2="16" y2="60"/>   <circle class="node" cx="16" cy="60" r="4"/><circle class="node" cx="33" cy="60" r="2.2"/>
-          <line x1="60" y1="60" x2="104" y2="60"/>  <circle class="node" cx="104" cy="60" r="4"/><circle class="node" cx="87" cy="60" r="2.2"/>
-          <line x1="60" y1="60" x2="29" y2="29"/>   <circle class="node" cx="29" cy="29" r="4"/>
-          <line x1="60" y1="60" x2="91" y2="29"/>   <circle class="node" cx="91" cy="29" r="4"/>
-          <line x1="60" y1="60" x2="29" y2="91"/>   <circle class="node" cx="29" cy="91" r="4"/>
-          <line x1="60" y1="60" x2="91" y2="91"/>   <circle class="node" cx="91" cy="91" r="4"/>
-          <line x1="60" y1="60" x2="38" y2="20"/>   <circle class="node" cx="38" cy="20" r="3"/>
-          <line x1="60" y1="60" x2="82" y2="100"/>  <circle class="node" cx="82" cy="100" r="3"/>
-          <line x1="60" y1="60" x2="20" y2="82"/>   <circle class="node" cx="20" cy="82" r="3"/>
-          <line x1="60" y1="60" x2="100" y2="38"/>  <circle class="node" cx="100" cy="38" r="3"/>
-        </g>
+      <rect x="4" y="4" width="112" height="112" rx="26" fill="#0d1b2e"/>
+      <g stroke="#2fd3f7" stroke-width="2.6" fill="none" stroke-linecap="round">
+        <circle cx="60" cy="60" r="13"/>
+        <line x1="47" y1="60" x2="73" y2="60"/>
+        <line x1="60" y1="47" x2="60" y2="73"/>
+        <line x1="50.8" y1="50.8" x2="69.2" y2="69.2"/>
+        <line x1="50.8" y1="69.2" x2="69.2" y2="50.8"/>
+        <line x1="75" y1="60" x2="104" y2="60"/>
+        <line x1="73" y1="67.5" x2="91" y2="78"/>
+        <line x1="67.5" y1="73" x2="82" y2="98"/>
+        <line x1="60" y1="75" x2="60" y2="96"/>
+        <line x1="52.5" y1="73" x2="38" y2="98"/>
+        <line x1="47" y1="67.5" x2="29" y2="78"/>
+        <line x1="45" y1="60" x2="16" y2="60"/>
+        <line x1="47" y1="52.5" x2="29" y2="42"/>
+        <line x1="52.5" y1="47" x2="38" y2="22"/>
+        <line x1="60" y1="45" x2="60" y2="24"/>
+        <line x1="67.5" y1="47" x2="82" y2="22"/>
+        <line x1="73" y1="52.5" x2="91" y2="42"/>
       </g>
-      <g class="globe" stroke="#22d3ee" stroke-width="2.4" fill="#0e1c30">
-        <circle cx="60" cy="60" r="15"/>
-        <ellipse cx="60" cy="60" rx="7" ry="15"/>
-        <line x1="45" y1="60" x2="75" y2="60"/>
-        <path d="M48 51 Q60 57 72 51" fill="none"/>
-        <path d="M48 69 Q60 63 72 69" fill="none"/>
+      <g fill="#2fd3f7">
+        <circle cx="104" cy="60" r="4.5"/><circle cx="91" cy="78" r="3"/>
+        <circle cx="82" cy="98" r="4.5"/><circle cx="60" cy="96" r="3"/>
+        <circle cx="38" cy="98" r="4.5"/><circle cx="29" cy="78" r="3"/>
+        <circle cx="16" cy="60" r="4.5"/><circle cx="29" cy="42" r="3"/>
+        <circle cx="38" cy="22" r="4.5"/><circle cx="60" cy="24" r="3"/>
+        <circle cx="82" cy="22" r="4.5"/><circle cx="91" cy="42" r="3"/>
       </g>
     </svg>
     <div class="brand">InnovaAFRIC</div>
@@ -132,21 +156,22 @@
   <header>
     <div style="display:flex;align-items:center;gap:11px">
       <svg class="ia-logo" width="38" height="38" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-label="InnovaAFRIC">
-        <rect x="4" y="4" width="112" height="112" rx="26" fill="#0e1c30"/>
-        <g class="net" stroke="#22d3ee" stroke-width="3" fill="#22d3ee">
-          <line x1="60" y1="60" x2="60" y2="18"/>  <circle class="node" cx="60" cy="18" r="5"/>
-          <line x1="60" y1="60" x2="60" y2="102"/> <circle class="node" cx="60" cy="102" r="5"/>
-          <line x1="60" y1="60" x2="18" y2="60"/>  <circle class="node" cx="18" cy="60" r="5"/>
-          <line x1="60" y1="60" x2="102" y2="60"/> <circle class="node" cx="102" cy="60" r="5"/>
-          <line x1="60" y1="60" x2="31" y2="31"/>  <circle class="node" cx="31" cy="31" r="5"/>
-          <line x1="60" y1="60" x2="89" y2="31"/>  <circle class="node" cx="89" cy="31" r="5"/>
-          <line x1="60" y1="60" x2="31" y2="89"/>  <circle class="node" cx="31" cy="89" r="5"/>
-          <line x1="60" y1="60" x2="89" y2="89"/>  <circle class="node" cx="89" cy="89" r="5"/>
+        <rect x="4" y="4" width="112" height="112" rx="26" fill="#0d1b2e"/>
+        <g stroke="#2fd3f7" stroke-width="3.4" fill="none" stroke-linecap="round">
+          <circle cx="60" cy="60" r="13"/>
+          <line x1="47" y1="60" x2="73" y2="60"/>
+          <line x1="60" y1="47" x2="60" y2="73"/>
+          <line x1="75" y1="60" x2="100" y2="60"/>
+          <line x1="67.5" y1="73" x2="80" y2="95"/>
+          <line x1="52.5" y1="73" x2="40" y2="95"/>
+          <line x1="45" y1="60" x2="20" y2="60"/>
+          <line x1="52.5" y1="47" x2="40" y2="25"/>
+          <line x1="67.5" y1="47" x2="80" y2="25"/>
         </g>
-        <g class="globe" stroke="#22d3ee" stroke-width="3" fill="#0e1c30">
-          <circle cx="60" cy="60" r="16"/>
-          <ellipse cx="60" cy="60" rx="7.5" ry="16"/>
-          <line x1="44" y1="60" x2="76" y2="60"/>
+        <g fill="#2fd3f7">
+          <circle cx="100" cy="60" r="5"/><circle cx="80" cy="95" r="5"/>
+          <circle cx="40" cy="95" r="5"/><circle cx="20" cy="60" r="5"/>
+          <circle cx="40" cy="25" r="5"/><circle cx="80" cy="25" r="5"/>
         </g>
       </svg>
       <div class="who"><b id="whoName">—</b><span id="whoZone">—</span></div>
@@ -233,6 +258,22 @@
       </div>
     </section>
 
+    <!-- CIERRE DE CAJA -->
+    <section id="page-caja" class="hidden">
+      <h2>🧾 Cierre de caja</h2>
+      <div class="card">
+        <label>Día del cierre</label>
+        <input id="cajaDate" type="date">
+        <button class="btn" onclick="loadCaja()">Ver resumen del día</button>
+      </div>
+      <div id="cajaSummary"></div>
+      <div class="info">
+        El cierre de caja muestra <b>todo el efectivo cobrado en el día</b> — es la cantidad
+        que debes entregar en la <b>sucursal de InnovaAFRIC</b> o a tu <b>representante</b>.
+        Imprime el PDF y entrégalo firmado junto con el dinero.
+      </div>
+    </section>
+
     <!-- HISTORIAL -->
     <section id="page-history" class="hidden">
       <h2>📋 Mi historial</h2>
@@ -257,9 +298,29 @@
     <button class="active" onclick="go('home',this)"><span class="ic">🏠</span>Inicio</button>
     <button onclick="go('topup',this)"><span class="ic">💸</span>Recargar</button>
     <button onclick="go('units',this)"><span class="ic">🛒</span>Unidades</button>
+    <button onclick="go('caja',this)"><span class="ic">🧾</span>Caja</button>
     <button onclick="go('history',this)"><span class="ic">📋</span>Historial</button>
   </nav>
 </div>
+
+<!-- ════════ MODAL RECIBO ════════ -->
+<div id="receiptModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div style="text-align:center;margin-bottom:10px">
+      <div style="font-size:34px">✅</div>
+      <b style="font-size:16px">Recarga realizada</b>
+    </div>
+    <div id="receiptBody"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="printReceipt()">🖨️ PDF</button>
+      <button class="btn" onclick="shareReceipt()">📤 Compartir</button>
+    </div>
+    <button class="btn btn-outline" onclick="closeReceipt()">Cerrar</button>
+  </div>
+</div>
+
+<!-- ════════ ZONA DE IMPRESIÓN ════════ -->
+<div id="printArea"></div>
 
 <script>
 'use strict';
@@ -348,12 +409,18 @@ function logout() {
 
 // ── navegación ──
 function go(page, btn) {
-  ['home', 'topup', 'units', 'history'].forEach(p =>
+  ['home', 'topup', 'units', 'caja', 'history'].forEach(p =>
     document.getElementById('page-' + p).classList.toggle('hidden', p !== page));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (page === 'history') loadHistory();
   if (page === 'home') refreshMe();
+  if (page === 'caja') {
+    if (!document.getElementById('cajaDate').value) {
+      document.getElementById('cajaDate').value = new Date().toISOString().slice(0, 10);
+    }
+    loadCaja();
+  }
 }
 
 // ── inicio ──
@@ -363,7 +430,7 @@ async function refreshMe() {
 
 function renderHome() {
   const acc = ME.account || {};
-  document.getElementById('whoName').textContent = '⚡ Circular Autorizada';
+  document.getElementById('whoName').textContent = ME.user?.name ? '⚡ ' + ME.user.name : '⚡ Circular Autorizada';
   document.getElementById('whoZone').textContent = `${ME.neighborhood || ''} · ${ME.country || ''}`;
   document.getElementById('unitBalance').textContent = fmt(acc.unitBalance);
   document.getElementById('accountStatus').textContent =
@@ -435,6 +502,7 @@ async function doTopup() {
     document.getElementById('topupAmount').value = '';
     clearClient();
     refreshMe();
+    if (data.receipt) showReceipt(data.receipt, data.newBalance);
   } catch (e) {
     msg('topupMsg', e.message, false);
     btn.disabled = false;
@@ -485,6 +553,142 @@ async function loadHistory() {
   } catch (e) {
     document.getElementById('histTopups').innerHTML = `<tr><td colspan="4" class="spinner">${e.message}</td></tr>`;
   }
+}
+
+// ── recibo digital ──
+let lastReceipt = null;
+
+function showReceipt(r, newBalance) {
+  lastReceipt = r;
+  const d = new Date(r.date);
+  document.getElementById('receiptBody').innerHTML = `
+    <div class="receipt-line"><span>Fecha</span><b>${d.toLocaleDateString('es-ES')} ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</b></div>
+    <div class="receipt-line"><span>Cliente</span><b>${r.clientName || '—'}</b></div>
+    <div class="receipt-line"><span>Teléfono</span><b>${r.clientPhone || '—'}</b></div>
+    <div class="receipt-line"><span>Importe</span><b style="color:var(--green)">${fmt(r.amount)} ${r.currency}</b></div>
+    <div class="receipt-line"><span>Referencia</span><b style="font-size:11px">${r.id}</b></div>
+    <div class="receipt-line"><span>Atendido por</span><b>${ME.user?.name || 'Circular Autorizada'}</b></div>`;
+  document.getElementById('receiptModal').classList.remove('hidden');
+}
+
+function closeReceipt() { document.getElementById('receiptModal').classList.add('hidden'); }
+
+function receiptText(r) {
+  const d = new Date(r.date);
+  return `🧾 RECIBO InnovaAFRIC\n` +
+    `Recarga de wallet XenderMoney\n` +
+    `Fecha: ${d.toLocaleDateString('es-ES')} ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}\n` +
+    `Cliente: ${r.clientName} (${r.clientPhone})\n` +
+    `Importe: ${fmt(r.amount)} ${r.currency}\n` +
+    `Ref: ${r.id}\n` +
+    `Circular Autorizada: ${ME.user?.name || ''} — ${ME.neighborhood}`;
+}
+
+function shareReceipt() { if (lastReceipt) shareText(receiptText(lastReceipt)); }
+
+function shareText(text) {
+  if (navigator.share) { navigator.share({ text }).catch(() => {}); }
+  else { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); }
+}
+
+function printHeaderHTML(title) {
+  return `
+    <div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #0d9bc4;padding-bottom:12px;margin-bottom:14px">
+      <div>
+        <div style="font-size:22px;font-weight:800;color:#0d9bc4">InnovaAFRIC</div>
+        <div style="font-size:10px;letter-spacing:2px;font-weight:700">WE SIMPLIFY LIFE</div>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div style="font-size:16px;font-weight:700">${title}</div>
+        <div style="font-size:11px;color:#555">Generado el ${new Date().toLocaleString('es-ES')}</div>
+      </div>
+    </div>`;
+}
+
+function printReceipt() {
+  if (!lastReceipt) return;
+  const r = lastReceipt, d = new Date(r.date);
+  document.getElementById('printArea').innerHTML = printHeaderHTML('Recibo de Recarga') + `
+    <table>
+      <tr><th>Fecha</th><td>${d.toLocaleDateString('es-ES')} ${d.toLocaleTimeString('es-ES')}</td></tr>
+      <tr><th>Cliente</th><td>${r.clientName || '—'} (${r.clientPhone || '—'})</td></tr>
+      <tr><th>Importe</th><td><b>${fmt(r.amount)} ${r.currency}</b></td></tr>
+      <tr><th>Referencia</th><td>${r.id}</td></tr>
+      <tr><th>Circular Autorizada</th><td>${ME.user?.name || '—'} — ${ME.neighborhood}, ${ME.country}</td></tr>
+    </table>
+    <p style="font-size:11px;color:#555">Este recibo certifica la recarga de la wallet XenderMoney del cliente. Conserve este documento.</p>`;
+  window.print();
+}
+
+// ── cierre de caja ──
+let cajaData = null;
+
+async function loadCaja() {
+  const day = document.getElementById('cajaDate').value || new Date().toISOString().slice(0, 10);
+  const box = document.getElementById('cajaSummary');
+  box.innerHTML = '<div class="spinner">Cargando…</div>';
+  try {
+    const data = await api('GET', `/circulares/my-operations?from=${day}T00:00:00&to=${day}T23:59:59&limit=100`);
+    const tops = data.topUps.filter(t => t.status === 'completed');
+    const totals = {};
+    tops.forEach(t => { totals[t.currency] = (totals[t.currency] || 0) + t.amount; });
+    cajaData = { day, tops, totals };
+
+    if (!tops.length) {
+      box.innerHTML = '<div class="card"><div class="spinner">Sin recargas ese día — nada que entregar</div></div>';
+      return;
+    }
+    box.innerHTML = `
+      <div class="card">
+        <b style="font-size:14px">Resumen del ${day.split('-').reverse().join('/')}</b>
+        <div class="receipt-line"><span>Recargas realizadas</span><b>${tops.length}</b></div>
+        ${Object.entries(totals).map(([cur, tot]) =>
+          `<div class="total-line"><span>💵 Efectivo a entregar (${cur})</span><b>${fmt(tot)} ${cur}</b></div>`).join('')}
+        <div class="btn-row">
+          <button class="btn" onclick="printCierre()">🖨️ Imprimir / PDF</button>
+          <button class="btn" onclick="shareCierre()">📤 Compartir</button>
+        </div>
+      </div>`;
+  } catch (e) {
+    box.innerHTML = `<div class="err">${e.message}</div>`;
+  }
+}
+
+function printCierre() {
+  if (!cajaData || !cajaData.tops.length) return;
+  const { day, tops, totals } = cajaData;
+  document.getElementById('printArea').innerHTML = printHeaderHTML('Cierre de Caja — Circular Autorizada') + `
+    <table>
+      <tr><th>Circular Autorizada</th><td>${ME.user?.name || '—'}</td></tr>
+      <tr><th>Zona</th><td>${ME.neighborhood}, ${ME.country}</td></tr>
+      <tr><th>Día del cierre</th><td>${day.split('-').reverse().join('/')}</td></tr>
+      <tr><th>Nº de recargas</th><td>${tops.length}</td></tr>
+    </table>
+    <table>
+      <tr><th>Hora</th><th>Cliente</th><th>Teléfono</th><th>Importe</th></tr>
+      ${tops.map(t => `<tr>
+        <td>${new Date(t.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</td>
+        <td>${t.clientName || t.clientId}</td><td>${t.clientPhone || '—'}</td>
+        <td>${fmt(t.amount)} ${t.currency}</td></tr>`).join('')}
+    </table>
+    ${Object.entries(totals).map(([cur, tot]) =>
+      `<div style="font-size:15px;font-weight:700;margin:6px 0">TOTAL EFECTIVO A ENTREGAR (${cur}): ${fmt(tot)} ${cur}</div>`).join('')}
+    <p style="font-size:11px;color:#555;margin-top:8px">Efectivo a depositar en una sucursal de InnovaAFRIC o en la oficina del representante autorizado.</p>
+    <div style="display:flex;gap:60px;margin-top:50px">
+      <div style="flex:1;border-top:1px solid #000;padding-top:6px;font-size:12px">Firma de la Circular Autorizada</div>
+      <div style="flex:1;border-top:1px solid #000;padding-top:6px;font-size:12px">Firma del Representante / InnovaAFRIC</div>
+    </div>`;
+  window.print();
+}
+
+function shareCierre() {
+  if (!cajaData || !cajaData.tops.length) return;
+  const { day, tops, totals } = cajaData;
+  shareText(`🧾 CIERRE DE CAJA InnovaAFRIC\n` +
+    `Circular: ${ME.user?.name || ''} — ${ME.neighborhood}\n` +
+    `Día: ${day.split('-').reverse().join('/')}\n` +
+    `Recargas: ${tops.length}\n` +
+    Object.entries(totals).map(([cur, tot]) => `Efectivo a entregar: ${fmt(tot)} ${cur}`).join('\n'));
 }
 
 document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
