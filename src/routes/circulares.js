@@ -19,14 +19,15 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const circ = await prisma.circular.findUnique({
       where: { userId: uid(req) },
-      include: {
-        account: true,
-        user: { select: { name: true, email: true, phone: true } },
-        _count: { select: { topUps: true } }
-      }
+      include: { account: true, _count: { select: { topUps: true } } }
     });
     if (!circ) return error(res, 'No estás registrado como Circular Autorizada', 403);
-    return ok(res, circ);
+    // El modelo Circular no tiene relación user en Prisma — se consulta aparte
+    const user = await prisma.user.findUnique({
+      where: { id: circ.userId },
+      select: { name: true, email: true, phone: true }
+    });
+    return ok(res, { ...circ, user });
   } catch (e) { return error(res, e.message); }
 });
 
