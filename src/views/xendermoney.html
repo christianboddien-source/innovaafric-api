@@ -488,15 +488,27 @@ if(token) {
 async function loadWallet() {
   if(!token) return;
   try {
-    const res = await fetch(API+'/v1/money/balance', { headers: {'Authorization':'Bearer '+token} });
+    const res = await fetch(API+'/v1/money/wallet', { headers: {'Authorization':'Bearer '+token} });
     const json = await res.json();
-    const balances = json.balances || json.data || [];
+    const data = json.data || json;
     const grid = document.getElementById('wallets-grid');
-    grid.innerHTML = balances.map(b => `
+    grid.innerHTML = `
       <div class="wallet-card">
-        <div class="wallet-currency">${b.currency}</div>
-        <div class="wallet-amount">${parseFloat(b.balance||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} <span class="wallet-symbol">${b.currency}</span></div>
-      </div>`).join('');
+        <div class="wallet-currency">EUR</div>
+        <div class="wallet-amount">${parseFloat(data.balanceEur||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} <span class="wallet-symbol">€</span></div>
+      </div>
+      <div class="wallet-card">
+        <div class="wallet-currency">USD</div>
+        <div class="wallet-amount">${parseFloat(data.balanceUsd||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} <span class="wallet-symbol">$</span></div>
+      </div>
+      <div class="wallet-card">
+        <div class="wallet-currency">XAF</div>
+        <div class="wallet-amount">${parseFloat(data.balanceXaf||0).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})} <span class="wallet-symbol">XAF</span></div>
+      </div>
+      <div class="wallet-card">
+        <div class="wallet-currency">XOF</div>
+        <div class="wallet-amount">${parseFloat(data.balanceXof||0).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})} <span class="wallet-symbol">XOF</span></div>
+      </div>`;
   } catch(e) {
     document.getElementById('wallets-grid').innerHTML = '<p style="color:var(--muted)">Error cargando saldos</p>';
   }
