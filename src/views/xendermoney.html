@@ -594,10 +594,10 @@ function loadLeafletXM() {
   return new Promise((resolve, reject) => {
     if (window.L) return resolve();
     const css = document.createElement('link');
-    css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    css.rel = 'stylesheet'; css.href = '/vendor/leaflet/leaflet.css';
     document.head.appendChild(css);
     const s = document.createElement('script');
-    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.src = '/vendor/leaflet/leaflet.js';
     s.onload = resolve; s.onerror = () => reject(new Error('No se pudo cargar el mapa'));
     document.head.appendChild(s);
   });
