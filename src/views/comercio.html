@@ -77,6 +77,10 @@
   .bubble.me{align-self:flex-end;background:var(--accent-dark);color:#eafdff;border-bottom-right-radius:4px}
   .bubble.them{align-self:flex-start;background:var(--card2);border:1px solid var(--border);border-bottom-left-radius:4px}
   .bubble .meta{font-size:10px;opacity:.65;margin-top:4px}
+  #mapBox{height:58vh;min-height:320px;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--card2)}
+  .map-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin-bottom:10px}
+  .map-pin{font-size:22px;line-height:22px;text-shadow:0 0 4px #000}
+  .leaflet-popup-content{color:#111}
 </style>
 </head>
 <body>
@@ -182,11 +186,19 @@
       <h2>📦 Comandas <span id="ordersBadge" style="font-size:12px;color:var(--muted)"></span></h2>
       <div id="ordersList"><div class="spinner">Cargando…</div></div>
     </section>
+
+    <section id="page-map" class="hidden">
+      <h2>🗺️ Riders cerca de mi tienda</h2>
+      <div class="map-legend"><span>📍 Tú</span><span>🛵 Riders</span><span>🤝 Representantes</span><span>⚡ Circulares</span><span>🏢 InnovaAFRIC</span></div>
+      <div id="mapBox"></div>
+      <div id="mapInfo" style="font-size:12px;color:var(--muted);margin-top:10px">Activa la ubicación del móvil para aparecer en el mapa y ver los riders cercanos. Se actualiza cada 15 s.</div>
+    </section>
   </main>
 
   <nav>
     <button class="active" onclick="go('home',this)"><span class="ic">🏠</span>Inicio</button>
     <button onclick="go('orders',this)"><span class="ic">📦</span>Comandas<span id="ordersDot" class="hidden" style="position:absolute;top:8px;right:26%;width:9px;height:9px;border-radius:50%;background:var(--amber)"></span></button>
+    <button onclick="go('map',this)"><span class="ic">🗺️</span>Mapa</button>
   </nav>
 </div>
 
@@ -295,6 +307,7 @@ async function enterApp() {
   renderHome();
   checkUnread();
   pollNewOrders();
+  startGeoPing();
 }
 
 function logout() {
@@ -304,12 +317,78 @@ function logout() {
 
 // ── navegación ──
 function go(page, btn) {
-  ['home', 'orders'].forEach(p =>
+  ['home', 'orders', 'map'].forEach(p =>
     document.getElementById('page-' + p).classList.toggle('hidden', p !== page));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (page === 'home') refreshMe();
   if (page === 'orders') loadOrders();
+  if (page === 'map') openLiveMap();
+}
+
+// ── mapa en vivo (riders cercanos) ──
+let GEO_TIMER = null, MAP = null, MARKERS = [], MAP_TIMER = null, MY_POS = null;
+const PIN = { rider: '🛵', representante: '🤝', circular: '⚡', comercio: '🏪', innovaafric: '🏢', cliente: '👤' };
+
+function startGeoPing() {
+  if (!navigator.geolocation || GEO_TIMER) return;
+  const send = () => navigator.geolocation.getCurrentPosition(
+    p => { MY_POS = { lat: p.coords.latitude, lng: p.coords.longitude }; api('POST', '/locations/ping', MY_POS).catch(() => {}); },
+    () => {}, { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
+  );
+  send();
+  GEO_TIMER = setInterval(send, 20000);
+}
+
+function loadLeaflet() {
+  return new Promise((resolve, reject) => {
+    if (window.L) return resolve();
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = resolve; s.onerror = () => reject(new Error('No se pudo cargar el mapa'));
+    document.head.appendChild(s);
+  });
+}
+
+async function openLiveMap() {
+  try {
+    if (!GEO_TIMER) startGeoPing();
+    await loadLeaflet();
+    if (!MAP) {
+      const center = MY_POS || { lat: 4.05, lng: 9.7 }; // Duala por defecto
+      MAP = L.map('mapBox').setView([center.lat, center.lng], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(MAP);
+    } else {
+      setTimeout(() => MAP.invalidateSize(), 200);
+    }
+    refreshMap();
+    clearInterval(MAP_TIMER);
+    MAP_TIMER = setInterval(refreshMap, 15000);
+  } catch (e) {
+    document.getElementById('mapInfo').textContent = e.message;
+  }
+}
+
+async function refreshMap() {
+  if (!MAP) return;
+  try {
+    const d = await api('GET', '/locations/nearby');
+    MARKERS.forEach(m => MAP.removeLayer(m));
+    MARKERS = [];
+    const mk = (lat, lng, emoji, label) => {
+      const m = L.marker([lat, lng], { icon: L.divIcon({ className: 'map-pin', html: emoji, iconSize: [24, 24], iconAnchor: [12, 12] }) }).addTo(MAP).bindPopup(label);
+      MARKERS.push(m);
+    };
+    if (MY_POS) mk(MY_POS.lat, MY_POS.lng, '📍', '<b>Tu tienda</b>');
+    (d.people || []).forEach(p => mk(p.lat, p.lng, PIN[p.role] || '•', `<b>${p.name}</b><br>${p.role}${p.city ? ' · ' + p.city : ''}`));
+    const riders = (d.people || []).filter(p => p.role === 'rider').length;
+    document.getElementById('mapInfo').innerHTML = d.count
+      ? `<b>${riders}</b> rider(s) y <b>${d.count}</b> contacto(s) activos cerca. Tu posición se comparte mientras la app está abierta.`
+      : 'Nadie activo cerca ahora mismo. Aparecerán aquí los riders cuando estén en línea.';
+  } catch {}
 }
 function navTo(i) { document.querySelectorAll('nav button')[i].click(); }
 

@@ -17,6 +17,7 @@ const uid = (req) => req.user.sub || req.user.id;
 async function resolveRole(userId, jwtRole) {
   if (ADMIN_ROLES.includes(jwtRole)) return 'innovaafric';
   if (jwtRole === 'circular_autorizada') return 'circular';
+  if (jwtRole === 'supplier' || jwtRole === 'comercio') return 'comercio';
   const [rep, rider] = await Promise.all([
     prisma.representative.findUnique({ where: { userId } }).catch(() => null),
     prisma.rider.findUnique({ where: { userId } }).catch(() => null)
@@ -28,10 +29,11 @@ async function resolveRole(userId, jwtRole) {
 
 // Quién puede ver a quién en el mapa
 const VISIBLE = {
-  circular:      ['circular', 'representante', 'innovaafric'],
-  representante: ['circular', 'rider', 'representante', 'innovaafric'],
-  rider:         ['rider', 'representante', 'innovaafric'],
-  innovaafric:   ['circular', 'rider', 'representante', 'innovaafric', 'cliente'],
+  circular:      ['circular', 'representante', 'innovaafric', 'comercio'],
+  representante: ['circular', 'rider', 'representante', 'innovaafric', 'comercio'],
+  rider:         ['rider', 'representante', 'innovaafric', 'comercio'],
+  comercio:      ['rider', 'circular', 'representante', 'innovaafric'], // el comercio ve riders cercanos para recoger
+  innovaafric:   ['circular', 'rider', 'representante', 'innovaafric', 'cliente', 'comercio'],
   cliente:       ['circular'] // el cliente ve circulares cercanas para recargar
 };
 
