@@ -79,6 +79,9 @@ app.set('trust proxy', 1); // detrás del proxy de Railway — necesario para ra
 
 // ── Seguridad y parseo ──────────────────────────────────
 app.use(helmet({
+  // OpenStreetMap exige cabecera Referer; el 'no-referrer' por defecto de helmet
+  // hacía que los mosaicos del mapa dieran 403 ("Referer is required").
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   contentSecurityPolicy: {
     directives: {
       defaultSrc:  ["'self'"],

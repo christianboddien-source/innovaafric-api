@@ -72,6 +72,9 @@
   #mapBox{height:60vh;border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:12px}
   .map-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin-bottom:12px}
 
+  .lf{background:rgba(255,255,255,.06);border:1px solid var(--border,#334);border-radius:20px;padding:4px 10px;cursor:pointer;user-select:none;transition:.15s}
+  .lf.on{background:var(--accent-dark,#0e7490);border-color:var(--accent,#22d3ee);color:#fff}
+
   nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;max-width:480px;margin:0 auto}
   nav button{flex:1;background:none;border:none;color:var(--muted);padding:11px 4px 13px;font-size:11px;cursor:pointer}
   nav button .ic{display:block;font-size:20px;margin-bottom:3px}
@@ -192,7 +195,7 @@
     <section id="page-map" class="hidden">
       <h2>🗺️ Mapa en vivo — mi ciudad</h2>
       <div class="map-legend">
-        <span>📍 Tú</span><span>🛵 Riders</span><span>🤝 Representantes</span><span>🏢 InnovaAFRIC</span>
+        <span>📍 Tú</span><span class="lf" data-role="rider" onclick="toggleFilter('rider',this)">🛵 Riders</span><span class="lf" data-role="representante" onclick="toggleFilter('representante',this)">🤝 Representantes</span><span class="lf" data-role="innovaafric" onclick="toggleFilter('innovaafric',this)">🏢 InnovaAFRIC</span>
       </div>
       <div id="mapBox"></div>
       <div class="info" id="mapInfo">Activa la ubicación del móvil para aparecer en el mapa. Se actualiza cada 15 segundos.</div>
@@ -481,6 +484,9 @@ async function acceptOrder(id) {
 let GEO_TIMER = null, MAP = null, MARKERS = [], MAP_TIMER = null, MY_POS = null;
 const PIN = { rider: '🛵', representante: '🤝', circular: '⚡', innovaafric: '🏢', cliente: '👤' };
 
+const MAP_ROLES = new Set();
+function toggleFilter(role, el){ if(MAP_ROLES.has(role)){MAP_ROLES.delete(role);el.classList.remove('on');}else{MAP_ROLES.add(role);el.classList.add('on');} if(typeof refreshMap==='function') refreshMap(); }
+
 function startGeoPing() {
   if (!navigator.geolocation) return;
   const send = () => navigator.geolocation.getCurrentPosition(
@@ -540,7 +546,7 @@ async function refreshMap() {
       MARKERS.push(m);
     };
     if (MY_POS) mk(MY_POS.lat, MY_POS.lng, '📍', '<b>Tú</b>');
-    d.people.forEach(p => mk(p.lat, p.lng, PIN[p.role] || '•', `<b>${p.name}</b><br>${p.role}${p.city ? ' · ' + p.city : ''}`));
+    (MAP_ROLES.size ? d.people.filter(p => MAP_ROLES.has(p.role)) : d.people).forEach(p => mk(p.lat, p.lng, PIN[p.role] || '•', `<b>${p.name}</b><br>${p.role}${p.city ? ' · ' + p.city : ''}`));
     document.getElementById('mapInfo').innerHTML =
       `<b>${d.count}</b> persona(s) activas en tu país ahora mismo. Tu posición se comparte mientras la app está abierta.`;
   } catch {}
