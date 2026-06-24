@@ -558,7 +558,7 @@ async function loadCirculares() {
           <div class="row2">
             <span>Unidades: <b>${fmt(c.account?.unitBalance ?? 0)}</b></span>
             <span>Vendido: <b>${fmt(c.account?.totalUnitsUsed ?? 0)}</b></span>
-            <span>Tel: <b>${c.user?.phone || '—'}</b></span>
+            <span>Tel: ${c.user?.phone ? `<a href="tel:${c.user.phone}" style="color:var(--accent);text-decoration:none"><b>📞 ${c.user.phone}</b></a>` : '<b>—</b>'}</span>
           </div>
         </div>`).join('')
       : '<div class="card"><div class="spinner">Aún no tienes circulares — autoriza la primera abajo</div></div>';

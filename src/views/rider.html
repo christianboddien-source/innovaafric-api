@@ -391,7 +391,7 @@ async function loadOrders() {
         <div class="order-card">
           <div class="top"><b>${fmt(o.totalXaf)} XAF</b><span class="tag ${o.status}">${o.status}</span></div>
           <div class="addr">📍 ${o.deliveryAddress}</div>
-          <div class="meta">Cliente: ${o.user?.name || '—'} · ${o.user?.phone || ''}<br>
+          <div class="meta">Cliente: ${o.user?.name || '—'} ${o.user?.phone ? `· <a href="tel:${o.user.phone}" style="color:var(--accent);text-decoration:none">📞 ${o.user.phone}</a>` : ''}<br>
             ${o.items?.length || 0} artículo(s) · Tu pago: <span class="fee">${fmt(o.riderFeeXaf)} XAF</span></div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-outline" style="flex:1" onclick="navigateTo('${(o.deliveryAddress || '').replace(/'/g, '')}')">🧭 Ver ruta</button>

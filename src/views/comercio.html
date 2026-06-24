@@ -467,9 +467,9 @@ async function loadOrders() {
             : o.status === 'in_transit' ? '🛵 en camino'
             : o.status === 'delivered' ? '✅ entregada' : o.status}</span></div>
           <div class="addr">📍 ${o.deliveryAddress}</div>
-          <div class="meta">${fmtTime(o.createdAt)} · Cliente: ${o.user?.name || '—'} ${o.user?.phone || ''}<br>
+          <div class="meta">${fmtTime(o.createdAt)} · Cliente: ${o.user?.name || '—'} ${o.user?.phone ? `<a href="tel:${o.user.phone}" style="color:var(--accent);text-decoration:none">📞 ${o.user.phone}</a>` : ''}<br>
             ${(o.items || []).length} artículo(s)${o.notes ? ' · 📝 ' + o.notes : ''}
-            ${o.rider ? `<br>🛵 Rider: <b>${o.rider.name}</b> (${o.rider.vehicle}) ${o.rider.phone}` : ''}</div>
+            ${o.rider ? `<br>🛵 Rider: <b>${o.rider.name}</b> (${o.rider.vehicle}) ${o.rider.phone ? `<a href="tel:${o.rider.phone}" style="color:var(--accent);text-decoration:none">📞 ${o.rider.phone}</a>` : ''}` : ''}</div>
           ${o.status === 'preparing' ? `
             <button class="btn" onclick="markReady('${o.id}')">📢 Lista — avisar riders</button>
             <button class="btn btn-outline" style="margin-top:8px;padding:9px" onclick="cancelOrder('${o.id}')">✕ Cancelar y reembolsar</button>` : ''}
