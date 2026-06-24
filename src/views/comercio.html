@@ -188,7 +188,12 @@
 
     <!-- COMANDAS -->
     <section id="page-orders" class="hidden">
-      <h2>📦 Comandas <span id="ordersBadge" style="font-size:12px;color:var(--muted)"></span></h2>
+      <h2 style="display:flex;justify-content:space-between;align-items:center">📦 Comandas <span id="ordersBadge" style="font-size:12px;color:var(--muted)"></span>
+        <span style="display:flex;gap:6px">
+          <button onclick="shareOrders()" title="Compartir por WhatsApp" style="background:#25D366;border:none;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer">📲</button>
+          <button onclick="printOrders()" title="Imprimir PDF" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer">🖨️ PDF</button>
+        </span>
+      </h2>
       <div id="ordersList"><div class="spinner">Cargando…</div></div>
     </section>
 
@@ -247,7 +252,11 @@
 <script>
 'use strict';
 const API = '/v1';
-let TOKEN = null, ME = null;
+let TOKEN = null, ME = null, ORDERS = [];
+function shareText(text){ if(navigator.share){navigator.share({text}).catch(()=>{});}else{window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');} }
+function printDoc(title, bodyHTML){ var w=window.open('','_blank'); if(!w){alert('Permite las ventanas emergentes para imprimir.');return;} w.document.write('<html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{color:#0d9bc4;font-size:20px;margin:0}.sub{font-size:10px;letter-spacing:2px;color:#555;margin-bottom:14px}h2{font-size:15px;margin:14px 0 4px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:12px}th{background:#0d9bc4;color:#fff}</style></head><body><h1>InnovaAFRIC</h1><div class="sub">WE SIMPLIFY LIFE</div>'+bodyHTML+'</body></html>'); w.document.close(); setTimeout(function(){try{w.print();}catch(e){}},350); }
+function shareOrders(){ if(!ORDERS.length){alert('No hay comandas para compartir.');return;} var t='🏪 Comandas — '+((ME&&ME.name)||'Mi comercio')+'\n\n'+ORDERS.slice(0,25).map(o=>'• '+fmtTime(o.createdAt)+' — '+(o.deliveryAddress||'')+' — '+fmt(o.totalXaf)+' XAF ('+o.status+')').join('\n'); shareText(t); }
+function printOrders(){ if(!ORDERS.length){alert('No hay comandas para imprimir.');return;} var rows=ORDERS.map(o=>'<tr><td>'+fmtTime(o.createdAt)+'</td><td>'+(o.deliveryAddress||'')+'</td><td>'+(o.user&&o.user.name||'')+'</td><td>'+fmt(o.totalXaf)+' XAF</td><td>'+(o.rider&&o.rider.name||'—')+'</td><td>'+o.status+'</td></tr>').join(''); printDoc('Comandas','<h2>🏪 Comandas — '+((ME&&ME.name)||'Mi comercio')+'</h2><table><tr><th>Hora</th><th>Dirección</th><th>Cliente</th><th>Total</th><th>Rider</th><th>Estado</th></tr>'+rows+'</table>'); }
 
 async function api(method, path, body) {
   const res = await fetch(API + path, {
@@ -447,6 +456,7 @@ async function loadOrders() {
   const box = document.getElementById('ordersList');
   try {
     const data = await api('GET', '/comercio/orders');
+    ORDERS = data.orders || [];
     document.getElementById('ordersBadge').textContent = `(${data.count})`;
     box.innerHTML = data.orders.length
       ? data.orders.map(o => `
