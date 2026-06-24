@@ -230,7 +230,7 @@
 <div id="chatModal" class="modal-overlay hidden">
   <div class="modal-box" style="display:flex;flex-direction:column;height:80vh">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <b style="font-size:15px">💬 Chat con InnovaAFRIC</b>
+      <button onclick="closeChat()" style="background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:15px;cursor:pointer;padding:5px 12px">←</button><b style="font-size:15px">💬 Chat con InnovaAFRIC</b>
       <button onclick="closeChat()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
     </div>
     <div id="chatMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px"></div>

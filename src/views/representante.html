@@ -61,6 +61,8 @@
 
   .client-result{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
   .client-result:hover{border-color:var(--accent)}
+  .scopechip{font-size:12px;background:var(--card2);border:1px solid var(--border);border-radius:18px;padding:7px 12px;cursor:pointer;user-select:none;color:var(--muted);transition:.15s}
+  .scopechip.on{background:var(--accent-dark);border-color:var(--accent);color:#fff}
   .client-result .nm{font-weight:600;font-size:14px}
   .client-result .ph{font-size:12px;color:var(--muted)}
   .client-selected{border-color:var(--green)!important;background:rgba(52,211,153,.08)}
@@ -234,8 +236,13 @@
 
       <div class="card">
         <b style="font-size:14px">➕ Autorizar nueva circular</b>
-        <label>Buscar usuario (teléfono, email o nombre)</label>
-        <input id="userSearch" placeholder="Ej: +2376..., maria@..." oninput="searchUser()">
+        <label>Buscar usuario (código IA, teléfono, email o nombre)</label>
+        <input id="userSearch" placeholder="Ej: IA-461E93, +2376..., maria@..." oninput="searchUser()">
+        <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
+          <span class="scopechip on" onclick="setUScope('all',this)">🌍 Todos</span>
+          <span class="scopechip" onclick="setUScope('country',this)">🏳️ Mi país</span>
+          <input id="userCity" placeholder="🏙️ Ciudad (opcional)" oninput="searchUser()" style="flex:1;min-width:130px;font-size:13px;padding:9px 12px;margin:0">
+        </div>
         <div id="userResults"></div>
         <div id="userChosen" class="hidden" style="margin-top:12px"></div>
         <label>Barrio / zona</label>
@@ -382,7 +389,7 @@
 <div id="chatModal" class="modal-overlay hidden">
   <div class="modal-box" style="display:flex;flex-direction:column;height:80vh">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <b style="font-size:15px">💬 Mensajería</b>
+      <button onclick="closeChat()" style="background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:15px;cursor:pointer;padding:5px 12px">←</button><b style="font-size:15px">💬 Mensajería</b>
       <button onclick="closeChat()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
     </div>
     <select id="chatRoomSel" onchange="loadChat()" style="margin-bottom:10px"></select>
@@ -397,7 +404,8 @@
 <script>
 'use strict';
 const API = '/v1';
-let TOKEN = null, ME = null, MY_CIRCULARES = [], selectedUser = null, searchTimer = null, lastUserResults = [];
+let TOKEN = null, ME = null, MY_CIRCULARES = [], selectedUser = null, searchTimer = null, lastUserResults = [], U_SCOPE = 'all';
+function setUScope(s, el){ U_SCOPE = s; document.querySelectorAll('.scopechip').forEach(c => c.classList.remove('on')); el.classList.add('on'); searchUser(); }
 
 async function api(method, path, body) {
   const res = await fetch(API + path, {
@@ -553,12 +561,16 @@ function searchUser() {
   if (q.length < 3) { document.getElementById('userResults').innerHTML = ''; return; }
   searchTimer = setTimeout(async () => {
     try {
-      const data = await api('GET', '/representatives/find-user?q=' + encodeURIComponent(q));
+      let extra = '';
+      if (U_SCOPE === 'country' && ME && ME.country) extra += '&country=' + encodeURIComponent(ME.country);
+      const city = (document.getElementById('userCity').value || '').trim();
+      if (city) extra += '&city=' + encodeURIComponent(city);
+      const data = await api('GET', '/representatives/find-user?q=' + encodeURIComponent(q) + extra);
       lastUserResults = data.users;
       document.getElementById('userResults').innerHTML = data.users.length
         ? data.users.map((u, i) =>
             `<div class="client-result" onclick="pickUserIdx(${i})">
-               <div><div class="nm">${u.name || '(sin nombre)'}</div><div class="ph">${u.phone || u.email}</div></div><div>›</div>
+               <div><div class="nm">${u.name || '(sin nombre)'}</div><div class="ph">${u.ia || ''}${u.phone ? ' · ' + u.phone : ''}${u.city ? ' · ' + u.city : (u.country ? ' · ' + u.country : '')}</div></div><div>›</div>
              </div>`).join('')
         : '<div class="client-result">Sin resultados</div>';
     } catch (e) {
