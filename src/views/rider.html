@@ -149,12 +149,21 @@
 </div>
 
 <!-- ════════ APP ════════ -->
+<div id="lockScreen" class="hidden" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px">
+  <div style="font-size:42px">🔐</div>
+  <b style="font-size:18px">Introduce tu PIN</b>
+  <input id="lockPin" type="password" inputmode="numeric" maxlength="6" style="max-width:200px;text-align:center;font-size:24px;letter-spacing:8px" onkeydown="if(event.key==='Enter')submitOpenPin()">
+  <button class="btn" style="max-width:200px" onclick="submitOpenPin()">Desbloquear</button>
+  <div id="lockMsg" style="font-size:13px;color:var(--red);height:18px"></div>
+  <button onclick="logout()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline">Olvidé mi PIN — cerrar sesión</button>
+</div>
 <div id="appScreen" class="hidden">
   <header>
     <div class="who"><b id="whoName">—</b><span id="whoZone">—</span></div>
     <div style="display:flex;gap:8px">
       <button class="ia-lang-hdr" onclick="iaCycleLang()">🌐 ES</button>
       <button onclick="toggleAppTheme()" id="themeBtn" title="Tema claro/oscuro">🌙</button>
+      <button onclick="configOpenPin()" id="pinBtn" title="PIN de apertura">🔐</button>
       <button id="chatBtn" onclick="openChat()" style="font-size:15px;position:relative">💬<span id="chatDot" class="hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:var(--red);border:2px solid var(--card)"></span></button>
       <button onclick="logout()">Salir</button>
     </div>
@@ -376,6 +385,7 @@ async function enterApp() {
   startGeoPing();
   checkUnread();
   loadRewards();
+  lockIfNeeded();
 }
 
 // ── 🎮 Gamificación: niveles + medallas sobre los puntos ──
@@ -751,6 +761,24 @@ init();
 
 // tema claro/oscuro
 function toggleAppTheme(){var light=document.body.classList.toggle('light');localStorage.setItem('ia_theme',light?'light':'dark');var b=document.getElementById('themeBtn');if(b)b.textContent=light?'☀️':'🌙';}
+
+// ── 🔐 PIN de apertura (bloqueo local, hash SHA-256 en el dispositivo) ──
+async function hashPin(p){const b=new TextEncoder().encode(p);const h=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+function openPinKey(){return location.pathname.replace(/\W/g,'_')+'_openpin';}
+function hasOpenPin(){return !!localStorage.getItem(openPinKey());}
+function lockIfNeeded(){ if(hasOpenPin()){ var l=document.getElementById('lockScreen'); l.classList.remove('hidden'); var i=document.getElementById('lockPin'); i.value=''; setTimeout(function(){i.focus();},120); } }
+async function submitOpenPin(){ var v=document.getElementById('lockPin').value.trim(); var m=document.getElementById('lockMsg'); if(!v)return; if(await hashPin(v)===localStorage.getItem(openPinKey())){ document.getElementById('lockScreen').classList.add('hidden'); m.textContent=''; } else { m.textContent='PIN incorrecto'; document.getElementById('lockPin').value=''; } }
+async function configOpenPin(){
+  if(hasOpenPin()){
+    var opt=prompt('PIN de apertura activo.\n1 = Cambiar PIN\n2 = Quitar PIN');
+    if(opt==='2'){ var cur=prompt('Introduce tu PIN actual para quitarlo:'); if(cur!==null){ if(await hashPin(cur.trim())===localStorage.getItem(openPinKey())){ localStorage.removeItem(openPinKey()); alert('🔓 PIN de apertura desactivado.'); } else { alert('PIN incorrecto.'); } } return; }
+    if(opt!=='1') return;
+    var c=prompt('Introduce tu PIN actual:'); if(c===null) return; if(await hashPin(c.trim())!==localStorage.getItem(openPinKey())){ alert('PIN incorrecto.'); return; }
+  }
+  var p1=prompt('Nuevo PIN de apertura (4 a 6 dígitos):'); if(p1===null) return; p1=p1.trim(); if(!/^\d{4,6}$/.test(p1)){ alert('El PIN debe tener entre 4 y 6 dígitos.'); return; }
+  var p2=prompt('Repite el PIN:'); if(p2===null) return; if(p1!==p2.trim()){ alert('Los PIN no coinciden.'); return; }
+  localStorage.setItem(openPinKey(), await hashPin(p1)); alert('🔐 PIN de apertura activado. Te lo pediremos al abrir la app.');
+}
 (function(){if(localStorage.getItem('ia_theme')==='light'){document.body.classList.add('light');var b=document.getElementById('themeBtn');if(b)b.textContent='☀️';}})();
 </script>
 <script src="/app-i18n.js"></script>
