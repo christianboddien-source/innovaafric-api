@@ -88,7 +88,7 @@ router.get('/me', authenticate, async (req, res) => {
     const [user, circularesCount] = await Promise.all([
       prisma.user.findUnique({
         where: { id: rep.userId },
-        select: { name: true, email: true, phone: true }
+        select: { name: true, email: true, phone: true, city: true, country: true }
       }),
       prisma.circular.count({ where: { repId: rep.id } })
     ]);

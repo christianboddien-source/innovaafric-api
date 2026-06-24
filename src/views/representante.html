@@ -241,7 +241,7 @@
         <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
           <span class="scopechip on" onclick="setUScope('all',this)">🌍 Todos</span>
           <span class="scopechip" onclick="setUScope('country',this)">🏳️ Mi país</span>
-          <input id="userCity" placeholder="🏙️ Ciudad (opcional)" oninput="searchUser()" style="flex:1;min-width:130px;font-size:13px;padding:9px 12px;margin:0">
+          <select id="userCity" onchange="searchUser()" style="flex:1;min-width:130px;font-size:13px;padding:9px 12px;margin:0"><option value="">🏙️ Todas las ciudades</option></select>
         </div>
         <div id="userResults"></div>
         <div id="userChosen" class="hidden" style="margin-top:12px"></div>
@@ -511,7 +511,21 @@ async function refreshMe() {
   try { ME = await api('GET', '/representatives/me'); renderHome(); } catch {}
 }
 
+async function loadCities() {
+  const sel = document.getElementById('userCity'); if (!sel || sel._loaded) return;
+  const country = (ME && ME.country) || '';
+  const myCity = (ME && ME.user && ME.user.city) || '';
+  try {
+    const data = await api('GET', '/locations/cities' + (country ? '?country=' + encodeURIComponent(country) : ''));
+    const cities = (data && data.cities) || [];
+    if (myCity && !cities.includes(myCity)) cities.unshift(myCity);
+    sel.innerHTML = '<option value="">🏙️ Todas las ciudades</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+    if (myCity) sel.value = myCity;
+    sel._loaded = true;
+  } catch (e) {}
+}
 function renderHome() {
+  loadCities();
   document.getElementById('whoName').textContent = '🤝 ' + (ME.user?.name || 'Representante');
   document.getElementById('whoZone').textContent = `${ME.zone || ''} · ${ME.country || ''}`;
   document.getElementById('earnedBalance').textContent = fmt(ME.totalEarned);

@@ -86,6 +86,20 @@ router.get('/nearby', requireAuth, async (req, res) => {
   } catch (e) { return error(res, e.message); }
 });
 
+// GET /v1/locations/cities?country=XX — ciudades distintas (de los usuarios) de un país, para los desplegables
+router.get('/cities', requireAuth, async (req, res) => {
+  try {
+    const country = (req.query.country || '').trim();
+    const where = { city: { not: null } };
+    if (country) where.country = country;
+    const rows = await prisma.user.findMany({
+      where, select: { city: true }, distinct: ['city'], orderBy: { city: 'asc' }
+    });
+    const cities = rows.map(r => r.city).filter(c => c && c.trim());
+    return ok(res, { country, count: cities.length, cities });
+  } catch (e) { return error(res, e.message); }
+});
+
 module.exports = router;
 // Posición en vivo de un usuario concreto (para el tracking del pedido del cliente)
 module.exports.getPresence = (userId) => {

@@ -41,7 +41,7 @@ router.get('/me', requireAuth, async (req, res) => {
     // El modelo Circular no tiene relación user en Prisma — se consulta aparte
     const user = await prisma.user.findUnique({
       where: { id: circ.userId },
-      select: { name: true, email: true, phone: true }
+      select: { name: true, email: true, phone: true, city: true, country: true }
     });
     return ok(res, { ...circ, user });
   } catch (e) { return error(res, e.message); }

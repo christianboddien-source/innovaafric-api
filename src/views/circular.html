@@ -263,7 +263,7 @@
         <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
           <span class="scopechip on" onclick="setScope('all',this)">🌍 Todos</span>
           <span class="scopechip" onclick="setScope('country',this)">🏳️ Mi país</span>
-          <input id="clientCity" placeholder="🏙️ Ciudad (opcional)" oninput="searchClient()" style="flex:1;min-width:130px;font-size:13px;padding:9px 12px;margin:0">
+          <select id="clientCity" onchange="searchClient()" style="flex:1;min-width:130px;font-size:13px;padding:9px 12px;margin:0"><option value="">🏙️ Todas las ciudades</option></select>
         </div>
         <button class="btn btn-outline" style="margin-top:10px" onclick="openScanner()">📷 Escanear QR del cliente</button>
         <div id="clientResults"></div>
@@ -655,7 +655,21 @@ async function refreshMe() {
   try { ME = await api('GET', '/circulares/me'); renderHome(); loadRecent(); } catch {}
 }
 
+async function loadCities() {
+  const sel = document.getElementById('clientCity'); if (!sel || sel._loaded) return;
+  const country = (ME && ME.country) || '';
+  const myCity = (ME && ME.user && ME.user.city) || '';
+  try {
+    const data = await api('GET', '/locations/cities' + (country ? '?country=' + encodeURIComponent(country) : ''));
+    const cities = (data && data.cities) || [];
+    if (myCity && !cities.includes(myCity)) cities.unshift(myCity);
+    sel.innerHTML = '<option value="">🏙️ Todas las ciudades</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+    if (myCity) sel.value = myCity;
+    sel._loaded = true;
+  } catch (e) {}
+}
 function renderHome() {
+  loadCities();
   const acc = ME.account || {};
   document.getElementById('whoName').textContent = ME.user?.name ? '⚡ ' + ME.user.name : '⚡ Circular Autorizada';
   document.getElementById('whoZone').textContent = `${ME.neighborhood || ''} · ${ME.country || ''}`;
