@@ -273,8 +273,9 @@
         <div id="clientChosen" class="hidden" style="margin-top:12px"></div>
         <label>Importe</label>
         <input id="topupAmount" type="number" min="1" placeholder="0">
+        <div id="quickAmounts" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:9px"></div>
         <label>Divisa</label>
-        <select id="topupCurrency">
+        <select id="topupCurrency" onchange="renderQuickAmounts()">
           <option value="XAF">XAF (FCFA)</option>
           <option value="XOF">XOF (FCFA)</option>
           <option value="EUR">EUR (€)</option>
@@ -673,6 +674,7 @@ async function loadCities() {
 }
 function renderHome() {
   loadCities();
+  renderQuickAmounts();
   const acc = ME.account || {};
   document.getElementById('whoName').textContent = ME.user?.name ? '⚡ ' + ME.user.name : '⚡ Circular Autorizada';
   document.getElementById('whoZone').textContent = `${ME.neighborhood || ''} · ${ME.country || ''}`;
@@ -732,6 +734,19 @@ function clearClient() {
   selectedClient = null;
   document.getElementById('clientChosen').classList.add('hidden');
   document.getElementById('topupBtn').disabled = true;
+}
+
+function renderQuickAmounts() {
+  const box = document.getElementById('quickAmounts'); if (!box) return;
+  const cur = (document.getElementById('topupCurrency') || {}).value || 'XAF';
+  const presets = (cur === 'EUR' || cur === 'USD') ? [5, 10, 20, 50, 100] : [1000, 5000, 10000, 25000, 50000];
+  box.innerHTML = presets.map(v =>
+    `<button type="button" onclick="setQuickAmount(${v})" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer">+${fmt(v)}</button>`
+  ).join('');
+}
+function setQuickAmount(v) {
+  const inp = document.getElementById('topupAmount');
+  inp.value = (Number(inp.value) || 0) + v;
 }
 
 async function doTopup() {
