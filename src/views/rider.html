@@ -378,6 +378,24 @@ async function enterApp() {
   loadRewards();
 }
 
+// ── 🎮 Gamificación: niveles + medallas sobre los puntos ──
+function gamifyHTML(pts) {
+  const levels = [
+    { n: 'Bronce', i: '🥉', min: 0 }, { n: 'Plata', i: '🥈', min: 1000 },
+    { n: 'Oro', i: '🥇', min: 5000 }, { n: 'Platino', i: '💎', min: 15000 },
+    { n: 'Diamante', i: '👑', min: 50000 }
+  ];
+  let li = 0; for (let k = 0; k < levels.length; k++) if (pts >= levels[k].min) li = k;
+  const cur = levels[li], next = levels[li + 1];
+  const pct = next ? Math.min(100, Math.round((pts - cur.min) / (next.min - cur.min) * 100)) : 100;
+  const medals = levels.map(l => `<span title="${l.n}" style="font-size:20px;opacity:${pts >= l.min ? 1 : .3};filter:${pts >= l.min ? 'none' : 'grayscale(1)'}">${l.i}</span>`).join('');
+  return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">${cur.i} Nivel ${cur.n}</b>${next ? `<span style="font-size:11px;color:var(--muted)">${fmt(next.min - pts)} pts → ${next.i} ${next.n}</span>` : `<span style="font-size:11px;color:var(--muted)">¡Nivel máximo!</span>`}</div>
+      <div style="height:8px;background:var(--card);border-radius:6px;overflow:hidden;margin:9px 0"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent-dark),var(--accent))"></div></div>
+      <div style="display:flex;justify-content:space-between">${medals}</div>
+    </div>`;
+}
+
 // ── 🎁 Invita y gana (referidos + puntos) ──
 async function loadRewards() {
   const box = document.getElementById('rewardsCard'); if (!box) return;
@@ -394,6 +412,7 @@ async function loadRewards() {
           <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:11px"><div style="font-size:11px;color:var(--muted)">⭐ Mis puntos</div><div style="font-size:18px;font-weight:800">${fmt(pts)}</div></div>
           <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:11px"><div style="font-size:11px;color:var(--muted)">≈ en €</div><div style="font-size:18px;font-weight:800">${eur} €</div></div>
         </div>
+        ${gamifyHTML(pts)}
         <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Tu código de invitación</div>
         <div style="display:flex;gap:8px;align-items:center">
           <code style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px;font-size:15px;font-weight:700;color:var(--accent);letter-spacing:1px">${code}</code>
