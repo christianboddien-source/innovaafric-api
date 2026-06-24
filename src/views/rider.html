@@ -13,6 +13,7 @@
   *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
   body{background:var(--bg);color:var(--text);min-height:100vh}
   .hidden{display:none!important}
+  body.light{ --bg:#eef2f7; --card:#ffffff; --card2:#f1f5f9; --border:#d8e0ea; --text:#0f172a; --muted:#5b6b82; }
 
   #loginScreen{max-width:420px;margin:0 auto;padding:48px 24px;display:flex;flex-direction:column;justify-content:center;min-height:100vh}
   .logo{text-align:center;margin-bottom:32px}
@@ -152,6 +153,8 @@
   <header>
     <div class="who"><b id="whoName">—</b><span id="whoZone">—</span></div>
     <div style="display:flex;gap:8px">
+      <button class="ia-lang-hdr" onclick="iaCycleLang()">🌐 ES</button>
+      <button onclick="toggleAppTheme()" id="themeBtn" title="Tema claro/oscuro">🌙</button>
       <button id="chatBtn" onclick="openChat()" style="font-size:15px;position:relative">💬<span id="chatDot" class="hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:var(--red);border:2px solid var(--card)"></span></button>
       <button onclick="logout()">Salir</button>
     </div>
@@ -639,6 +642,10 @@ async function sendUnlock() {
 document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
 document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 init();
+
+// tema claro/oscuro
+function toggleAppTheme(){var light=document.body.classList.toggle('light');localStorage.setItem('ia_theme',light?'light':'dark');var b=document.getElementById('themeBtn');if(b)b.textContent=light?'☀️':'🌙';}
+(function(){if(localStorage.getItem('ia_theme')==='light'){document.body.classList.add('light');var b=document.getElementById('themeBtn');if(b)b.textContent='☀️';}})();
 </script>
 <script src="/app-i18n.js"></script>
 </body>

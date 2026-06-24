@@ -241,18 +241,26 @@
 
   // Selector flotante 🌐 (ES → FR → EN)
   let btn;
-  function updateBtn() { if (btn) btn.textContent = '🌐 ' + lang.toUpperCase(); }
+  function updateBtn() {
+    var lbl = '🌐 ' + lang.toUpperCase();
+    if (btn) btn.textContent = lbl;
+    document.querySelectorAll('.ia-lang-hdr').forEach(function (e) { e.textContent = lbl; });
+  }
+  // API global: las apps pueden cambiar idioma desde su propio botón (p. ej. en la barra superior)
+  window.iaCycleLang = function () {
+    lang = lang === 'es' ? 'fr' : lang === 'fr' ? 'en' : 'es';
+    localStorage.setItem('ia_lang', lang);
+    apply();
+  };
   function makeBtn() {
+    // Si la app ya tiene su propio botón de idioma en la barra superior (.ia-lang-hdr), no creamos el flotante
+    if (document.querySelector('.ia-lang-hdr')) { updateBtn(); return; }
     btn = document.createElement('button');
     btn.id = 'ia-lang-btn';
     btn.style.cssText = 'position:fixed;bottom:92px;right:12px;z-index:2000;background:#121826;color:#22d3ee;' +
       'border:1px solid #232d42;border-radius:20px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;' +
       'box-shadow:0 2px 10px rgba(0,0,0,.4)';
-    btn.onclick = () => {
-      lang = lang === 'es' ? 'fr' : lang === 'fr' ? 'en' : 'es';
-      localStorage.setItem('ia_lang', lang);
-      apply();
-    };
+    btn.onclick = window.iaCycleLang;
     document.body.appendChild(btn);
     updateBtn();
   }
