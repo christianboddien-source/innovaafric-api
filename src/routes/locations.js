@@ -34,7 +34,7 @@ const VISIBLE = {
   rider:         ['rider', 'representante', 'innovaafric', 'comercio'],
   comercio:      ['rider', 'circular', 'representante', 'innovaafric'], // el comercio ve riders cercanos para recoger
   innovaafric:   ['circular', 'rider', 'representante', 'innovaafric', 'cliente', 'comercio'],
-  cliente:       ['circular'] // el cliente ve circulares cercanas para recargar
+  cliente:       ['circular', 'comercio', 'rider'] // circulares (recarga), comercios y su rider
 };
 
 // POST /v1/locations/ping — la app envía su posición GPS periódicamente
