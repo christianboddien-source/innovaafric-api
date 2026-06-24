@@ -683,6 +683,41 @@ function shareComisiones() {
 }
 
 // ── comisiones de red ──
+function buildComInsights(ops) {
+  // Evolución: nº de compras por mes (últimos 6 meses) — agnóstico de divisa
+  const now = new Date();
+  const months = [], counts = [], labels = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(d.getFullYear() + '-' + d.getMonth());
+    counts.push(0);
+    labels.push(['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]);
+  }
+  ops.forEach(o => { const d = new Date(o.date); const k = d.getFullYear() + '-' + d.getMonth(); const idx = months.indexOf(k); if (idx >= 0) counts[idx]++; });
+  const max = Math.max.apply(null, counts.concat([1]));
+  const bars = counts.map((v, i) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font-size:10px;color:var(--muted)">${v || ''}</span><div style="width:100%;max-width:26px;height:${Math.round(v / max * 46) + 2}px;background:var(--accent);border-radius:5px 5px 0 0;opacity:${v ? 1 : .25}"></div><span style="font-size:10px;color:var(--muted)">${labels[i]}</span></div>`).join('');
+
+  // Ranking: comisión total por circular (agrupado por circular+divisa)
+  const agg = {};
+  ops.forEach(o => { const k = o.circularName + '||' + o.currency; if (!agg[k]) agg[k] = { name: o.circularName, currency: o.currency, com: 0, n: 0 }; agg[k].com += o.myCommission; agg[k].n++; });
+  const rank = Object.values(agg).sort((a, b) => b.com - a.com).slice(0, 5);
+  const rmax = Math.max.apply(null, rank.map(r => r.com).concat([1]));
+  const medals = ['🥇','🥈','🥉','4.','5.'];
+  const rows = rank.map((r, i) => `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>${medals[i]} <b>${r.name}</b> · ${r.n} compra(s)</span><b style="color:var(--green)">${fmt(Math.round(r.com))} ${r.currency}</b></div>
+      <div style="height:8px;background:var(--card2);border-radius:6px;overflow:hidden"><div style="height:100%;width:${Math.round(r.com / rmax * 100)}%;background:linear-gradient(90deg,var(--accent-dark),var(--accent))"></div></div>
+    </div>`).join('');
+
+  return `<div class="card">
+      <b style="font-size:14px">📈 Evolución de compras de mi red (6 meses)</b>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:74px;margin-top:12px">${bars}</div>
+    </div>
+    <div class="card">
+      <b style="font-size:14px">🏆 Ranking de mis circulares (por comisión)</b>
+      <div style="margin-top:12px">${rows}</div>
+    </div>`;
+}
+
 async function loadComisiones() {
   const box = document.getElementById('comSummary');
   try {
@@ -696,6 +731,7 @@ async function loadComisiones() {
         ${totals.map(([cur, tot]) => `<div class="receipt-line"><span>Generado histórico (${cur})</span><b>${fmt(tot)} ${cur}</b></div>`).join('')}
         <div class="receipt-line"><span>Compras de mi red</span><b>${data.operations.length}</b></div>
       </div>
+      ${data.operations.length ? buildComInsights(data.operations) : ''}
       ${data.operations.length ? `
       <div class="card">
         <b style="font-size:14px">Comisión por cada compra de mi red</b>

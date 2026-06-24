@@ -173,6 +173,7 @@
         <button class="qa" onclick="navTo(1)">📦<br>Ver comandas</button>
         <button class="qa" onclick="openChat()">💬<br>Mensajes</button>
       </div>
+      <div id="salesStats"></div>
       <div class="card" style="text-align:center">
         <b style="font-size:14px">💳 Mi QR de cobro</b>
         <p style="font-size:12px;color:var(--muted);margin:6px 0 10px">Los clientes pagan al instante escaneándolo con XenderMoney</p>
@@ -435,6 +436,38 @@ function renderHome() {
   document.getElementById('stTransit').textContent = fmt(ME.stats.inTransit);
   document.getElementById('stDelivered').textContent = fmt(ME.stats.delivered);
   document.getElementById('ordersDot').classList.toggle('hidden', !ME.stats.preparing);
+  loadOrders().then(renderSalesStats).catch(() => {});
+}
+
+function renderSalesStats() {
+  const box = document.getElementById('salesStats'); if (!box) return;
+  const sold = ORDERS.filter(o => o.status === 'delivered');
+  if (!sold.length) { box.innerHTML = ''; return; }
+  const now = new Date();
+  const sod = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dow = (now.getDay() + 6) % 7, sow = sod - dow * 86400000;
+  const som = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  let day = 0, week = 0, month = 0;
+  const days = [0,0,0,0,0,0,0], labels = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(sod - i * 86400000); labels.push(['Lu','Ma','Mi','Ju','Vi','Sa','Do'][(d.getDay()+6)%7]); }
+  sold.forEach(o => {
+    const v = Number(o.totalXaf || 0), t = new Date(o.createdAt).getTime();
+    if (t >= sod) day += v; if (t >= sow) week += v; if (t >= som) month += v;
+    const idx = Math.floor((t - (sod - 6 * 86400000)) / 86400000);
+    if (idx >= 0 && idx < 7) days[idx] += v;
+  });
+  const max = Math.max.apply(null, days.concat([1]));
+  const bars = days.map((v, i) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div style="width:100%;max-width:24px;height:${Math.round(v/max*44)+2}px;background:var(--accent);border-radius:4px 4px 0 0;opacity:${v?1:.25}"></div><span style="font-size:9px;color:var(--muted)">${labels[i]}</span></div>`).join('');
+  box.innerHTML = `<div class="card">
+      <b style="font-size:14px">📊 Mis ventas</b>
+      <div style="display:flex;gap:8px;margin:12px 0">
+        <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px"><div style="font-size:10px;color:var(--muted)">Hoy</div><div style="font-size:16px;font-weight:800">${fmt(day)}</div></div>
+        <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px"><div style="font-size:10px;color:var(--muted)">Semana</div><div style="font-size:16px;font-weight:800">${fmt(week)}</div></div>
+        <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px"><div style="font-size:10px;color:var(--muted)">Mes</div><div style="font-size:16px;font-weight:800">${fmt(month)}</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Ingresos últimos 7 días (XAF)</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:54px">${bars}</div>
+    </div>`;
 }
 
 function showPayQR() {
