@@ -727,6 +727,44 @@ function shareComisiones() {
     `Compras de mi red: ${COM.operations.length}`);
 }
 
+// ── 🎯 Objetivo mensual (meta autogestionada, guardada en el dispositivo) ──
+function repGoal() { try { return JSON.parse(localStorage.getItem('rep_goal') || 'null'); } catch { return null; } }
+function thisMonthByCurrency(ops) {
+  const som = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const m = {};
+  ops.forEach(o => { if (new Date(o.date).getTime() >= som) m[o.currency] = (m[o.currency] || 0) + o.myCommission; });
+  return m;
+}
+function buildGoalCard(ops) {
+  const month = thisMonthByCurrency(ops);
+  const dominant = Object.entries(month).sort((a, b) => b[1] - a[1])[0];
+  const goal = repGoal();
+  const cur = goal ? goal.currency : (dominant ? dominant[0] : 'XAF');
+  const earned = Math.round(month[cur] || 0);
+  const monthName = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][new Date().getMonth()];
+  let body;
+  if (goal && goal.amount > 0) {
+    const pct = Math.min(100, Math.round(earned / goal.amount * 100));
+    const left = Math.max(0, goal.amount - earned);
+    body = `<div style="display:flex;justify-content:space-between;font-size:13px;margin:10px 0 5px"><span>Progreso de ${monthName}</span><b>${fmt(earned)} / ${fmt(goal.amount)} ${cur}</b></div>
+      <div style="height:14px;background:var(--card2);border:1px solid var(--border);border-radius:8px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent-dark),var(--accent));transition:.3s"></div></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">${pct >= 100 ? '🎉 ¡Meta alcanzada!' : `Te faltan <b style="color:var(--text)">${fmt(left)} ${cur}</b> (${pct}%)`}</div>
+      <button class="btn btn-outline" style="margin-top:10px;padding:8px" onclick="editRepGoal()">✏️ Cambiar meta</button>`;
+  } else {
+    body = `<div style="font-size:13px;color:var(--muted);margin:8px 0">Define una meta de comisiones para este mes y sigue tu progreso. Llevas <b style="color:var(--text)">${fmt(earned)} ${cur}</b> en ${monthName}.</div>
+      <button class="btn" style="margin-top:6px" onclick="editRepGoal()">🎯 Fijar meta mensual</button>`;
+  }
+  return `<div class="card"><b style="font-size:14px">🎯 Mi objetivo mensual</b>${body}</div>`;
+}
+function editRepGoal() {
+  const cur = (prompt('Divisa de la meta (XAF, XOF, EUR, USD):', (repGoal() || {}).currency || 'XAF') || '').toUpperCase().trim();
+  if (!cur) return;
+  const amt = Number(prompt('Importe objetivo de comisiones para este mes (' + cur + '):', (repGoal() || {}).amount || '') || 0);
+  if (!amt || amt <= 0) { localStorage.removeItem('rep_goal'); }
+  else { localStorage.setItem('rep_goal', JSON.stringify({ amount: amt, currency: cur })); }
+  loadComisiones();
+}
+
 // ── comisiones de red ──
 function buildComInsights(ops) {
   // Evolución: nº de compras por mes (últimos 6 meses) — agnóstico de divisa
@@ -770,6 +808,7 @@ async function loadComisiones() {
     COM = data;
     const totals = Object.entries(data.totalsByCurrency);
     box.innerHTML = `
+      ${buildGoalCard(data.operations)}
       <div class="card">
         <b style="font-size:14px">Saldo de comisiones disponible</b>
         <div class="total-line"><span>💰 Disponible para cobrar</span><b>${fmt(data.totalEarned)}</b></div>

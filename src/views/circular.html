@@ -374,6 +374,20 @@
     <!-- HISTORIAL -->
     <section id="page-history" class="hidden">
       <h2>📋 Mi historial</h2>
+      <div class="card" style="margin-bottom:12px">
+        <b style="font-size:13px">📅 Filtrar por fecha</b>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted)">Desde</label><input id="histFrom" type="date" onchange="renderHistory()"></div>
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted)">Hasta</label><input id="histTo" type="date" onchange="renderHistory()"></div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+          <button type="button" onclick="setHistRange('today')" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:18px;padding:6px 12px;font-size:12px;cursor:pointer">Hoy</button>
+          <button type="button" onclick="setHistRange('week')" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:18px;padding:6px 12px;font-size:12px;cursor:pointer">7 días</button>
+          <button type="button" onclick="setHistRange('month')" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:18px;padding:6px 12px;font-size:12px;cursor:pointer">Este mes</button>
+          <button type="button" onclick="setHistRange('clear')" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:18px;padding:6px 12px;font-size:12px;cursor:pointer">Todo</button>
+        </div>
+        <div id="histTotals" style="font-size:12px;color:var(--muted);margin-top:10px"></div>
+      </div>
       <div class="btn-row" style="margin-bottom:12px">
         <button class="btn" style="margin-top:0" onclick="printHistorial()">🖨️ Imprimir / PDF</button>
         <button class="btn" style="margin-top:0" onclick="shareHistorial()">📤 Compartir</button>
@@ -860,27 +874,28 @@ async function loadRecent() {
 }
 
 // ── historial ──
-let HIST = null;
+let HIST = null, HIST_VIEW = null;
 
 function printHistorial() {
-  if (!HIST) return;
+  const H = HIST_VIEW || HIST;
+  if (!H) return;
   document.getElementById('printArea').innerHTML = printHeaderHTML('Historial — Circular Autorizada') + `
     <table>
       <tr><th>Circular Autorizada</th><td>${ME.user?.name || '—'}</td></tr>
       <tr><th>Zona</th><td>${ME.neighborhood}, ${ME.country}</td></tr>
-      <tr><th>Saldo de unidades</th><td>${fmt(HIST.account?.unitBalance ?? 0)}</td></tr>
+      <tr><th>Saldo de unidades</th><td>${fmt(H.account?.unitBalance ?? 0)}</td></tr>
     </table>
-    <h3 style="font-size:14px;margin:14px 0 4px">Recargas a clientes (${HIST.topUps.length})</h3>
+    <h3 style="font-size:14px;margin:14px 0 4px">Recargas a clientes (${H.topUps.length})</h3>
     <table>
       <tr><th>Fecha</th><th>Cliente</th><th>Teléfono</th><th>Importe</th><th>Estado</th></tr>
-      ${HIST.topUps.map(t => `<tr><td>${new Date(t.createdAt).toLocaleString('es-ES')}</td>
+      ${H.topUps.map(t => `<tr><td>${new Date(t.createdAt).toLocaleString('es-ES')}</td>
         <td>${t.clientName || t.clientId}</td><td>${t.clientPhone || '—'}</td>
         <td>${fmt(t.amount)} ${t.currency}</td><td>${t.status}</td></tr>`).join('')}
     </table>
-    <h3 style="font-size:14px;margin:14px 0 4px">Compras de unidades (${HIST.purchases.length})</h3>
+    <h3 style="font-size:14px;margin:14px 0 4px">Compras de unidades (${H.purchases.length})</h3>
     <table>
       <tr><th>Fecha</th><th>Unidades</th><th>Pagado</th><th>Ahorro 5%</th><th>Estado</th></tr>
-      ${HIST.purchases.map(p => `<tr><td>${new Date(p.createdAt).toLocaleDateString('es-ES')}</td>
+      ${H.purchases.map(p => `<tr><td>${new Date(p.createdAt).toLocaleDateString('es-ES')}</td>
         <td>${fmt(p.unitsRequested)}</td><td>${fmt(p.amountToPay)} ${p.currency}</td>
         <td>${fmt(p.amountSaved)} ${p.currency}</td><td>${p.status}</td></tr>`).join('')}
     </table>`;
@@ -888,34 +903,66 @@ function printHistorial() {
 }
 
 function shareHistorial() {
-  if (!HIST) return;
+  const H = HIST_VIEW || HIST;
+  if (!H) return;
   const totals = {};
-  HIST.topUps.filter(t => t.status === 'completed').forEach(t => {
+  H.topUps.filter(t => t.status === 'completed').forEach(t => {
     totals[t.currency] = (totals[t.currency] || 0) + t.amount;
   });
   shareText(`📋 HISTORIAL InnovaAFRIC — Circular Autorizada\n` +
     `${ME.user?.name || ''} — ${ME.neighborhood}\n` +
-    `Recargas a clientes: ${HIST.topUps.length}\n` +
+    `Recargas a clientes: ${H.topUps.length}\n` +
     Object.entries(totals).map(([c, t]) => `Total recargado: ${fmt(t)} ${c}`).join('\n') +
-    `\nCompras de unidades: ${HIST.purchases.length}\n` +
-    `Saldo actual: ${fmt(HIST.account?.unitBalance ?? 0)} unidades`);
+    `\nCompras de unidades: ${H.purchases.length}\n` +
+    `Saldo actual: ${fmt(H.account?.unitBalance ?? 0)} unidades`);
 }
 
 async function loadHistory() {
   try {
     const data = await api('GET', '/circulares/my-operations');
     HIST = data;
-    document.getElementById('histTopups').innerHTML = data.topUps.length
-      ? data.topUps.map(t => `<tr><td>${fmtDate(t.createdAt)}</td><td>${t.clientName || t.clientId}</td>
-          <td>${fmt(t.amount)} ${t.currency}</td><td><span class="tag ${t.status}">${t.status}</span></td></tr>`).join('')
-      : '<tr><td colspan="4" class="spinner">Aún no has hecho recargas</td></tr>';
-    document.getElementById('histPurchases').innerHTML = data.purchases.length
-      ? data.purchases.map(p => `<tr><td>${fmtDate(p.createdAt)}</td><td>${fmt(p.unitsRequested)}</td>
-          <td>${fmt(p.amountToPay)} ${p.currency}</td><td><span class="tag ${p.status}">${p.status}</span></td></tr>`).join('')
-      : '<tr><td colspan="4" class="spinner">Aún no has comprado unidades</td></tr>';
+    renderHistory();
   } catch (e) {
     document.getElementById('histTopups').innerHTML = `<tr><td colspan="4" class="spinner">${e.message}</td></tr>`;
   }
+}
+
+function setHistRange(kind) {
+  const now = new Date();
+  const fmtISO = d => d.toISOString().slice(0, 10);
+  const f = document.getElementById('histFrom'), t = document.getElementById('histTo');
+  if (kind === 'clear') { f.value = ''; t.value = ''; }
+  else if (kind === 'today') { f.value = fmtISO(now); t.value = fmtISO(now); }
+  else if (kind === 'week') { f.value = fmtISO(new Date(now - 6 * 86400000)); t.value = fmtISO(now); }
+  else if (kind === 'month') { f.value = fmtISO(new Date(now.getFullYear(), now.getMonth(), 1)); t.value = fmtISO(now); }
+  renderHistory();
+}
+
+function renderHistory() {
+  if (!HIST) return;
+  const fv = document.getElementById('histFrom').value;
+  const tv = document.getElementById('histTo').value;
+  const from = fv ? new Date(fv + 'T00:00:00').getTime() : -Infinity;
+  const to = tv ? new Date(tv + 'T23:59:59').getTime() : Infinity;
+  const inRange = x => { const t = new Date(x.createdAt).getTime(); return t >= from && t <= to; };
+  const topUps = HIST.topUps.filter(inRange);
+  const purchases = HIST.purchases.filter(inRange);
+  HIST_VIEW = { topUps, purchases, account: HIST.account };
+
+  document.getElementById('histTopups').innerHTML = topUps.length
+    ? topUps.map(t => `<tr><td>${fmtDate(t.createdAt)}</td><td>${t.clientName || t.clientId}</td>
+        <td>${fmt(t.amount)} ${t.currency}</td><td><span class="tag ${t.status}">${t.status}</span></td></tr>`).join('')
+    : '<tr><td colspan="4" class="spinner">Sin recargas en este periodo</td></tr>';
+  document.getElementById('histPurchases').innerHTML = purchases.length
+    ? purchases.map(p => `<tr><td>${fmtDate(p.createdAt)}</td><td>${fmt(p.unitsRequested)}</td>
+        <td>${fmt(p.amountToPay)} ${p.currency}</td><td><span class="tag ${p.status}">${p.status}</span></td></tr>`).join('')
+    : '<tr><td colspan="4" class="spinner">Sin compras en este periodo</td></tr>';
+
+  const byCur = {};
+  topUps.filter(t => t.status === 'completed').forEach(t => { byCur[t.currency] = (byCur[t.currency] || 0) + Number(t.amount || 0); });
+  const totalsTxt = Object.entries(byCur).map(([c, v]) => `${fmt(v)} ${c}`).join(' · ');
+  document.getElementById('histTotals').innerHTML = `Mostrando <b style="color:var(--text)">${topUps.length}</b> recarga(s) y <b style="color:var(--text)">${purchases.length}</b> compra(s)` +
+    (totalsTxt ? ` · Recargado: <b style="color:var(--green)">${totalsTxt}</b>` : '');
 }
 
 // ── recibo digital ──
