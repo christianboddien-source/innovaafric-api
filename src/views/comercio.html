@@ -212,6 +212,22 @@
       <div id="ordersList"><div class="spinner">Cargando…</div></div>
     </section>
 
+    <!-- CATÁLOGO -->
+    <section id="page-catalogo" class="hidden">
+      <h2>📦 Mi catálogo <span id="catCount" style="font-size:12px;color:var(--muted)"></span></h2>
+      <div class="card">
+        <b style="font-size:14px">➕ Añadir producto</b>
+        <input id="newProdName" placeholder="Nombre del producto">
+        <div style="display:flex;gap:8px">
+          <input id="newProdPrice" type="number" min="1" placeholder="Precio XAF" style="flex:1">
+          <input id="newProdCat" placeholder="Categoría" style="flex:1">
+        </div>
+        <button class="btn" onclick="addProduct()">Añadir al catálogo</button>
+        <div id="newProdMsg" style="font-size:12px;margin-top:8px"></div>
+      </div>
+      <div id="productList"><div class="spinner">Cargando…</div></div>
+    </section>
+
     <section id="page-map" class="hidden">
       <h2>🗺️ Riders cerca de mi tienda</h2>
       <div class="map-legend">
@@ -229,6 +245,7 @@
   <nav>
     <button class="active" onclick="go('home',this)"><span class="ic">🏠</span>Inicio</button>
     <button onclick="go('orders',this)"><span class="ic">📦</span>Comandas<span id="ordersDot" class="hidden" style="position:absolute;top:8px;right:26%;width:9px;height:9px;border-radius:50%;background:var(--amber)"></span></button>
+    <button onclick="go('catalogo',this)"><span class="ic">🏷️</span>Catálogo</button>
     <button onclick="go('map',this)"><span class="ic">🗺️</span>Mapa</button>
   </nav>
 </div>
@@ -416,13 +433,74 @@ function logout() {
 
 // ── navegación ──
 function go(page, btn) {
-  ['home', 'orders', 'map'].forEach(p =>
+  ['home', 'orders', 'catalogo', 'map'].forEach(p =>
     document.getElementById('page-' + p).classList.toggle('hidden', p !== page));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (page === 'home') refreshMe();
   if (page === 'orders') loadOrders();
+  if (page === 'catalogo') loadProducts();
   if (page === 'map') openLiveMap();
+}
+
+// ── 🏷️ Catálogo / stock ──
+let PRODUCTS = [];
+async function loadProducts() {
+  const box = document.getElementById('productList');
+  try {
+    const data = await api('GET', '/comercio/products');
+    PRODUCTS = data.products || [];
+    document.getElementById('catCount').textContent = `(${data.count})`;
+    box.innerHTML = PRODUCTS.length
+      ? PRODUCTS.map(p => `
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;${p.available ? '' : 'opacity:.6'}">
+          <div style="flex:1">
+            <b>${p.name}</b> <span style="font-size:11px;color:var(--muted)">· ${p.category}</span><br>
+            <span style="font-size:14px;font-weight:700">${fmt(p.priceXaf)} XAF</span>
+            <span style="font-size:11px;color:${p.available ? 'var(--green)' : 'var(--red)'}"> · ${p.available ? '🟢 disponible' : '🔴 agotado'}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button onclick="toggleProduct('${p.id}', ${p.available ? 'false' : 'true'})" title="Disponibilidad" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer">${p.available ? 'Marcar agotado' : 'Reactivar'}</button>
+            <div style="display:flex;gap:6px">
+              <button onclick="editProductPrice('${p.id}')" title="Editar precio" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer">✏️</button>
+              <button onclick="deleteProduct('${p.id}')" title="Eliminar" style="background:var(--card2);border:1px solid var(--border);color:var(--red);border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer">🗑️</button>
+            </div>
+          </div>
+        </div>`).join('')
+      : '<div class="card"><div class="spinner">Tu catálogo está vacío — añade tu primer producto arriba</div></div>';
+  } catch (e) { box.innerHTML = `<div class="err">${e.message}</div>`; }
+}
+async function addProduct() {
+  const name = document.getElementById('newProdName').value.trim();
+  const priceXaf = Number(document.getElementById('newProdPrice').value);
+  const category = document.getElementById('newProdCat').value.trim();
+  const m = document.getElementById('newProdMsg');
+  if (!name || !priceXaf || priceXaf <= 0) { m.style.color = 'var(--red)'; m.textContent = 'Pon un nombre y un precio válido.'; return; }
+  try {
+    await api('POST', '/comercio/products', { name, priceXaf, category });
+    document.getElementById('newProdName').value = '';
+    document.getElementById('newProdPrice').value = '';
+    document.getElementById('newProdCat').value = '';
+    m.style.color = 'var(--green)'; m.textContent = '✅ Producto añadido';
+    loadProducts();
+  } catch (e) { m.style.color = 'var(--red)'; m.textContent = e.message; }
+}
+async function toggleProduct(id, available) {
+  try { await api('PATCH', '/comercio/products/' + id, { available }); loadProducts(); }
+  catch (e) { alert(e.message); }
+}
+async function editProductPrice(id) {
+  const p = PRODUCTS.find(x => x.id === id); if (!p) return;
+  const v = Number(prompt(`Nuevo precio (XAF) para "${p.name}":`, p.priceXaf) || 0);
+  if (!v || v <= 0) return;
+  try { await api('PATCH', '/comercio/products/' + id, { priceXaf: v }); loadProducts(); }
+  catch (e) { alert(e.message); }
+}
+async function deleteProduct(id) {
+  const p = PRODUCTS.find(x => x.id === id); if (!p) return;
+  if (!confirm(`¿Eliminar "${p.name}" del catálogo?`)) return;
+  try { await api('DELETE', '/comercio/products/' + id); loadProducts(); }
+  catch (e) { alert(e.message); }
 }
 
 // ── mapa en vivo (riders cercanos) ──

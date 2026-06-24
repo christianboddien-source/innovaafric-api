@@ -129,6 +129,75 @@ router.get('/me', requireAuth, async (req, res) => {
   } catch (e) { return error(res, e.message); }
 });
 
+// ─────────────────────────────────────────────────────────────
+// CATÁLOGO / STOCK del comercio (productos por nombre de tienda)
+// ─────────────────────────────────────────────────────────────
+
+// GET /v1/comercio/products — mi catálogo
+router.get('/products', requireAuth, async (req, res) => {
+  try {
+    const m = await myMerchant(req);
+    if (!m) return error(res, 'No eres Comercio', 403);
+    const products = await prisma.groceryProduct.findMany({
+      where: { store: { equals: m.name, mode: 'insensitive' } },
+      orderBy: [{ available: 'desc' }, { name: 'asc' }]
+    });
+    return ok(res, { count: products.length, products });
+  } catch (e) { return error(res, e.message); }
+});
+
+// POST /v1/comercio/products — añadir producto
+router.post('/products', requireAuth, async (req, res) => {
+  try {
+    const m = await myMerchant(req);
+    if (!m) return error(res, 'No eres Comercio', 403);
+    const { name, priceXaf, category } = req.body;
+    if (!name || !String(name).trim()) return error(res, 'Nombre requerido', 400);
+    const price = Number(priceXaf);
+    if (!price || price <= 0) return error(res, 'Precio inválido', 400);
+    const product = await prisma.groceryProduct.create({
+      data: {
+        id: `gprod_${uuidv4().slice(0, 8)}`,
+        name: String(name).trim(),
+        priceXaf: price,
+        category: (category && String(category).trim()) || 'General',
+        store: m.name,
+        available: true
+      }
+    });
+    return ok(res, { product });
+  } catch (e) { return error(res, e.message); }
+});
+
+// PATCH /v1/comercio/products/:id — editar precio/disponibilidad/nombre/categoría
+router.patch('/products/:id', requireAuth, async (req, res) => {
+  try {
+    const m = await myMerchant(req);
+    if (!m) return error(res, 'No eres Comercio', 403);
+    const p = await prisma.groceryProduct.findUnique({ where: { id: req.params.id } });
+    if (!p || p.store.toLowerCase() !== m.name.toLowerCase()) return error(res, 'Producto no encontrado', 404);
+    const data = {};
+    if (req.body.name != null && String(req.body.name).trim()) data.name = String(req.body.name).trim();
+    if (req.body.category != null && String(req.body.category).trim()) data.category = String(req.body.category).trim();
+    if (req.body.priceXaf != null) { const v = Number(req.body.priceXaf); if (!v || v <= 0) return error(res, 'Precio inválido', 400); data.priceXaf = v; }
+    if (req.body.available != null) data.available = !!req.body.available;
+    const product = await prisma.groceryProduct.update({ where: { id: p.id }, data });
+    return ok(res, { product });
+  } catch (e) { return error(res, e.message); }
+});
+
+// DELETE /v1/comercio/products/:id — eliminar producto
+router.delete('/products/:id', requireAuth, async (req, res) => {
+  try {
+    const m = await myMerchant(req);
+    if (!m) return error(res, 'No eres Comercio', 403);
+    const p = await prisma.groceryProduct.findUnique({ where: { id: req.params.id } });
+    if (!p || p.store.toLowerCase() !== m.name.toLowerCase()) return error(res, 'Producto no encontrado', 404);
+    await prisma.groceryProduct.delete({ where: { id: p.id } });
+    return ok(res, { deleted: true });
+  } catch (e) { return error(res, e.message); }
+});
+
 // PATCH /v1/comercio/open — abrir/cerrar el comercio (autogestión)
 router.patch('/open', requireAuth, async (req, res) => {
   try {
