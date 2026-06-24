@@ -289,6 +289,7 @@ model Merchant {
   circularId String?
   qrCode     String  @unique
   active     Boolean @default(true)
+  isOpen     Boolean @default(true)   // Abierto/Cerrado autogestionado por el comercio
   // App del comercio (/comercio)
   userId     String?  @unique   // enlace a User para login
   phone      String?

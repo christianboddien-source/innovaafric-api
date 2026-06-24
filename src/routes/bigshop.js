@@ -73,6 +73,9 @@ router.post('/orders', requireAuth, async (req, res) => {
     const merchant = await prisma.merchant.findFirst({
       where: { name: { equals: firstProduct.store, mode: 'insensitive' }, active: true }
     });
+    if (merchant && merchant.isOpen === false) {
+      return error(res, `"${merchant.name}" está cerrado ahora mismo. Inténtalo más tarde.`, 409);
+    }
     merchantId = merchant?.id || null;
   }
 

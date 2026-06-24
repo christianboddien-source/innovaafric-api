@@ -129,6 +129,17 @@ router.get('/me', requireAuth, async (req, res) => {
   } catch (e) { return error(res, e.message); }
 });
 
+// PATCH /v1/comercio/open — abrir/cerrar el comercio (autogestión)
+router.patch('/open', requireAuth, async (req, res) => {
+  try {
+    const m = await myMerchant(req);
+    if (!m) return error(res, 'No eres Comercio', 403);
+    const isOpen = !!req.body.isOpen;
+    const updated = await prisma.merchant.update({ where: { id: m.id }, data: { isOpen } });
+    return ok(res, { isOpen: updated.isOpen, message: isOpen ? 'Comercio ABIERTO' : 'Comercio CERRADO' });
+  } catch (e) { return error(res, e.message); }
+});
+
 // GET /v1/comercio/orders — comandas del comercio
 router.get('/orders', requireAuth, async (req, res) => {
   try {

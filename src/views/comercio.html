@@ -158,6 +158,10 @@
   <main>
     <!-- INICIO -->
     <section id="page-home">
+      <div id="openStatus" class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div><b id="openLabel">—</b><div style="font-size:11px;color:var(--muted)" id="openHint">Los clientes solo pueden pedir si estás abierto</div></div>
+        <button id="openToggle" onclick="toggleOpen()" style="border:none;border-radius:20px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">—</button>
+      </div>
       <div class="balance-card">
         <div class="lbl">Ventas entregadas</div>
         <div class="amt" id="totalSales">—</div>
@@ -436,7 +440,31 @@ function renderHome() {
   document.getElementById('stTransit').textContent = fmt(ME.stats.inTransit);
   document.getElementById('stDelivered').textContent = fmt(ME.stats.delivered);
   document.getElementById('ordersDot').classList.toggle('hidden', !ME.stats.preparing);
+  renderOpenStatus();
   loadOrders().then(renderSalesStats).catch(() => {});
+}
+
+function renderOpenStatus() {
+  const open = ME.isOpen !== false;
+  const lbl = document.getElementById('openLabel');
+  const btn = document.getElementById('openToggle');
+  lbl.innerHTML = open ? '🟢 Abierto' : '🔴 Cerrado';
+  btn.textContent = open ? 'Cerrar' : 'Abrir';
+  btn.style.background = open ? 'var(--card2)' : 'var(--green)';
+  btn.style.color = open ? 'var(--text)' : '#03150a';
+  btn.style.border = open ? '1px solid var(--border)' : 'none';
+}
+
+async function toggleOpen() {
+  const next = !(ME.isOpen !== false);
+  const btn = document.getElementById('openToggle');
+  btn.disabled = true;
+  try {
+    const d = await api('PATCH', '/comercio/open', { isOpen: next });
+    ME.isOpen = d.isOpen;
+    renderOpenStatus();
+  } catch (e) { alert(e.message); }
+  btn.disabled = false;
 }
 
 function renderSalesStats() {
