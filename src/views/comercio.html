@@ -183,6 +183,7 @@
         <p style="font-size:12px;color:var(--muted);margin:6px 0 10px">Los clientes pagan al instante escaneándolo con XenderMoney</p>
         <div id="payQrBox"><button class="btn" style="margin-top:4px" onclick="showPayQR()">Mostrar QR</button></div>
       </div>
+      <div id="rewardsCard"></div>
       <div class="info">
         <b>🏪 Cómo funciona</b><br>
         Cuando un cliente hace un pedido a tu tienda, aparece en <b>Comandas</b>.
@@ -333,6 +334,50 @@ async function enterApp() {
   checkUnread();
   pollNewOrders();
   startGeoPing();
+  loadRewards();
+}
+
+// ── 🎁 Invita y gana (referidos + puntos) ──
+async function loadRewards() {
+  const box = document.getElementById('rewardsCard'); if (!box) return;
+  try {
+    const [bal, ref] = await Promise.all([
+      api('GET', '/loyalty/balance').catch(() => null),
+      api('GET', '/referrals/code').catch(() => null)
+    ]);
+    const pts = bal ? bal.points : 0, eur = bal ? bal.equivalent_eur : 0;
+    const code = ref ? ref.referral_code : '—', cnt = ref ? ref.referrals_count : 0;
+    box.innerHTML = `<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">🎁 Invita y gana</b><span style="font-size:11px;color:var(--muted)">${cnt} invitado(s)</span></div>
+        <div style="display:flex;gap:10px;margin:12px 0">
+          <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:11px"><div style="font-size:11px;color:var(--muted)">⭐ Mis puntos</div><div style="font-size:18px;font-weight:800">${fmt(pts)}</div></div>
+          <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:11px"><div style="font-size:11px;color:var(--muted)">≈ en €</div><div style="font-size:18px;font-weight:800">${eur} €</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Tu código de invitación</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <code style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px;font-size:15px;font-weight:700;color:var(--accent);letter-spacing:1px">${code}</code>
+          <button onclick="shareReferral('${code}')" title="Compartir" style="background:#25D366;border:none;color:#fff;border-radius:10px;padding:11px 14px;font-size:14px;cursor:pointer">📲</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin:12px 0 4px">¿Te invitaron? Aplica un código</div>
+        <div style="display:flex;gap:8px">
+          <input id="rwApply" placeholder="CÓDIGO" style="flex:1">
+          <button class="btn" style="width:auto;margin:0;padding:11px 16px" onclick="applyReferral()">Aplicar</button>
+        </div>
+        <div id="rwMsg" style="font-size:12px;margin-top:8px"></div>
+      </div>`;
+  } catch {}
+}
+function shareReferral(code) {
+  shareText('🎁 Únete a InnovaAFRIC con mi código ' + code + ' y gana puntos de bienvenida. https://innovaafric.com');
+}
+async function applyReferral() {
+  const code = (document.getElementById('rwApply').value || '').trim();
+  const m = document.getElementById('rwMsg'); if (!code) return;
+  try {
+    const d = await api('POST', '/referrals/apply', { referral_code: code });
+    m.style.color = 'var(--green)'; m.textContent = '✅ ' + d.message;
+    loadRewards();
+  } catch (e) { m.style.color = 'var(--red)'; m.textContent = e.message; }
 }
 
 function logout() {
