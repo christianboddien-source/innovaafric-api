@@ -104,19 +104,27 @@ router.get('/find-client', requireAuth, async (req, res) => {
     if (circ.status !== 'active') return error(res, 'Cuenta no activa', 403);
 
     const q = (req.query.q || '').trim();
-    if (q.length < 3) return error(res, 'Escribe al menos 3 caracteres (teléfono, email o nombre)', 400);
+    if (q.length < 3) return error(res, 'Escribe al menos 3 caracteres (código IA, teléfono, email o nombre)', 400);
+    const country = (req.query.country || '').trim();
+    const city    = (req.query.city || '').trim();
 
-    const clients = await prisma.user.findMany({
-      where: {
-        OR: [
-          { phone: { contains: q } },
-          { email: { contains: q, mode: 'insensitive' } },
-          { name:  { contains: q, mode: 'insensitive' } }
-        ]
-      },
-      select: { id: true, name: true, phone: true, country: true },
-      take: 8
+    // Código IA = IA- + primeros 6 hex del id (sin guiones, en mayúsculas)
+    const iaHex = q.toUpperCase().replace(/^IA-?/, '');
+    const or = [
+      { phone: { contains: q } },
+      { email: { contains: q, mode: 'insensitive' } },
+      { name:  { contains: q, mode: 'insensitive' } }
+    ];
+    if (/^[0-9A-F]{6}$/.test(iaHex)) or.unshift({ id: { startsWith: iaHex.toLowerCase() } });
+
+    const where = { OR: or };
+    if (country) where.country = country;
+    if (city)    where.city = { contains: city, mode: 'insensitive' };
+
+    const rows = await prisma.user.findMany({
+      where, select: { id: true, name: true, phone: true, country: true, city: true }, take: 8
     });
+    const clients = rows.map(c => ({ ...c, ia: 'IA-' + (c.id || '').replace(/-/g, '').toUpperCase().substring(0, 6) }));
 
     return ok(res, { count: clients.length, clients });
   } catch (e) { return error(res, e.message); }

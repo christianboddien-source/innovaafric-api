@@ -99,6 +99,8 @@
   #mapBox{height:62vh;border-radius:14px;overflow:hidden;border:1px solid var(--border)}
   .map-pin{font-size:22px;line-height:22px;text-shadow:0 0 4px #000}
   .map-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin:10px 0 0}
+  .scopechip{font-size:12px;background:var(--card2);border:1px solid var(--border);border-radius:18px;padding:5px 11px;cursor:pointer;user-select:none;color:var(--muted);transition:.15s}
+  .scopechip.on{background:var(--accent-dark);border-color:var(--accent);color:#fff}
 
   .lf{background:rgba(255,255,255,.06);border:1px solid var(--border,#334);border-radius:20px;padding:4px 10px;cursor:pointer;user-select:none;transition:.15s}
   .lf.on{background:var(--accent-dark,#0e7490);border-color:var(--accent,#22d3ee);color:#fff}
@@ -256,8 +258,13 @@
     <section id="page-topup" class="hidden">
       <h2>💸 Recargar wallet de un cliente</h2>
       <div class="card">
-        <label>Buscar cliente (teléfono, email o nombre)</label>
-        <input id="clientSearch" placeholder="Ej: +2376..., maria@..." oninput="searchClient()">
+        <label>Buscar cliente (código IA, teléfono, email o nombre)</label>
+        <input id="clientSearch" placeholder="Ej: IA-35F6A1, +2376..., maria@..." oninput="searchClient()">
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <span class="scopechip on" onclick="setScope('all',this)">🌍 Todos</span>
+          <span class="scopechip" onclick="setScope('country',this)">🏳️ Mi país</span>
+          <span class="scopechip" onclick="setScope('city',this)">🏙️ Mi ciudad</span>
+        </div>
         <button class="btn btn-outline" style="margin-top:10px" onclick="openScanner()">📷 Escanear QR del cliente</button>
         <div id="clientResults"></div>
         <div id="clientChosen" class="hidden" style="margin-top:12px"></div>
@@ -529,7 +536,8 @@
 <script>
 'use strict';
 const API = '/v1';
-let TOKEN = null, ME = null, selectedClient = null, searchTimer = null, lastResults = [];
+let TOKEN = null, ME = null, selectedClient = null, searchTimer = null, lastResults = [], SEARCH_SCOPE = 'all';
+function setScope(s, el){ SEARCH_SCOPE = s; document.querySelectorAll('.scopechip').forEach(c => c.classList.remove('on')); el.classList.add('on'); searchClient(); }
 
 // ── helpers ──
 async function api(method, path, body) {
@@ -671,12 +679,15 @@ function searchClient() {
   if (q.length < 3) { document.getElementById('clientResults').innerHTML = ''; return; }
   searchTimer = setTimeout(async () => {
     try {
-      const data = await api('GET', '/circulares/find-client?q=' + encodeURIComponent(q));
+      let extra = '';
+      if (SEARCH_SCOPE === 'country' && ME && ME.country) extra = '&country=' + encodeURIComponent(ME.country);
+      else if (SEARCH_SCOPE === 'city' && ME && (ME.city || ME.neighborhood)) extra = '&city=' + encodeURIComponent(ME.city || ME.neighborhood);
+      const data = await api('GET', '/circulares/find-client?q=' + encodeURIComponent(q) + extra);
       lastResults = data.clients;
       document.getElementById('clientResults').innerHTML = data.clients.length
         ? data.clients.map((c, i) =>
             `<div class="client-result" onclick="pickClientIdx(${i})">
-               <div><div class="nm">${c.name || '(sin nombre)'}</div><div class="ph">${c.phone || c.id}</div></div><div>›</div>
+               <div><div class="nm">${c.name || '(sin nombre)'}</div><div class="ph">${c.ia || ''}${c.phone ? ' · ' + c.phone : ''}${c.city ? ' · ' + c.city : ''}</div></div><div>›</div>
              </div>`).join('')
         : '<div class="client-result">Sin resultados</div>';
     } catch (e) {
