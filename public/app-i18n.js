@@ -298,7 +298,15 @@
     'Escribe tu email': { fr: 'Écris ton email', en: 'Type your email' },
     'Escribe tu primer mensaje a InnovaAFRIC': { fr: 'Écris ton premier message à InnovaAFRIC', en: 'Write your first message to InnovaAFRIC' },
     'Dirección': { fr: 'Adresse', en: 'Address' },
-    'Disponible': { fr: 'Disponible', en: 'Available' }
+    'Disponible': { fr: 'Disponible', en: 'Available' },
+
+    // chips de ámbito + ciudad + placeholders Ej:
+    '🌍 Todos': { fr: '🌍 Tous', en: '🌍 All' },
+    'Todas las ciudades': { fr: 'Toutes les villes', en: 'All cities' },
+    'Ej: Barrio Bonabéri': { fr: 'Ex : Quartier Bonabéri', en: 'e.g. Bonabéri district' },
+    'Ej: Camerún': { fr: 'Ex : Cameroun', en: 'e.g. Cameroon' },
+    'Ej: IA-35F6A1, +2376..., maria@...': { fr: 'Ex : IA-35F6A1, +2376..., maria@...', en: 'e.g. IA-35F6A1, +2376..., maria@...' },
+    'Ej: IA-461E93, +2376..., maria@...': { fr: 'Ex : IA-461E93, +2376..., maria@...', en: 'e.g. IA-461E93, +2376..., maria@...' }
   };
 
   let lang = localStorage.getItem('ia_lang') || 'es';
