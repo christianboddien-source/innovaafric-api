@@ -91,6 +91,7 @@ model User {
   installments    Installment[]
   savingsGoals    SavingsGoal[]
   fundInvestments FundInvestment[]
+  pushSubs        PushSubscription[]
 }
 
 model Wallet {
@@ -603,6 +604,21 @@ model Webhook {
   event     String
   data      String
   timestamp DateTime @default(now())
+}
+
+// Suscripciones Web Push (notificaciones del navegador / PWA)
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model ExchangeRate {

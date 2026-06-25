@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../config/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
+const push = require('../services/push');
 
 const ADMIN = ['admin', 'super_admin', 'business_developer', 'country_manager'];
 
@@ -129,6 +130,35 @@ router.get('/me', requireAuth, async (req, res) => {
   } catch (e) { return error(res, e.message); }
 });
 
+// GET /v1/comercio/qr-collections — historial de cobros por QR del comercio
+router.get('/qr-collections', requireAuth, async (req, res) => {
+  try {
+    const m = await myMerchant(req);
+    if (!m) return error(res, 'No eres Comercio', 403);
+    const txns = await prisma.transaction.findMany({
+      where: { type: 'qr_payment', reference: m.id, status: 'completed' },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
+    const payerIds = [...new Set(txns.map(t => t.userId).filter(Boolean))];
+    const payers = payerIds.length ? await prisma.user.findMany({
+      where: { id: { in: payerIds } }, select: { id: true, name: true }
+    }) : [];
+    const pmap = Object.fromEntries(payers.map(u => [u.id, u.name]));
+    const totalXaf = txns.reduce((s, t) => s + (t.amountSent || 0), 0);
+    return ok(res, {
+      count: txns.length,
+      totalXaf,
+      collections: txns.map(t => ({
+        id: t.id,
+        amountXaf: t.amountSent || 0,
+        payer: (t.userId && pmap[t.userId]) || 'Cliente',
+        createdAt: t.createdAt
+      }))
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
 // ─────────────────────────────────────────────────────────────
 // CATÁLOGO / STOCK del comercio (productos por nombre de tienda)
 // ─────────────────────────────────────────────────────────────
@@ -242,9 +272,19 @@ router.post('/orders/:id/ready', requireAuth, async (req, res) => {
       data: { status: 'ready' }
     });
     // Los riders disponibles la verán al instante en su pestaña Comandas
-    const ridersOnline = await prisma.rider.count({ where: { status: 'available' } });
+    const ridersOnline = await prisma.rider.findMany({
+      where: { status: 'available' },
+      select: { userId: true }
+    });
+    // Aviso push a los riders disponibles
+    push.sendToUsers(ridersOnline.map(r => r.userId), {
+      title: '🛵 Comanda lista para recoger',
+      body: `${m.name} tiene un pedido listo. ¡Acéptalo antes que otro rider!`,
+      url: '/rider',
+      tag: 'ready-' + order.id
+    }).catch(() => {});
     return ok(res, {
-      message: `📢 Comanda lista — visible para ${ridersOnline} rider(s) disponibles ahora mismo`,
+      message: `📢 Comanda lista — visible para ${ridersOnline.length} rider(s) disponibles ahora mismo`,
       order: updated
     });
   } catch (e) { return error(res, e.message); }

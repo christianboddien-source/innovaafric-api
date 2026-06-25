@@ -7,6 +7,7 @@ const router  = express.Router();
 const prisma  = require('../config/prisma');
 const { success, error, triggerWebhook } = require('../helpers/response');
 const { requireAuth } = require('../middleware/auth');
+const push = require('../services/push');
 
 // GET /v1/bigshop/products
 router.get('/products', async (req, res) => {
@@ -67,7 +68,7 @@ router.post('/orders', requireAuth, async (req, res) => {
   // Comercio del pedido: el de la tienda del primer producto.
   // El rider ya NO se asigna automáticamente — el comercio prepara la comanda,
   // la marca "lista" en su app y un rider disponible la acepta.
-  let merchantId = null;
+  let merchantId = null, merchantUserId = null;
   const firstProduct = await prisma.groceryProduct.findFirst({ where: { id: items[0].product_id } });
   if (firstProduct?.store) {
     const merchant = await prisma.merchant.findFirst({
@@ -77,6 +78,7 @@ router.post('/orders', requireAuth, async (req, res) => {
       return error(res, `"${merchant.name}" está cerrado ahora mismo. Inténtalo más tarde.`, 409);
     }
     merchantId = merchant?.id || null;
+    merchantUserId = merchant?.userId || null;
   }
 
   const [gorder] = await prisma.$transaction([
@@ -99,6 +101,16 @@ router.post('/orders', requireAuth, async (req, res) => {
   ]);
 
   await triggerWebhook('order.created', { id: gorder.id, type: 'grocery', total_xaf });
+
+  // Aviso push al comercio: nueva comanda entrante
+  if (merchantUserId) {
+    push.sendToUser(merchantUserId, {
+      title: '🛒 Nueva comanda',
+      body: `Pedido de ${total_xaf.toLocaleString()} XAF — prepáralo y márcalo "listo".`,
+      url: '/comercio',
+      tag: 'comanda-' + gorder.id
+    }).catch(() => {});
+  }
 
   return success(res, gorder, 201);
 });

@@ -48,6 +48,32 @@ router.get('/rider/me', requireAuth, async (req, res) => {
   return success(res, { ...rider, user });
 });
 
+// GET /v1/delivery/rider/ranking — mi posición + tabla de los mejores riders
+router.get('/rider/ranking', requireAuth, async (req, res) => {
+  const rider = await prisma.rider.findUnique({ where: { userId: uid(req) } });
+  if (!rider) return error(res, 'No eres rider', 403);
+  const all = await prisma.rider.findMany({
+    orderBy: [{ deliveriesTotal: 'desc' }, { rating: 'desc' }],
+    select: { id: true, name: true, deliveriesTotal: true, rating: true }
+  });
+  const position = all.findIndex(r => r.id === rider.id) + 1;
+  return success(res, {
+    me: {
+      position,
+      total: all.length,
+      deliveriesTotal: rider.deliveriesTotal || 0,
+      rating: rider.rating != null ? Number(rider.rating) : null
+    },
+    top: all.slice(0, 10).map((r, i) => ({
+      rank: i + 1,
+      name: r.name,
+      deliveriesTotal: r.deliveriesTotal || 0,
+      rating: r.rating != null ? Number(r.rating) : null,
+      me: r.id === rider.id
+    }))
+  });
+});
+
 // PATCH /v1/delivery/rider/status — el rider cambia su disponibilidad
 router.patch('/rider/status', requireAuth, async (req, res) => {
   const rider = await prisma.rider.findUnique({ where: { userId: uid(req) } });

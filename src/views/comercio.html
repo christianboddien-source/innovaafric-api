@@ -158,6 +158,7 @@
     <div style="display:flex;gap:8px">
       <button class="ia-lang-hdr" onclick="iaCycleLang()">🌐 ES</button>
       <button onclick="toggleAppTheme()" id="themeBtn" title="Tema claro/oscuro">🌙</button>
+      <button onclick="iaPush.toggle(API, TOKEN)" id="pushBtn" title="Activar notificaciones">🔕</button>
       <button onclick="configOpenPin()" id="pinBtn" title="PIN de apertura">🔐</button>
       <button id="chatBtn" onclick="openChat()" style="font-size:15px;position:relative">💬<span id="chatDot" class="hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:var(--red);border:2px solid var(--card)"></span></button>
       <button onclick="logout()">Salir</button>
@@ -192,6 +193,7 @@
         <p style="font-size:12px;color:var(--muted);margin:6px 0 10px">Los clientes pagan al instante escaneándolo con XenderMoney</p>
         <div id="payQrBox"><button class="btn" style="margin-top:4px" onclick="showPayQR()">Mostrar QR</button></div>
       </div>
+      <div id="qrCollectionsBox"></div>
       <div id="rewardsCard"></div>
       <div class="info">
         <b>🏪 Cómo funciona</b><br>
@@ -594,6 +596,29 @@ function renderHome() {
   document.getElementById('ordersDot').classList.toggle('hidden', !ME.stats.preparing);
   renderOpenStatus();
   loadOrders().then(renderSalesStats).catch(() => {});
+  renderQrCollections();
+}
+
+async function renderQrCollections() {
+  const box = document.getElementById('qrCollectionsBox');
+  if (!box) return;
+  try {
+    const d = await api('GET', '/comercio/qr-collections');
+    if (!d.count) { box.innerHTML = ''; return; }
+    const rows = d.collections.slice(0, 8).map(c =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:12px"><b>${fmt(c.amountXaf)} XAF</b><br><span style="color:var(--muted);font-size:11px">${c.payer}</span></span>
+        <span style="font-size:11px;color:var(--muted)">${fmtTime(c.createdAt)}</span>
+      </div>`).join('');
+    box.innerHTML =
+      `<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <b style="font-size:14px">🧾 Cobros por QR</b>
+          <span style="font-size:12px;color:var(--muted)">${d.count} · ${fmt(d.totalXaf)} XAF</span>
+        </div>
+        <div style="margin-top:8px">${rows}</div>
+      </div>`;
+  } catch (e) { box.innerHTML = ''; }
 }
 
 function renderOpenStatus() {
@@ -824,5 +849,7 @@ async function configOpenPin(){
 (function(){if(localStorage.getItem('ia_theme')==='light'){document.body.classList.add('light');var b=document.getElementById('themeBtn');if(b)b.textContent='☀️';}})();
 </script>
 <script src="/app-i18n.js"></script>
+<script src="/ia-push.js"></script>
+<script src="/ia-bio.js"></script>
 </body>
 </html>

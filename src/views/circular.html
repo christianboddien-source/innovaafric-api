@@ -213,6 +213,7 @@
       <button onclick="openSetPin()" style="font-size:15px" title="PIN de seguridad">🔐</button>
       <button class="ia-lang-hdr" onclick="iaCycleLang()">🌐 ES</button>
       <button onclick="toggleAppTheme()" id="themeBtn" title="Tema claro/oscuro">🌙</button>
+      <button onclick="iaPush.toggle(API, TOKEN)" id="pushBtn" title="Activar notificaciones">🔕</button>
       <button onclick="configOpenPin()" id="pinBtn" title="Bloqueo al abrir la app">🔒</button>
       <button id="chatBtn" onclick="openChat()" style="font-size:15px;position:relative">💬<span id="chatDot" class="hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:var(--red);border:2px solid var(--card)"></span></button>
       <button onclick="logout()">Salir</button>
@@ -773,7 +774,31 @@ function renderHome() {
   document.getElementById('stTotalUsed').textContent = fmt(acc.totalUnitsUsed);
   document.getElementById('stTotalSaved').textContent = fmt(acc.totalSaved);
   document.getElementById('stTopups').textContent = fmt(ME._count?.topUps ?? 0);
-  document.getElementById('lowAlert').classList.toggle('hidden', !(acc.unitBalance < (acc.alertThreshold ?? 50)));
+  renderLowBalance(acc);
+}
+
+// Recordatorio de saldo bajo: banner con saldo real + acción rápida + aviso local 1×/día
+function renderLowBalance(acc) {
+  const el = document.getElementById('lowAlert');
+  if (!el) return;
+  const bal = Number(acc.unitBalance || 0);
+  const thr = Number(acc.alertThreshold ?? 50);
+  const low = bal < thr;
+  el.classList.toggle('hidden', !low);
+  if (!low) return;
+  el.innerHTML =
+    `⚠️ <b>Saldo bajo:</b> te quedan <b>${fmt(bal)}</b> unidades (aviso por debajo de ${fmt(thr)}). ` +
+    `Compra más para seguir recargando a tus clientes. ` +
+    `<button onclick="navTo(2)" style="margin-top:6px;background:var(--accent);border:none;color:#04261d;font-weight:700;border-radius:8px;padding:6px 12px;cursor:pointer">🛒 Comprar unidades</button>`;
+  // Aviso del sistema una vez al día (si el usuario dio permiso de notificaciones)
+  try {
+    const key = 'circ_lowbal_notified';
+    const today = new Date().toISOString().slice(0, 10);
+    if (window.Notification && Notification.permission === 'granted' && localStorage.getItem(key) !== today) {
+      localStorage.setItem(key, today);
+      new Notification('⚡ Saldo bajo', { body: `Te quedan ${fmt(bal)} unidades. Compra más para seguir recargando.`, icon: '/icons/icon-192.png' });
+    }
+  } catch (_) {}
 }
 
 // ── recargar cliente ──
@@ -1516,5 +1541,7 @@ async function configOpenPin(){
 (function(){if(localStorage.getItem('ia_theme')==='light'){document.body.classList.add('light');var b=document.getElementById('themeBtn');if(b)b.textContent='☀️';}})();
 init();
 </script>
+<script src="/ia-push.js"></script>
+<script src="/ia-bio.js"></script>
 </body>
 </html>
