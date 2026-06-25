@@ -205,7 +205,100 @@
     'Buscar usuario (teléfono, email o nombre)': { fr: 'Chercher utilisateur (téléphone, email ou nom)', en: 'Find user (phone, email or name)' },
     'Barrio / zona': { fr: 'Quartier / zone', en: 'Neighborhood / area' },
     'País': { fr: 'Pays', en: 'Country' },
-    'Autorizar como Circular': { fr: 'Autoriser comme Circulaire', en: 'Authorize as Circular' }
+    'Autorizar como Circular': { fr: 'Autoriser comme Circulaire', en: 'Authorize as Circular' },
+
+    // ── ampliación 2026-06-25: cobertura de pantallas dinámicas ──
+    // comercio: estado abierto/cerrado + QR
+    '🟢 Abierto': { fr: '🟢 Ouvert', en: '🟢 Open' },
+    '🔴 Cerrado': { fr: '🔴 Fermé', en: '🔴 Closed' },
+    'Abrir': { fr: 'Ouvrir', en: 'Open' },
+    'Cerrar comercio': { fr: 'Fermer le commerce', en: 'Close shop' },
+    'Los clientes solo pueden pedir si estás abierto': { fr: 'Les clients ne peuvent commander que si tu es ouvert', en: 'Clients can only order while you are open' },
+    'Los clientes pagan al instante escaneándolo con XenderMoney': { fr: 'Les clients paient instantanément en le scannant avec XenderMoney', en: 'Clients pay instantly by scanning it with XenderMoney' },
+    'Mon QR d’encaissement': { fr: 'Mon QR d’encaissement', en: 'My payment QR' },
+    'QR de cobro': { fr: 'QR d’encaissement', en: 'Payment QR' },
+    '🧾 Cobros por QR': { fr: '🧾 Encaissements par QR', en: '🧾 QR payments' },
+
+    // comercio: catálogo
+    'Catálogo': { fr: 'Catalogue', en: 'Catalog' },
+    '📦 Mi catálogo': { fr: '📦 Mon catalogue', en: '📦 My catalog' },
+    '➕ Añadir producto': { fr: '➕ Ajouter un produit', en: '➕ Add product' },
+    'Añadir al catálogo': { fr: 'Ajouter au catalogue', en: 'Add to catalog' },
+    'Categoría': { fr: 'Catégorie', en: 'Category' },
+    'Nombre del producto': { fr: 'Nom du produit', en: 'Product name' },
+    'Editar precio': { fr: 'Modifier le prix', en: 'Edit price' },
+    'Marcar agotado': { fr: 'Marquer épuisé', en: 'Mark out of stock' },
+    'Reactivar': { fr: 'Réactiver', en: 'Reactivate' },
+    '🟢 disponible': { fr: '🟢 disponible', en: '🟢 available' },
+    '🔴 agotado': { fr: '🔴 épuisé', en: '🔴 out of stock' },
+    'Tu catálogo está vacío — añade tu primer producto arriba': { fr: 'Ton catalogue est vide — ajoute ton premier produit ci-dessus', en: 'Your catalog is empty — add your first product above' },
+
+    // invita y gana / referidos
+    '🎁 Invita y gana': { fr: '🎁 Invite et gagne', en: '🎁 Invite & earn' },
+    '⭐ Mis puntos': { fr: '⭐ Mes points', en: '⭐ My points' },
+    'Tu código de invitación': { fr: 'Ton code d’invitation', en: 'Your invite code' },
+    '¿Te invitaron? Aplica un código': { fr: 'On t’a invité ? Applique un code', en: 'Were you invited? Apply a code' },
+    '¡Nivel máximo!': { fr: 'Niveau maximum !', en: 'Max level!' },
+
+    // rider: ganancias y ranking
+    '💵 Mis ganancias': { fr: '💵 Mes gains', en: '💵 My earnings' },
+    '🏆 Ranking de riders': { fr: '🏆 Classement des livreurs', en: '🏆 Riders ranking' },
+    'Tu posición': { fr: 'Ta position', en: 'Your position' },
+    'Valoración': { fr: 'Évaluation', en: 'Rating' },
+    'Aún no hay datos de ranking.': { fr: 'Pas encore de données de classement.', en: 'No ranking data yet.' },
+    'Esta semana': { fr: 'Cette semaine', en: 'This week' },
+    'Hoy': { fr: 'Aujourd’hui', en: 'Today' },
+    '7 días': { fr: '7 jours', en: '7 days' },
+    'Ingresos últimos 7 días (XAF)': { fr: 'Revenus 7 derniers jours (XAF)', en: 'Income last 7 days (XAF)' },
+    '📊 Mis ventas': { fr: '📊 Mes ventes', en: '📊 My sales' },
+    '🟢 Disponible para entregas': { fr: '🟢 Disponible pour les livraisons', en: '🟢 Available for deliveries' },
+    '🟡 En entrega': { fr: '🟡 En livraison', en: '🟡 On delivery' },
+
+    // representante
+    '🎯 Mi objetivo mensual': { fr: '🎯 Mon objectif mensuel', en: '🎯 My monthly goal' },
+    '📈 Evolución de compras de mi red (6 meses)': { fr: '📈 Évolution des achats de mon réseau (6 mois)', en: '📈 My network purchases trend (6 months)' },
+    '🏆 Ranking de mis circulares (por comisión)': { fr: '🏆 Classement de mes circulaires (par commission)', en: '🏆 My circulars ranking (by commission)' },
+    'Compras de mi red': { fr: 'Achats de mon réseau', en: 'My network purchases' },
+    '📢 Avisar a mi red': { fr: '📢 Prévenir mon réseau', en: '📢 Notify my network' },
+
+    // circular
+    '💰 Disponible para cobrar': { fr: '💰 Disponible à encaisser', en: '💰 Available to cash out' },
+    '📅 Filtrar por fecha': { fr: '📅 Filtrer par date', en: '📅 Filter by date' },
+    '🗺️ Riders cerca de mi tienda': { fr: '🗺️ Livreurs près de ma boutique', en: '🗺️ Riders near my store' },
+    '🏙️ Todas las ciudades': { fr: '🏙️ Toutes les villes', en: '🏙️ All cities' },
+    '🏳️ Mi país': { fr: '🏳️ Mon pays', en: '🏳️ My country' },
+    '🏦 ¿Dónde depositar el efectivo cobrado?': { fr: '🏦 Où déposer l’argent encaissé ?', en: '🏦 Where to deposit the collected cash?' },
+    'Saldo de unidades': { fr: 'Solde d’unités', en: 'Units balance' },
+
+    // estados / pin / barra superior
+    '🧑‍🍳 por preparar': { fr: '🧑‍🍳 à préparer', en: '🧑‍🍳 to prepare' },
+    'PIN de apertura': { fr: 'PIN d’ouverture', en: 'Open PIN' },
+    'Bloqueo al abrir la app': { fr: 'Verrouillage à l’ouverture', en: 'Lock on app open' },
+    'Olvidé mi PIN — cerrar sesión': { fr: 'J’ai oublié mon PIN — se déconnecter', en: 'Forgot my PIN — log out' },
+    'Introduce tu PIN': { fr: 'Saisis ton PIN', en: 'Enter your PIN' },
+    'Activar notificaciones': { fr: 'Activer les notifications', en: 'Enable notifications' },
+
+    // estados vacíos (se pintan en el DOM)
+    'Aún no tienes circulares — autoriza la primera abajo': { fr: 'Tu n’as pas encore de circulaires — autorise la première ci-dessous', en: 'You have no circulars yet — authorize the first one below' },
+    'Aún no tienes circulares en tu red.': { fr: 'Tu n’as pas encore de circulaires dans ton réseau.', en: 'You have no circulars in your network yet.' },
+    'Aún no tienes comandas — llegarán cuando los clientes pidan a tu tienda': { fr: 'Tu n’as pas encore de commandes — elles arriveront quand les clients commanderont', en: 'No orders yet — they will arrive when clients order from your shop' },
+    'Aún no tienes comisiones — haz recargas a clientes': { fr: 'Tu n’as pas encore de commissions — fais des recharges aux clients', en: 'No commissions yet — top up some clients' },
+    'Aún no tienes entregas': { fr: 'Tu n’as pas encore de livraisons', en: 'No deliveries yet' },
+    'Aún no has cobrado comisiones': { fr: 'Tu n’as pas encore encaissé de commissions', en: 'You have not cashed out commissions yet' },
+    'Aún no has trasladado unidades': { fr: 'Tu n’as pas encore transféré d’unités', en: 'You have not moved units yet' },
+    'Aún sin actividad — tu red genera comisión con cada compra de unidades': { fr: 'Pas encore d’activité — ton réseau génère une commission à chaque achat d’unités', en: 'No activity yet — your network earns a commission on every unit purchase' },
+    'Sin mensajes todavía — escribe el primero': { fr: 'Pas encore de messages — écris le premier', en: 'No messages yet — write the first one' },
+    'Sin riders registrados en tu país todavía': { fr: 'Aucun livreur enregistré dans ton pays pour l’instant', en: 'No riders registered in your country yet' },
+    'Nadie activo cerca ahora mismo. Aparecerán aquí los riders cuando estén en línea.': { fr: 'Personne d’actif à proximité pour l’instant. Les livreurs apparaîtront ici quand ils seront en ligne.', en: 'Nobody active nearby right now. Riders will appear here when online.' },
+    'No se pudo cargar el mapa': { fr: 'Impossible de charger la carte', en: 'Could not load the map' },
+
+    // placeholders (atributo placeholder)
+    'Buscar cliente (código IA, teléfono, email o nombre)': { fr: 'Chercher client (code IA, téléphone, email ou nom)', en: 'Find client (IA code, phone, email or name)' },
+    'Buscar usuario (código IA, teléfono, email o nombre)': { fr: 'Chercher utilisateur (code IA, téléphone, email ou nom)', en: 'Find user (IA code, phone, email or name)' },
+    'Escribe tu email': { fr: 'Écris ton email', en: 'Type your email' },
+    'Escribe tu primer mensaje a InnovaAFRIC': { fr: 'Écris ton premier message à InnovaAFRIC', en: 'Write your first message to InnovaAFRIC' },
+    'Dirección': { fr: 'Adresse', en: 'Address' },
+    'Disponible': { fr: 'Disponible', en: 'Available' }
   };
 
   let lang = localStorage.getItem('ia_lang') || 'es';
