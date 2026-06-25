@@ -37,7 +37,11 @@
 
   function paint(on) {
     const b = document.getElementById('pushBtn');
-    if (b) { b.textContent = on ? '🔔' : '🔕'; b.title = on ? 'Notificaciones activadas (toca para desactivar)' : 'Activar notificaciones'; }
+    if (b) {
+      b.textContent = '🔔';                       // siempre campana clara
+      b.style.opacity = on ? '1' : '0.45';         // atenuada cuando está apagada (igual que 👆)
+      b.title = on ? '🔔 Notificaciones activadas (toca para desactivar)' : '🔔 Activar notificaciones';
+    }
   }
 
   // Refleja el estado real al cargar la app
