@@ -55,6 +55,7 @@
     <span class="muted" id="updatedAt"></span>
     <span class="pill">
       <button onclick="iaPush.toggle(API, TOKEN)" id="pushBtn" title="Resumen diario por notificación">🔕</button>
+      <button onclick="printVisits()" id="pdfBtn" title="Exportar / Imprimir PDF">🖨️ PDF</button>
       <button onclick="load()" id="refreshBtn" title="Actualizar">🔄</button>
       <button onclick="logout()">Salir</button>
     </span>
@@ -88,7 +89,7 @@
 <script>
 const API = '/v1';
 let TOKEN = localStorage.getItem('ia_admin_token') || null;
-let timer = null;
+let timer = null, LAST = null;
 
 async function api(method, path, body){
   const r = await fetch(API + path, {
@@ -126,7 +127,7 @@ function rows(el, arr, render){ el.innerHTML = arr.length ? arr.map(render).join
 
 async function load(){
   try{
-    const s = await api('GET','/track/stats');
+    const s = LAST = await api('GET','/track/stats');
     document.getElementById('kLive').textContent = fmt(s.live);
     document.getElementById('kToday').textContent = fmt(s.today.total);
     document.getElementById('kUniq').textContent = fmt(s.today.uniques);
@@ -150,6 +151,47 @@ async function load(){
   }catch(e){
     if(/401|403|inválid|token/i.test(e.message)){ logout(); }
   }
+}
+
+function printVisits(){
+  if(!LAST){ alert('Aún no hay datos cargados.'); return; }
+  const s = LAST, t = s.today;
+  const tbl = (title, arr, head) => `<h2>${title}</h2><table><thead><tr><th>${head}</th><th>Visitas</th></tr></thead><tbody>${
+    (arr.length? arr : [['—',0]]).map(r=>`<tr><td>${r[0]}</td><td>${Number(r[1]).toLocaleString('es-ES')}</td></tr>`).join('')
+  }</tbody></table>`;
+  const recent = s.recent.length
+    ? s.recent.map(v=>`<tr><td>${v.country||'—'}</td><td>${v.site}</td><td>${v.path}</td><td>${v.device||''}</td><td>${new Date(v.createdAt).toLocaleString('es-ES')}</td></tr>`).join('')
+    : '<tr><td colspan="5">Sin visitas</td></tr>';
+  const w = window.open('','_blank');
+  if(!w){ alert('Permite las ventanas emergentes para exportar el PDF.'); return; }
+  w.document.write(`<html><head><meta charset="utf-8"><title>Visitas InnovaAFRIC</title><style>
+    body{font-family:Arial,Helvetica,sans-serif;padding:28px;color:#111}
+    h1{color:#0d2b4e;font-size:22px;margin:0}.sub{font-size:11px;letter-spacing:2px;color:#666;margin:2px 0 4px}
+    .meta{font-size:12px;color:#555;margin-bottom:14px}
+    .kpis{display:flex;gap:18px;margin:14px 0}
+    .kpi{border:1px solid #ccc;border-radius:10px;padding:10px 16px}.kpi b{font-size:22px;display:block}
+    h2{font-size:14px;margin:18px 0 6px;color:#0d2b4e}
+    table{width:100%;border-collapse:collapse;margin-bottom:8px}
+    th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:12px}
+    th{background:#0d2b4e;color:#fff}
+    @media print{button{display:none}}
+  </style></head><body>
+    <h1>InnovaAFRIC — Informe de Visitas</h1><div class="sub">WE SIMPLIFY LIFE</div>
+    <div class="meta">Generado: ${new Date().toLocaleString('es-ES')}</div>
+    <div class="kpis">
+      <div class="kpi"><b>${Number(t.total).toLocaleString('es-ES')}</b>Visitas hoy</div>
+      <div class="kpi"><b>${Number(t.uniques).toLocaleString('es-ES')}</b>Visitantes únicos</div>
+      <div class="kpi"><b>${Number(s.live).toLocaleString('es-ES')}</b>En vivo (5 min)</div>
+    </div>
+    ${tbl('Por web (hoy)', t.bySite, 'Web')}
+    ${tbl('Por país (hoy)', t.byCountry, 'País')}
+    ${tbl('Páginas top (hoy)', t.byPage, 'Página')}
+    ${tbl('Dispositivo (hoy)', t.byDevice, 'Dispositivo')}
+    <h2>Últimas visitas</h2>
+    <table><thead><tr><th>País</th><th>Web</th><th>Página</th><th>Dispositivo</th><th>Fecha/hora</th></tr></thead><tbody>${recent}</tbody></table>
+  </body></html>`);
+  w.document.close();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 350);
 }
 
 function start(){
