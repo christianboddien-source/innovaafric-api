@@ -4,6 +4,7 @@ const prisma  = require('../config/prisma');
 const PDFDocument = require('pdfkit');
 const { requireAuth: authenticate, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
+const { iaCode, iaIdClauses } = require('../helpers/iacode');
 
 const DISCOUNT = 0.10; // 10% descuento motivacional
 const TRANSFER_TAX_DEFAULT = 0.02; // 2% de retención si el país no tiene impuestos configurados
@@ -107,13 +108,13 @@ router.get('/find-user', authenticate, async (req, res) => {
     const country = (req.query.country || '').trim();
     const city    = (req.query.city || '').trim();
 
-    const iaHex = q.toUpperCase().replace(/^IA-?/, '');
     const or = [
       { phone: { contains: q } },
       { email: { contains: q, mode: 'insensitive' } },
       { name:  { contains: q, mode: 'insensitive' } }
     ];
-    if (/^[0-9A-F]{6}$/.test(iaHex)) or.unshift({ id: { startsWith: iaHex.toLowerCase() } });
+    const idClauses = iaIdClauses(q);
+    if (idClauses) or.unshift(...idClauses);
 
     const where = { OR: or };
     if (country) where.country = country;
@@ -122,7 +123,7 @@ router.get('/find-user', authenticate, async (req, res) => {
     const rows = await prisma.user.findMany({
       where, select: { id: true, name: true, phone: true, email: true, country: true, city: true, role: true }, take: 8
     });
-    const users = rows.map(u => ({ ...u, ia: 'IA-' + (u.id || '').replace(/-/g, '').toUpperCase().substring(0, 6) }));
+    const users = rows.map(u => ({ ...u, ia: iaCode(u.id) }));
     return ok(res, { count: users.length, users });
   } catch (e) { return error(res, e.message); }
 });

@@ -4,6 +4,7 @@ const prisma  = require('../config/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
 const { WALLET_LIMITS, CURRENCY_FIELD } = require('../config/walletLimits');
+const { iaCode, iaIdClauses } = require('../helpers/iacode');
 
 const COMMISSION = 0.05; // 5% descuento en compra de unidades
 const TRANSFER_TAX_DEFAULT = 0.02; // 2% de retención si el país no tiene impuestos configurados
@@ -108,14 +109,14 @@ router.get('/find-client', requireAuth, async (req, res) => {
     const country = (req.query.country || '').trim();
     const city    = (req.query.city || '').trim();
 
-    // Código IA = IA- + primeros 6 hex del id (sin guiones, en mayúsculas)
-    const iaHex = q.toUpperCase().replace(/^IA-?/, '');
+    // Código IA — mismo cálculo que el dashboard (helper compartido)
     const or = [
       { phone: { contains: q } },
       { email: { contains: q, mode: 'insensitive' } },
       { name:  { contains: q, mode: 'insensitive' } }
     ];
-    if (/^[0-9A-F]{6}$/.test(iaHex)) or.unshift({ id: { startsWith: iaHex.toLowerCase() } });
+    const idClauses = iaIdClauses(q);
+    if (idClauses) or.unshift(...idClauses);
 
     const where = { OR: or };
     if (country) where.country = country;
@@ -124,7 +125,7 @@ router.get('/find-client', requireAuth, async (req, res) => {
     const rows = await prisma.user.findMany({
       where, select: { id: true, name: true, phone: true, country: true, city: true }, take: 8
     });
-    const clients = rows.map(c => ({ ...c, ia: 'IA-' + (c.id || '').replace(/-/g, '').toUpperCase().substring(0, 6) }));
+    const clients = rows.map(c => ({ ...c, ia: iaCode(c.id) }));
 
     return ok(res, { count: clients.length, clients });
   } catch (e) { return error(res, e.message); }
