@@ -18,21 +18,19 @@
 // ─────────────────────────────────────────────────────────────
 
 const prisma = require('../config/prisma');
+const vapid = require('../config/vapid');
 
 let webpush = null;
 let configured = false;
 
 function init() {
   if (configured) return webpush;
-  const pub = process.env.VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
+  const pub = vapid.publicKey;
+  const priv = vapid.privateKey;
   if (!pub || !priv) { configured = true; return null; }
   try {
     webpush = require('web-push');
-    webpush.setVapidDetails(
-      process.env.VAPID_SUBJECT || 'mailto:soporte@innovaafric.com',
-      pub, priv
-    );
+    webpush.setVapidDetails(vapid.subject || 'mailto:soporte@innovaafric.com', pub, priv);
   } catch (e) {
     console.warn('[PUSH] web-push no disponible:', e.message);
     webpush = null;
@@ -46,7 +44,7 @@ function isEnabled() {
 }
 
 function publicKey() {
-  return process.env.VAPID_PUBLIC_KEY || null;
+  return vapid.publicKey || null;
 }
 
 // Envía una notificación a TODOS los dispositivos suscritos de un usuario.
