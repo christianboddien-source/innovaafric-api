@@ -306,7 +306,34 @@
     'Ej: Barrio Bonabéri': { fr: 'Ex : Quartier Bonabéri', en: 'e.g. Bonabéri district' },
     'Ej: Camerún': { fr: 'Ex : Cameroun', en: 'e.g. Cameroon' },
     'Ej: IA-35F6A1, +2376..., maria@...': { fr: 'Ex : IA-35F6A1, +2376..., maria@...', en: 'e.g. IA-35F6A1, +2376..., maria@...' },
-    'Ej: IA-461E93, +2376..., maria@...': { fr: 'Ex : IA-461E93, +2376..., maria@...', en: 'e.g. IA-461E93, +2376..., maria@...' }
+    'Ej: IA-461E93, +2376..., maria@...': { fr: 'Ex : IA-461E93, +2376..., maria@...', en: 'e.g. IA-461E93, +2376..., maria@...' },
+
+    // gamificación: niveles + nombres
+    'Nivel Bronce': { fr: 'Niveau Bronze', en: 'Bronze level' },
+    'Nivel Plata': { fr: 'Niveau Argent', en: 'Silver level' },
+    'Nivel Oro': { fr: 'Niveau Or', en: 'Gold level' },
+    'Nivel Platino': { fr: 'Niveau Platine', en: 'Platinum level' },
+    'Nivel Diamante': { fr: 'Niveau Diamant', en: 'Diamond level' },
+    'Bronce': { fr: 'Bronze', en: 'Bronze' },
+    'Plata': { fr: 'Argent', en: 'Silver' },
+    'Oro': { fr: 'Or', en: 'Gold' },
+    'Platino': { fr: 'Platine', en: 'Platinum' },
+    'Diamante': { fr: 'Diamant', en: 'Diamond' },
+    'invitado(s)': { fr: 'invité(s)', en: 'invited' },
+
+    // referidos: aplicar código
+    'CÓDIGO': { fr: 'CODE', en: 'CODE' },
+    'Aplicar': { fr: 'Appliquer', en: 'Apply' },
+
+    // límites del circular (el número va en <b> aparte → el texto es estático)
+    'XAF / XOF (FCFA): máximo': { fr: 'XAF / XOF (FCFA) : maximum', en: 'XAF / XOF (FCFA): maximum' },
+    'EUR / USD: máximo': { fr: 'EUR / USD : maximum', en: 'EUR / USD: maximum' },
+
+    // párrafo "dónde depositar" (nodos separados por <b>)
+    'Deposita el dinero cobrado a tus clientes directamente en una': { fr: 'Dépose l’argent encaissé auprès de tes clients directement dans une', en: 'Deposit the cash collected from your clients directly at a' },
+    'sucursal de InnovaAFRIC': { fr: 'agence InnovaAFRIC', en: 'InnovaAFRIC branch' },
+    'o en la': { fr: 'ou au', en: 'or at the' },
+    'oficina de tu representante': { fr: 'bureau de ton représentant', en: 'office of your representative' }
   };
 
   let lang = localStorage.getItem('ia_lang') || 'es';

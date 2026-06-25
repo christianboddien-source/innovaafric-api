@@ -211,6 +211,7 @@
     </div>
     <div style="display:flex;gap:8px">
       <button onclick="openSetPin()" style="font-size:15px" title="PIN de seguridad">🔐</button>
+      <button onclick="refreshApp()" id="refreshBtn" title="Actualizar">🔄</button>
       <button class="ia-lang-hdr" onclick="iaCycleLang()">🌐 ES</button>
       <button onclick="toggleAppTheme()" id="themeBtn" title="Tema claro/oscuro">🌙</button>
       <button onclick="iaPush.toggle(API, TOKEN)" id="pushBtn" title="Activar notificaciones">🔕</button>
@@ -637,6 +638,12 @@ async function doLogin() {
   } finally { btn.disabled = false; }
 }
 
+async function refreshApp() {
+  var b = document.getElementById('refreshBtn'); if (b) b.textContent = '⏳';
+  try { ME = await api('GET', '/circulares/me'); renderHome(); loadRecent(); checkUnread(); loadRewards(); } catch (e) {}
+  if (b) setTimeout(function () { b.textContent = '🔄'; }, 500);
+}
+
 async function enterApp() {
   try {
     ME = await api('GET', '/circulares/me');
@@ -670,7 +677,7 @@ function gamifyHTML(pts) {
   const pct = next ? Math.min(100, Math.round((pts - cur.min) / (next.min - cur.min) * 100)) : 100;
   const medals = levels.map(l => `<span title="${l.n}" style="font-size:20px;opacity:${pts >= l.min ? 1 : .3};filter:${pts >= l.min ? 'none' : 'grayscale(1)'}">${l.i}</span>`).join('');
   return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:11px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">${cur.i} Nivel ${cur.n}</b>${next ? `<span style="font-size:11px;color:var(--muted)">${fmt(next.min - pts)} pts → ${next.i} ${next.n}</span>` : `<span style="font-size:11px;color:var(--muted)">¡Nivel máximo!</span>`}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">${cur.i} <span>Nivel ${cur.n}</span></b>${next ? `<span style="font-size:11px;color:var(--muted)">${fmt(next.min - pts)} pts → ${next.i} <span>${next.n}</span></span>` : `<span style="font-size:11px;color:var(--muted)">¡Nivel máximo!</span>`}</div>
       <div style="height:8px;background:var(--card);border-radius:6px;overflow:hidden;margin:9px 0"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent-dark),var(--accent))"></div></div>
       <div style="display:flex;justify-content:space-between">${medals}</div>
     </div>`;
@@ -687,7 +694,7 @@ async function loadRewards() {
     const pts = bal ? bal.points : 0, eur = bal ? bal.equivalent_eur : 0;
     const code = ref ? ref.referral_code : '—', cnt = ref ? ref.referrals_count : 0;
     box.innerHTML = `<div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">🎁 Invita y gana</b><span style="font-size:11px;color:var(--muted)">${cnt} invitado(s)</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">🎁 Invita y gana</b><span style="font-size:11px;color:var(--muted)">${cnt} <span>invitado(s)</span></span></div>
         <div style="display:flex;gap:10px;margin:12px 0">
           <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:11px"><div style="font-size:11px;color:var(--muted)">⭐ Mis puntos</div><div style="font-size:18px;font-weight:800">${fmt(pts)}</div></div>
           <div style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:11px"><div style="font-size:11px;color:var(--muted)">≈ en €</div><div style="font-size:18px;font-weight:800">${eur} €</div></div>
