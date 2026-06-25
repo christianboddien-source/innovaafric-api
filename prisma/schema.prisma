@@ -621,6 +621,21 @@ model PushSubscription {
   @@index([userId])
 }
 
+// Visitas a las webs públicas del ecosistema (analítica básica)
+model Visit {
+  id        String   @id @default(cuid())
+  site      String                 // innovaafric | xendermoney | xendershop | xenderbigshop | xenderdelivery | app
+  path      String   @default("/")
+  country   String?                // código país (cf-ipcountry u otro), si está disponible
+  referer   String?
+  device    String?                // mobile | desktop | tablet
+  ipHash    String?                // hash de IP (visitante aprox., sin guardar IP cruda)
+  createdAt DateTime @default(now())
+
+  @@index([site])
+  @@index([createdAt])
+}
+
 model ExchangeRate {
   id        String   @id @default(cuid())
   pair      String   @unique

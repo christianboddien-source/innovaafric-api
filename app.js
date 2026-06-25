@@ -29,6 +29,7 @@ const referralsRoutes     = require('./src/routes/referrals');
 const businessRoutes      = require('./src/routes/business');
 const notificationsRoutes = require('./src/routes/notifications');
 const pushRoutes          = require('./src/routes/push');
+const trackRoutes         = require('./src/routes/track');
 const categoriesRoutes    = require('./src/routes/categories');
 const taxesRoutes         = require('./src/routes/taxes');
 const banksRoutes         = require('./src/routes/banks');
@@ -150,6 +151,7 @@ app.get('/circular',  (_req, res) => res.sendFile(path.join(__dirname, 'src/view
 app.get('/representante', (_req, res) => res.sendFile(path.join(__dirname, 'src/views/representante.html')));
 app.get('/rider',     (_req, res) => res.sendFile(path.join(__dirname, 'src/views/rider.html')));
 app.get('/comercio',  (_req, res) => res.sendFile(path.join(__dirname, 'src/views/comercio.html')));
+app.get('/visitas',   (_req, res) => res.sendFile(path.join(__dirname, 'src/views/visits.html')));
 app.get('/app',       (_req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 
 // ── Documentación Swagger ───────────────────────────────
@@ -180,6 +182,7 @@ app.use('/v1/referrals',     referralsRoutes);
 app.use('/v1/business',      businessRoutes);
 app.use('/v1/notifications', notificationsRoutes);
 app.use('/v1/push',          pushRoutes);
+app.use('/v1/track',         trackRoutes);
 app.use('/v1/categories',    categoriesRoutes);
 app.use('/v1/taxes',         taxesRoutes);
 app.use('/v1/banks',         banksRoutes);
@@ -238,5 +241,11 @@ app.use((err, _req, res, _next) => {
   console.error('[ERROR]', err);
   error(res, 'Error interno del servidor', 500);
 });
+
+// ── Resumen diario de visitas por push (no en tests) ────
+if (process.env.NODE_ENV !== 'test') {
+  try { require('./src/services/visitSummary').start(); }
+  catch (e) { console.warn('[visitSummary] no iniciado:', e.message); }
+}
 
 module.exports = app;
