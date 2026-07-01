@@ -219,8 +219,10 @@ router.post('/token', async (req, res) => {
       } : null
     });
     } catch (e) {
-      console.error('[exchange] error:', e && e.message);
-      return error(res, 'No se pudo verificar la sesión con Supabase: ' + ((e && e.message) || 'error de red'), 502);
+      const cause = (e && e.cause && (e.cause.code || e.cause.message)) || (e && e.message) || 'error de red';
+      const usedUrl = process.env.SUPABASE_URL || '(fallback)';
+      console.error('[exchange] fetch a Supabase falló. URL=', usedUrl, '| causa=', cause);
+      return error(res, 'No se pudo verificar la sesión con Supabase [' + cause + '] (URL=' + usedUrl + ')', 502);
     }
   }
 
