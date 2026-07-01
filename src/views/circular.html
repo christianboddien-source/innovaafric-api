@@ -289,7 +289,7 @@
         <div id="clientResults"></div>
         <div id="clientChosen" class="hidden" style="margin-top:12px"></div>
         <label>Importe</label>
-        <input id="topupAmount" type="number" min="1" placeholder="0">
+        <input id="topupAmount" type="text" inputmode="numeric" min="1" placeholder="0">
         <div id="quickAmounts" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:9px"></div>
         <label>Divisa</label>
         <select id="topupCurrency" onchange="renderQuickAmounts()">
@@ -308,7 +308,7 @@
       <h2>🛒 Comprar unidades a InnovaAFRIC</h2>
       <div class="card">
         <label>Unidades que necesitas</label>
-        <input id="unitsAmount" type="number" min="1" placeholder="Ej: 100000" oninput="calcUnits()">
+        <input id="unitsAmount" type="text" inputmode="numeric" min="1" placeholder="Ej: 100000" oninput="calcUnits()">
         <label>Divisa</label>
         <select id="unitsCurrency" onchange="calcUnits()">
           <option value="XAF">XAF (FCFA)</option>
@@ -337,7 +337,7 @@
       <div class="card">
         <b style="font-size:14px">↗️ Trasladar unidades a mi wallet XenderMoney</b>
         <label>Unidades a trasladar</label>
-        <input id="transferUnits" type="number" min="1" placeholder="0" oninput="calcTransfer()">
+        <input id="transferUnits" type="text" inputmode="numeric" min="1" placeholder="0" oninput="calcTransfer()">
         <label>Divisa</label>
         <select id="transferCurrency" onchange="calcTransfer()">
           <option value="XAF">XAF (FCFA)</option>
@@ -582,6 +582,11 @@ async function api(method, path, body) {
   return json.data;
 }
 const fmt = (n) => Number(n || 0).toLocaleString('es-ES');
+// Importes: punto de millar automatico al escribir + lectura correcta
+function groupThousands(d){ return d.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function fmtAmountInput(el){ if(!el)return; var p=String(el.value).replace(/[^\d,]/g,'').split(','); var i=p[0].replace(/^0+(?=\d)/,''); var dec=p.length>1?','+p[1].slice(0,2):''; el.value=(i?groupThousands(i):'')+dec; }
+function parseAmount(v){ return parseFloat(String(v==null?'':v).replace(/\./g,'').replace(',','.'))||0; }
+document.addEventListener('DOMContentLoaded', function(){ ['topupAmount','unitsAmount','transferUnits'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.addEventListener('input', function(){ fmtAmountInput(el); }); fmtAmountInput(el); } }); });
 const fmtDate = (d) => new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 function msg(elId, text, ok) {
   const el = document.getElementById(elId);
@@ -902,7 +907,7 @@ function setQuickAmount(v) {
 
 async function doTopup() {
   if (!selectedClient) return;
-  const amount = Number(document.getElementById('topupAmount').value);
+  const amount = parseAmount(document.getElementById('topupAmount').value);
   const currency = document.getElementById('topupCurrency').value;
   if (!amount || amount <= 0) return msg('topupMsg', 'Introduce un importe válido', false);
   const btn = document.getElementById('topupBtn');
@@ -925,7 +930,7 @@ async function doTopup() {
 
 // ── comprar unidades ──
 function calcUnits() {
-  const u = Number(document.getElementById('unitsAmount').value);
+  const u = parseAmount(document.getElementById('unitsAmount').value);
   const cur = document.getElementById('unitsCurrency').value;
   const box = document.getElementById('unitsCalc');
   if (!u || u <= 0) { box.style.display = 'none'; return; }
@@ -936,7 +941,7 @@ function calcUnits() {
 }
 
 async function doPurchase() {
-  const u = Number(document.getElementById('unitsAmount').value);
+  const u = parseAmount(document.getElementById('unitsAmount').value);
   const currency = document.getElementById('unitsCurrency').value;
   if (!u || u <= 0) return msg('unitsMsg', 'Introduce las unidades que necesitas', false);
   msg('unitsMsg', '');
@@ -1165,7 +1170,7 @@ async function loadCobrar() {
 }
 
 function calcTransfer() {
-  const u = Number(document.getElementById('transferUnits').value);
+  const u = parseAmount(document.getElementById('transferUnits').value);
   const cur = document.getElementById('transferCurrency').value;
   const boxCalc = document.getElementById('transferCalc');
   if (!u || u <= 0) { boxCalc.style.display = 'none'; return; }
@@ -1177,7 +1182,7 @@ function calcTransfer() {
 }
 
 async function doTransfer() {
-  const units = Number(document.getElementById('transferUnits').value);
+  const units = parseAmount(document.getElementById('transferUnits').value);
   const currency = document.getElementById('transferCurrency').value;
   if (!units || units <= 0) return msg('transferMsg', 'Introduce las unidades a trasladar', false);
   msg('transferMsg', '');

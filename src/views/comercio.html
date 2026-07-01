@@ -223,7 +223,7 @@
         <b style="font-size:14px">➕ Añadir producto</b>
         <input id="newProdName" placeholder="Nombre del producto">
         <div style="display:flex;gap:8px">
-          <input id="newProdPrice" type="number" min="1" placeholder="Precio XAF" style="flex:1">
+          <input id="newProdPrice" type="text" inputmode="numeric" min="1" placeholder="Precio XAF" style="flex:1">
           <input id="newProdCat" placeholder="Categoría" style="flex:1">
         </div>
         <button class="btn" onclick="addProduct()">Añadir al catálogo</button>
@@ -305,6 +305,11 @@ async function api(method, path, body) {
   return json.data;
 }
 const fmt = (n) => Number(n || 0).toLocaleString('es-ES');
+// Importes: punto de millar automatico al escribir + lectura correcta
+function groupThousands(d){ return d.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function fmtAmountInput(el){ if(!el)return; var p=String(el.value).replace(/[^\d,]/g,'').split(','); var i=p[0].replace(/^0+(?=\d)/,''); var dec=p.length>1?','+p[1].slice(0,2):''; el.value=(i?groupThousands(i):'')+dec; }
+function parseAmount(v){ return parseFloat(String(v==null?'':v).replace(/\./g,'').replace(',','.'))||0; }
+document.addEventListener('DOMContentLoaded', function(){ ['newProdPrice'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.addEventListener('input', function(){ fmtAmountInput(el); }); fmtAmountInput(el); } }); });
 const fmtTime = (d) => new Date(d).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 function msg(elId, text, ok) {
   document.getElementById(elId).innerHTML = text ? `<div class="${ok ? 'okmsg' : 'err'}">${text}</div>` : '';
@@ -482,7 +487,7 @@ async function loadProducts() {
 }
 async function addProduct() {
   const name = document.getElementById('newProdName').value.trim();
-  const priceXaf = Number(document.getElementById('newProdPrice').value);
+  const priceXaf = parseAmount(document.getElementById('newProdPrice').value);
   const category = document.getElementById('newProdCat').value.trim();
   const m = document.getElementById('newProdMsg');
   if (!name || !priceXaf || priceXaf <= 0) { m.style.color = 'var(--red)'; m.textContent = 'Pon un nombre y un precio válido.'; return; }
