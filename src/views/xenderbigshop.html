@@ -430,7 +430,7 @@ function renderB2b(products) {
         <div class="product-seller">Proveedor: ${p.seller} · ${p.country}</div>
         <div class="product-moq">⚡ MOQ: ${p.moq} ${p.unit}</div>
         <div class="product-footer">
-          <div class="product-price">${parseFloat(p.price).toLocaleString('es-ES')} <small>EUR / ${p.unit}</small></div>
+          <div class="product-price">${parseFloat(p.price).toLocaleString('es-ES', {useGrouping:'always'})} <small>EUR / ${p.unit}</small></div>
           <button class="quote-btn" onclick="openQuote('${p.id}','${p.name.replace(/'/g,"\\'")}')">📋 Cotizar</button>
         </div>
       </div>

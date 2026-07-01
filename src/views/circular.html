@@ -581,7 +581,7 @@ async function api(method, path, body) {
   }
   return json.data;
 }
-const fmt = (n) => Number(n || 0).toLocaleString('es-ES');
+const fmt = (n) => Number(n || 0).toLocaleString('es-ES', {useGrouping:'always'});
 // Importes: punto de millar automatico al escribir + lectura correcta
 function groupThousands(d){ return d.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 function fmtAmountInput(el){ if(!el)return; var p=String(el.value).replace(/[^\d,]/g,'').split(','); var i=p[0].replace(/^0+(?=\d)/,''); var dec=p.length>1?','+p[1].slice(0,2):''; el.value=(i?groupThousands(i):'')+dec; }
@@ -985,7 +985,7 @@ function printHistorial() {
     <h3 style="font-size:14px;margin:14px 0 4px">Recargas a clientes (${H.topUps.length})</h3>
     <table>
       <tr><th>Fecha</th><th>Cliente</th><th>Teléfono</th><th>Importe</th><th>Estado</th></tr>
-      ${H.topUps.map(t => `<tr><td>${new Date(t.createdAt).toLocaleString('es-ES')}</td>
+      ${H.topUps.map(t => `<tr><td>${new Date(t.createdAt).toLocaleString('es-ES', {useGrouping:'always'})}</td>
         <td>${t.clientName || t.clientId}</td><td>${t.clientPhone || '—'}</td>
         <td>${fmt(t.amount)} ${t.currency}</td><td>${t.status}</td></tr>`).join('')}
     </table>
@@ -1107,7 +1107,7 @@ function printHeaderHTML(title) {
       </div>
       <div style="margin-left:auto;text-align:right">
         <div style="font-size:16px;font-weight:700">${title}</div>
-        <div style="font-size:11px;color:#555">Generado el ${new Date().toLocaleString('es-ES')}</div>
+        <div style="font-size:11px;color:#555">Generado el ${new Date().toLocaleString('es-ES', {useGrouping:'always'})}</div>
       </div>
     </div>`;
 }

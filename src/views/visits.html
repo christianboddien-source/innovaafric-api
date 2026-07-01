@@ -121,7 +121,7 @@ async function doLogin(){
 
 function logout(){ localStorage.removeItem('ia_admin_token'); TOKEN=null; clearInterval(timer); show('login'); }
 
-const fmt = n => Number(n||0).toLocaleString('es-ES');
+const fmt = n => Number(n||0).toLocaleString('es-ES', {useGrouping:'always'});
 const flag = c => (c&&c.length===2) ? c.replace(/./g,ch=>String.fromCodePoint(127397+ch.charCodeAt(0))) : '🏳️';
 function rows(el, arr, render){ el.innerHTML = arr.length ? arr.map(render).join('') : '<tr><td class="muted">Sin datos hoy</td></tr>'; }
 
@@ -157,10 +157,10 @@ function printVisits(){
   if(!LAST){ alert('Aún no hay datos cargados.'); return; }
   const s = LAST, t = s.today;
   const tbl = (title, arr, head) => `<h2>${title}</h2><table><thead><tr><th>${head}</th><th>Visitas</th></tr></thead><tbody>${
-    (arr.length? arr : [['—',0]]).map(r=>`<tr><td>${r[0]}</td><td>${Number(r[1]).toLocaleString('es-ES')}</td></tr>`).join('')
+    (arr.length? arr : [['—',0]]).map(r=>`<tr><td>${r[0]}</td><td>${Number(r[1]).toLocaleString('es-ES', {useGrouping:'always'})}</td></tr>`).join('')
   }</tbody></table>`;
   const recent = s.recent.length
-    ? s.recent.map(v=>`<tr><td>${v.country||'—'}</td><td>${v.site}</td><td>${v.path}</td><td>${v.device||''}</td><td>${new Date(v.createdAt).toLocaleString('es-ES')}</td></tr>`).join('')
+    ? s.recent.map(v=>`<tr><td>${v.country||'—'}</td><td>${v.site}</td><td>${v.path}</td><td>${v.device||''}</td><td>${new Date(v.createdAt).toLocaleString('es-ES', {useGrouping:'always'})}</td></tr>`).join('')
     : '<tr><td colspan="5">Sin visitas</td></tr>';
   const w = window.open('','_blank');
   if(!w){ alert('Permite las ventanas emergentes para exportar el PDF.'); return; }
@@ -177,11 +177,11 @@ function printVisits(){
     @media print{button{display:none}}
   </style></head><body>
     <h1>InnovaAFRIC — Informe de Visitas</h1><div class="sub">WE SIMPLIFY LIFE</div>
-    <div class="meta">Generado: ${new Date().toLocaleString('es-ES')}</div>
+    <div class="meta">Generado: ${new Date().toLocaleString('es-ES', {useGrouping:'always'})}</div>
     <div class="kpis">
-      <div class="kpi"><b>${Number(t.total).toLocaleString('es-ES')}</b>Visitas hoy</div>
-      <div class="kpi"><b>${Number(t.uniques).toLocaleString('es-ES')}</b>Visitantes únicos</div>
-      <div class="kpi"><b>${Number(s.live).toLocaleString('es-ES')}</b>En vivo (5 min)</div>
+      <div class="kpi"><b>${Number(t.total).toLocaleString('es-ES', {useGrouping:'always'})}</b>Visitas hoy</div>
+      <div class="kpi"><b>${Number(t.uniques).toLocaleString('es-ES', {useGrouping:'always'})}</b>Visitantes únicos</div>
+      <div class="kpi"><b>${Number(s.live).toLocaleString('es-ES', {useGrouping:'always'})}</b>En vivo (5 min)</div>
     </div>
     ${tbl('Por web (hoy)', t.bySite, 'Web')}
     ${tbl('Por país (hoy)', t.byCountry, 'País')}

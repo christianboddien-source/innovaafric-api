@@ -407,7 +407,7 @@ async function loadWallet() {
     document.getElementById('wallet-grid').innerHTML = balances.map(b=>`
       <div class="wallet-card">
         <div class="wallet-curr">${b.currency}</div>
-        <div class="wallet-bal">${parseFloat(b.balance||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div class="wallet-bal">${parseFloat(b.balance||0).toLocaleString('es-ES', {useGrouping:'always', minimumFractionDigits:2,maximumFractionDigits:2})}</div>
       </div>`).join('');
   } catch { document.getElementById('wallet-grid').innerHTML='<div style="color:var(--muted);padding:1rem">Error cargando saldos</div>'; }
 }

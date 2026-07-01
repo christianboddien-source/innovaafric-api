@@ -440,7 +440,7 @@ async function api(method, path, body) {
   if (!res.ok || json.success === false) throw new Error(json.error?.message || 'Error de conexión');
   return json.data;
 }
-const fmt = (n) => Number(n || 0).toLocaleString('es-ES');
+const fmt = (n) => Number(n || 0).toLocaleString('es-ES', {useGrouping:'always'});
 // Importes: punto de millar automatico al escribir + lectura correcta
 function groupThousands(d){ return d.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 function fmtAmountInput(el){ if(!el)return; var p=String(el.value).replace(/[^\d,]/g,'').split(','); var i=p[0].replace(/^0+(?=\d)/,''); var dec=p.length>1?','+p[1].slice(0,2):''; el.value=(i?groupThousands(i):'')+dec; }

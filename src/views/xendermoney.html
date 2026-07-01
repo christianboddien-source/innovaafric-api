@@ -456,7 +456,7 @@ function calcular() {
   const fee = Math.max(0.5, amount * 0.005);
   const net = (amount - fee) * rate;
   document.getElementById('recv-amount').value = net.toFixed(2);
-  document.getElementById('recv-exact').textContent = net.toLocaleString('es-ES', {maximumFractionDigits:0}) + ' ' + to;
+  document.getElementById('recv-exact').textContent = net.toLocaleString('es-ES', {useGrouping:'always', maximumFractionDigits:0}) + ' ' + to;
   document.getElementById('rate-display').textContent = '1 ' + from + ' = ' + rate.toFixed(3) + ' ' + to;
   document.getElementById('fee-display').textContent = fee.toFixed(2) + ' ' + from;
 }
@@ -495,19 +495,19 @@ async function loadWallet() {
     grid.innerHTML = `
       <div class="wallet-card">
         <div class="wallet-currency">EUR</div>
-        <div class="wallet-amount">${parseFloat(data.balanceEur||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} <span class="wallet-symbol">€</span></div>
+        <div class="wallet-amount">${parseFloat(data.balanceEur||0).toLocaleString('es-ES', {useGrouping:'always', minimumFractionDigits:2,maximumFractionDigits:2})} <span class="wallet-symbol">€</span></div>
       </div>
       <div class="wallet-card">
         <div class="wallet-currency">USD</div>
-        <div class="wallet-amount">${parseFloat(data.balanceUsd||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})} <span class="wallet-symbol">$</span></div>
+        <div class="wallet-amount">${parseFloat(data.balanceUsd||0).toLocaleString('es-ES', {useGrouping:'always', minimumFractionDigits:2,maximumFractionDigits:2})} <span class="wallet-symbol">$</span></div>
       </div>
       <div class="wallet-card">
         <div class="wallet-currency">XAF</div>
-        <div class="wallet-amount">${parseFloat(data.balanceXaf||0).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})} <span class="wallet-symbol">XAF</span></div>
+        <div class="wallet-amount">${parseFloat(data.balanceXaf||0).toLocaleString('es-ES', {useGrouping:'always', minimumFractionDigits:0,maximumFractionDigits:0})} <span class="wallet-symbol">XAF</span></div>
       </div>
       <div class="wallet-card">
         <div class="wallet-currency">XOF</div>
-        <div class="wallet-amount">${parseFloat(data.balanceXof||0).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})} <span class="wallet-symbol">XOF</span></div>
+        <div class="wallet-amount">${parseFloat(data.balanceXof||0).toLocaleString('es-ES', {useGrouping:'always', minimumFractionDigits:0,maximumFractionDigits:0})} <span class="wallet-symbol">XOF</span></div>
       </div>`;
   } catch(e) {
     document.getElementById('wallets-grid').innerHTML = '<p style="color:var(--muted)">Error cargando saldos</p>';
@@ -571,12 +571,12 @@ async function loadMyOrders() {
       ? orders.map(o => `
         <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <b>${Number(o.totalXaf).toLocaleString('es-ES')} XAF</b>
+            <b>${Number(o.totalXaf).toLocaleString('es-ES', {useGrouping:'always'})} XAF</b>
             <span style="font-size:12px">${ORDER_LABELS[o.status] || o.status}</span>
           </div>
           <div style="font-size:13px;margin-top:5px">📍 ${o.deliveryAddress}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:3px">
-            ${o.merchantName ? '🏪 ' + o.merchantName + ' · ' : ''}${new Date(o.createdAt).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            ${o.merchantName ? '🏪 ' + o.merchantName + ' · ' : ''}${new Date(o.createdAt).toLocaleString('es-ES', {useGrouping:'always',  day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
             ${o.rider ? '<br>🛵 ' + o.rider.name + ' (' + o.rider.vehicle + ')' : ''}
           </div>
           ${['preparing', 'ready', 'in_transit'].includes(o.status)
