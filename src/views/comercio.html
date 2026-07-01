@@ -603,6 +603,7 @@ function renderHome() {
   document.getElementById('stDelivered').textContent = fmt(ME.stats.delivered);
   document.getElementById('ordersDot').classList.toggle('hidden', !ME.stats.preparing);
   renderOpenStatus();
+  showPayQR();
   renderPayIa();
   loadOrders().then(renderSalesStats).catch(() => {});
   renderQrCollections();
