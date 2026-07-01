@@ -139,6 +139,7 @@ router.post('/token', async (req, res) => {
             email: sbUser.email,
             phone: meta.phone || '',
             country: meta.country || 'CM',
+            city: meta.city || null,
             role: meta.role || 'customer',
             passwordHash: bcrypt.hashSync(uuidv4(), 10), // random password — login via Supabase
             kycStatus: 'pending',
@@ -242,7 +243,7 @@ router.post('/refresh', async (req, res) => {
 
 // POST /v1/auth/register
 router.post('/register', async (req, res) => {
-  const { name, email, phone, password, country, role = 'customer', zone, vehicle } = req.body;
+  const { name, email, phone, password, country, city, role = 'customer', zone, vehicle } = req.body;
   if (!name || !email || !phone || !password || !country) {
     return error(res, 'Campos requeridos: name, email, phone, password, country', 400);
   }
@@ -256,7 +257,7 @@ router.post('/register', async (req, res) => {
 
   const ops = [
     prisma.user.create({
-      data: { id: userId, name, email, phone, country, role, passwordHash: bcrypt.hashSync(password, 10), kycStatus: 'pending' }
+      data: { id: userId, name, email, phone, country, city: city || null, role, passwordHash: bcrypt.hashSync(password, 10), kycStatus: 'pending' }
     }),
     prisma.wallet.create({
       data: { userId, balanceEur: 0, balanceUsd: 0, balanceXaf: 0, balanceXof: 0 }
