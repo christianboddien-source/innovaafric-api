@@ -13,6 +13,17 @@ const { PUBLIC_ROLES } = require('../config/roles');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'innovaafric_secret_2026';
 
+// Config de Supabase saneada: extrae una URL/clave válida aunque la variable
+// de entorno traiga texto extra (p.ej. si se pegó "Name: ... Value: ...").
+function sbEnv() {
+  const urlM = String(process.env.SUPABASE_URL || '').match(/https?:\/\/[^\s"'\\]+/i);
+  const keyM = String(process.env.SUPABASE_ANON_KEY || '').match(/(?:sb_[a-z]+_[A-Za-z0-9._-]+|eyJ[A-Za-z0-9._-]+)/);
+  return {
+    url:  ((urlM ? urlM[0] : '') || 'https://spnfvmvrlexyiljwyola.supabase.co').replace(/\/+$/, ''),
+    anon: (keyM ? keyM[0] : '') || 'sb_publishable_Aqe-VLEi6MfY8AvlpRfnLQ_OAom278u'
+  };
+}
+
 // POST /v1/auth/token — OAuth 2.0 client_credentials + password
 router.post('/token', async (req, res) => {
   const { grant_type, client_id, client_secret, scope, email, password } = req.body;
@@ -101,8 +112,7 @@ router.post('/token', async (req, res) => {
 
     try {
     // Verify token with Supabase
-    const sbUrl  = process.env.SUPABASE_URL || 'https://spnfvmvrlexyiljwyola.supabase.co';
-    const sbAnon = process.env.SUPABASE_ANON_KEY || 'sb_publishable_Aqe-VLEi6MfY8AvlpRfnLQ_OAom278u';
+    const { url: sbUrl, anon: sbAnon } = sbEnv();
     const sbResp = await fetch(`${sbUrl}/auth/v1/user`, {
       headers: { 'Authorization': `Bearer ${supabase_token}`, 'apikey': sbAnon }
     });
@@ -220,9 +230,8 @@ router.post('/token', async (req, res) => {
     });
     } catch (e) {
       const cause = (e && e.cause && (e.cause.code || e.cause.message)) || (e && e.message) || 'error de red';
-      const usedUrl = process.env.SUPABASE_URL || '(fallback)';
-      console.error('[exchange] fetch a Supabase falló. URL=', usedUrl, '| causa=', cause);
-      return error(res, 'No se pudo verificar la sesión con Supabase [' + cause + '] (URL=' + usedUrl + ')', 502);
+      console.error('[exchange] fetch a Supabase falló:', cause);
+      return error(res, 'No se pudo verificar la sesión. Inténtalo de nuevo en unos segundos.', 502);
     }
   }
 
