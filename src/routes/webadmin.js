@@ -9,11 +9,12 @@
 const express = require('express');
 const router  = express.Router();
 const { success, error } = require('../helpers/response');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireLevel } = require('../middleware/auth');
 
 const GH_OWNER = 'christianboddien-source';
 const GH_API   = 'https://api.github.com';
-const ADMIN_ROLES = ['admin', 'super_admin', 'country_manager', 'regional_director'];
+// Mismo guard que el resto de endpoints admin del dashboard (nivel 2 = admin+)
+const guard = [requireAuth, requireLevel(2)];
 
 // Páginas editables (repo, rama, ruta, etiqueta amigable)
 const PAGES = [
@@ -42,7 +43,7 @@ function ghHeaders() {
 const findPage = (id) => PAGES.find(p => p.id === id);
 
 // GET /v1/webadmin/pages — lista de páginas editables
-router.get('/pages', requireAuth, requireRole(...ADMIN_ROLES), (req, res) => {
+router.get('/pages', ...guard, (req, res) => {
   return success(res, {
     tokenConfigured: !!process.env.GITHUB_TOKEN,
     pages: PAGES.map(p => ({ id: p.id, label: p.label, repo: p.repo, path: p.path }))
@@ -50,7 +51,7 @@ router.get('/pages', requireAuth, requireRole(...ADMIN_ROLES), (req, res) => {
 });
 
 // GET /v1/webadmin/file?id=... — lee el HTML actual de una página
-router.get('/file', requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
+router.get('/file', ...guard, async (req, res) => {
   try {
     const p = findPage(req.query.id);
     if (!p) return error(res, 'Página no encontrada', 404);
@@ -65,7 +66,7 @@ router.get('/file', requireAuth, requireRole(...ADMIN_ROLES), async (req, res) =
 });
 
 // PUT /v1/webadmin/file — guarda (commit) los cambios en GitHub
-router.put('/file', requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
+router.put('/file', ...guard, async (req, res) => {
   try {
     const { id, content, sha, message } = req.body || {};
     const p = findPage(id);
