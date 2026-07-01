@@ -603,7 +603,6 @@ function renderHome() {
   document.getElementById('stDelivered').textContent = fmt(ME.stats.delivered);
   document.getElementById('ordersDot').classList.toggle('hidden', !ME.stats.preparing);
   renderOpenStatus();
-  showPayQR();
   renderPayIa();
   loadOrders().then(renderSalesStats).catch(() => {});
   renderQrCollections();
@@ -708,11 +707,19 @@ function renderSalesStats() {
 
 function showPayQR() {
   // El QR codifica el código IA del comercio: escanearlo equivale a escribir el código.
+  const box = document.getElementById('payQrBox');
+  if (box.dataset.open === '1') {
+    box.dataset.open = '0';
+    box.innerHTML = `<button class="btn" style="margin-top:4px" onclick="showPayQR()">📷 Mostrar QR</button>`;
+    return;
+  }
   const code = ME.ia || ME.qrCode;
   const data = encodeURIComponent(code);
-  document.getElementById('payQrBox').innerHTML =
+  box.dataset.open = '1';
+  box.innerHTML =
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=${data}" alt="QR de cobro" style="border-radius:12px;background:#fff;padding:10px">
-     <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:monospace">${code}</p>`;
+     <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:monospace">${code}</p>
+     <button class="btn btn-outline" style="margin-top:8px" onclick="showPayQR()">✕ Ocultar QR</button>`;
 }
 
 // ── comandas ──
