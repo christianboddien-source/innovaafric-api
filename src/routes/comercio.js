@@ -6,6 +6,7 @@ const prisma = require('../config/prisma');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
 const push = require('../services/push');
+const { iaCode } = require('../helpers/iacode');
 
 const ADMIN = ['admin', 'super_admin', 'business_developer', 'country_manager'];
 
@@ -125,6 +126,7 @@ router.get('/me', requireAuth, async (req, res) => {
 
     return ok(res, {
       ...m, user,
+      ia: iaCode(m.userId),
       stats: { preparing, ready, inTransit, delivered, totalSalesXaf: sales._sum.totalXaf || 0 }
     });
   } catch (e) { return error(res, e.message); }

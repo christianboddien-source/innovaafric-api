@@ -192,9 +192,10 @@
       </div>
       <div id="salesStats"></div>
       <div class="card" style="text-align:center">
-        <b style="font-size:14px">💳 Mi QR de cobro</b>
-        <p style="font-size:12px;color:var(--muted);margin:6px 0 10px">Los clientes pagan al instante escaneándolo con XenderMoney</p>
-        <div id="payQrBox"><button class="btn" style="margin-top:4px" onclick="showPayQR()">Mostrar QR</button></div>
+        <b style="font-size:14px">💳 Cobrar a un cliente</b>
+        <p style="font-size:12px;color:var(--muted);margin:6px 0 10px">El cliente puede pagarte de dos formas con XenderMoney: escaneando tu QR o escribiendo tu código IA en su app.</p>
+        <div id="payQrBox"><button class="btn" style="margin-top:4px" onclick="showPayQR()">📷 Mostrar QR</button></div>
+        <div id="payIaBox" style="margin-top:14px"></div>
       </div>
       <div id="qrCollectionsBox"></div>
       <div id="rewardsCard"></div>
@@ -602,8 +603,30 @@ function renderHome() {
   document.getElementById('stDelivered').textContent = fmt(ME.stats.delivered);
   document.getElementById('ordersDot').classList.toggle('hidden', !ME.stats.preparing);
   renderOpenStatus();
+  renderPayIa();
   loadOrders().then(renderSalesStats).catch(() => {});
   renderQrCollections();
+}
+
+function renderPayIa() {
+  const box = document.getElementById('payIaBox');
+  if (!box) return;
+  const code = ME.ia || '';
+  if (!code) { box.innerHTML = ''; return; }
+  box.innerHTML =
+    `<div style="font-size:11px;color:var(--muted);margin-bottom:6px">…o dale este código para que te pague sin QR:</div>
+     <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+       <span style="font-family:monospace;font-size:20px;font-weight:800;letter-spacing:1px;color:var(--text);background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 14px">${code}</span>
+       <button class="btn btn-outline" style="padding:8px 12px" onclick="copiarIa()">📋 Copiar</button>
+     </div>`;
+}
+
+function copiarIa() {
+  const code = (ME && ME.ia) || '';
+  if (!code) return;
+  navigator.clipboard.writeText(code)
+    .then(() => alert('Código ' + code + ' copiado. Compártelo con tu cliente.'))
+    .catch(() => alert('Tu código de cobro es: ' + code));
 }
 
 async function renderQrCollections() {
@@ -683,10 +706,12 @@ function renderSalesStats() {
 }
 
 function showPayQR() {
-  const data = encodeURIComponent(ME.qrCode);
+  // El QR codifica el código IA del comercio: escanearlo equivale a escribir el código.
+  const code = ME.ia || ME.qrCode;
+  const data = encodeURIComponent(code);
   document.getElementById('payQrBox').innerHTML =
     `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=2&data=${data}" alt="QR de cobro" style="border-radius:12px;background:#fff;padding:10px">
-     <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:monospace">${ME.qrCode}</p>`;
+     <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:monospace">${code}</p>`;
 }
 
 // ── comandas ──

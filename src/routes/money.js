@@ -8,6 +8,7 @@ const prisma  = require('../config/prisma');
 const { success, error, paginate, getRate, calcFee, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireRole, requireKYC } = require('../middleware/auth');
 const { notify } = require('../helpers/notify');
+const { iaCode, iaIdClauses } = require('../helpers/iacode');
 
 const { WALLET_LIMITS, CURRENCY_FIELD } = require('../config/walletLimits');
 
@@ -55,10 +56,44 @@ router.get('/history', requireAuth, async (req, res) => {
   return success(res, paginate(txns, page, limit));
 });
 
+// GET /v1/money/recipients?q=... — buscar destinatario por código IA, email, teléfono o nombre
+// Alimenta el autocompletado de "Enviar dinero" en las apps.
+router.get('/recipients', requireAuth, async (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (q.length < 2) return success(res, { count: 0, recipients: [] });
+
+    const or = [
+      { email: { contains: q, mode: 'insensitive' } },
+      { name:  { contains: q, mode: 'insensitive' } },
+      { phone: { contains: q } }
+    ];
+    const idClauses = iaIdClauses(q);
+    if (idClauses) or.unshift(...idClauses);
+
+    const rows = await prisma.user.findMany({
+      where: { AND: [{ OR: or }, { id: { not: req.user.sub } }] },
+      select: { id: true, name: true, email: true, city: true, country: true },
+      take: 8
+    });
+    const recipients = rows.map(u => ({
+      id: u.id,
+      ia: iaCode(u.id),
+      name: u.name,
+      email: u.email,
+      city: u.city || null,
+      country: u.country || null
+    }));
+    return success(res, { count: recipients.length, recipients });
+  } catch (e) { return error(res, e.message); }
+});
+
 // POST /v1/money/send — Envío internacional
 router.post('/send', requireAuth, requireKYC, async (req, res) => {
-  const { amount, currency, recipient_id, dest_currency, reference } = req.body;
-  if (!amount || !currency || !recipient_id || !dest_currency) {
+  const { amount, currency, dest_currency, reference } = req.body;
+  // Acepta el destinatario como recipient_id, recipient_email o recipient (código IA, email, teléfono o id)
+  const recipient_ref = req.body.recipient_id || req.body.recipient_email || req.body.recipient;
+  if (!amount || !currency || !recipient_ref || !dest_currency) {
     return error(res, 'Campos requeridos: amount, currency, recipient_id, dest_currency', 400);
   }
   if (amount <= 0) return error(res, 'El importe debe ser mayor que 0', 400);
@@ -74,10 +109,16 @@ router.post('/send', requireAuth, requireKYC, async (req, res) => {
     return error(res, 'Saldo insuficiente', 422);
   }
 
-  const recipient = await prisma.user.findFirst({
-    where: { OR: [{ id: recipient_id }, { email: recipient_id }, { phone: recipient_id }] }
-  });
+  const recipientOr = [
+    { id: recipient_ref },
+    { email: { equals: recipient_ref, mode: 'insensitive' } },
+    { phone: recipient_ref }
+  ];
+  const recipIaClauses = iaIdClauses(recipient_ref);
+  if (recipIaClauses) recipientOr.unshift(...recipIaClauses);
+  const recipient = await prisma.user.findFirst({ where: { OR: recipientOr } });
   if (!recipient) return error(res, 'Destinatario no encontrado', 404);
+  if (recipient.id === req.user.sub) return error(res, 'No puedes enviarte dinero a ti mismo', 400);
 
   const rate = await getRate(currency, dest_currency);
   if (!rate) return error(res, `Par de divisas no soportado: ${currency}/${dest_currency}`, 400);
