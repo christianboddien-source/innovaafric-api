@@ -64,6 +64,7 @@ const inboxRoutes         = require('./src/routes/inbox');
 const smsRoutes           = require('./src/routes/sms');
 // KYC standalone
 const kycRoutes           = require('./src/routes/kyc');
+const webadminRoutes      = require('./src/routes/webadmin');
 // v32 — Integraciones
 const stripeRoutes        = require('./src/routes/stripe');
 const mobilemoneyRoutes   = require('./src/routes/mobilemoney');
@@ -226,6 +227,7 @@ app.use('/v1/stripe',       stripeRoutes);
 app.use('/v1/mobile-money', mobilemoneyRoutes);
 app.use('/v1/swift',        swiftRoutes);
 app.use('/v1/kyc',          kycRoutes);
+app.use('/v1/webadmin',     webadminRoutes);
 
 // ── 404 ─────────────────────────────────────────────────
 app.use((req, res) => {
