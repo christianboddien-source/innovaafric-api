@@ -99,6 +99,7 @@ router.post('/token', async (req, res) => {
     const { supabase_token } = req.body;
     if (!supabase_token) return error(res, 'supabase_token requerido', 400);
 
+    try {
     // Verify token with Supabase
     const sbUrl  = process.env.SUPABASE_URL || 'https://spnfvmvrlexyiljwyola.supabase.co';
     const sbAnon = process.env.SUPABASE_ANON_KEY || 'sb_publishable_Aqe-VLEi6MfY8AvlpRfnLQ_OAom278u';
@@ -217,6 +218,10 @@ router.post('/token', async (req, res) => {
         balanceXof: wallet.balanceXof || 0
       } : null
     });
+    } catch (e) {
+      console.error('[exchange] error:', e && e.message);
+      return error(res, 'No se pudo verificar la sesión con Supabase: ' + ((e && e.message) || 'error de red'), 502);
+    }
   }
 
   return error(res, 'grant_type no soportado. Use client_credentials, password o supabase_exchange', 400);
