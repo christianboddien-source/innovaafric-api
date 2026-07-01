@@ -93,7 +93,7 @@ router.get('/me', authenticate, async (req, res) => {
       }),
       prisma.circular.count({ where: { repId: rep.id } })
     ]);
-    return ok(res, { ...rep, user, circularesCount });
+    return ok(res, { ...rep, user, circularesCount, ia: iaCode(rep.userId) });
   } catch (e) { return error(res, e.message); }
 });
 

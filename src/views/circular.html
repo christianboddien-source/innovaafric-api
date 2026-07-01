@@ -226,6 +226,11 @@
   <main>
     <!-- INICIO -->
     <section id="page-home">
+      <div class="card" style="text-align:center">
+        <b style="font-size:14px">🪪 Mi código IA</b>
+        <p style="font-size:12px;color:var(--muted);margin:6px 0 10px">Muéstralo o compártelo para que te identifiquen al instante.</p>
+        <div id="payIaBox"></div>
+      </div>
       <div class="balance-card">
         <div class="lbl">Mis unidades de valor</div>
         <div class="amt" id="unitBalance">—</div>
@@ -776,6 +781,27 @@ function renderHome() {
   document.getElementById('stTotalSaved').textContent = fmt(acc.totalSaved);
   document.getElementById('stTopups').textContent = fmt(ME._count?.topUps ?? 0);
   renderLowBalance(acc);
+  renderPayIa();
+}
+
+function renderPayIa() {
+  const box = document.getElementById('payIaBox');
+  if (!box) return;
+  const code = (ME && ME.ia) || '';
+  if (!code) { box.innerHTML = ''; return; }
+  const data = encodeURIComponent(code);
+  box.innerHTML =
+    `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=2&data=${data}" alt="QR ${code}" style="width:170px;height:170px;border-radius:12px;background:#fff;padding:8px;display:block;margin:0 auto 12px">
+     <div style="display:flex;align-items:stretch;justify-content:center;gap:8px;max-width:300px;margin:0 auto">
+       <span style="flex:1;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:18px;font-weight:800;letter-spacing:1px;color:var(--text);background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:0 14px;min-height:46px">${code}</span>
+       <button onclick="copiarIa()" style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:0 16px;min-height:46px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📋 Copiar</button>
+     </div>`;
+}
+
+function copiarIa() {
+  const code = (ME && ME.ia) || '';
+  if (!code) return;
+  navigator.clipboard.writeText(code).then(() => alert('Código ' + code + ' copiado.')).catch(() => alert('Tu código es: ' + code));
 }
 
 // Recordatorio de saldo bajo: banner con saldo real + acción rápida + aviso local 1×/día

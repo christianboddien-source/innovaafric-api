@@ -44,7 +44,7 @@ router.get('/me', requireAuth, async (req, res) => {
       where: { id: circ.userId },
       select: { name: true, email: true, phone: true, city: true, country: true }
     });
-    return ok(res, { ...circ, user });
+    return ok(res, { ...circ, user, ia: iaCode(circ.userId) });
   } catch (e) { return error(res, e.message); }
 });
 

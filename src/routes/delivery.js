@@ -7,6 +7,7 @@ const router  = express.Router();
 const prisma  = require('../config/prisma');
 const { success, error, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { iaCode } = require('../helpers/iacode');
 
 // GET /v1/delivery/track/:tracking_id
 router.get('/track/:tracking_id', async (req, res) => {
@@ -45,7 +46,7 @@ router.get('/rider/me', requireAuth, async (req, res) => {
     where: { id: uid(req) },
     select: { name: true, email: true, phone: true, country: true, city: true }
   });
-  return success(res, { ...rider, user });
+  return success(res, { ...rider, user, ia: iaCode(rider.userId) });
 });
 
 // GET /v1/delivery/rider/ranking — mi posición + tabla de los mejores riders
