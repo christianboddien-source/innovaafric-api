@@ -617,11 +617,39 @@ async function setStatus(status) {
   } catch (e) { alert(e.message); }
 }
 
+// ── aviso sonoro de nueva comanda ──
+let KNOWN_ORDERS = null; // null = primera carga (no avisar)
+let _audioCtx = null;
+function _ensureAudio(){ try{ if(!_audioCtx) _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if(_audioCtx.state==='suspended') _audioCtx.resume(); }catch(e){} }
+document.addEventListener('click', _ensureAudio); // desbloquea el audio con el primer toque
+function playDing(){
+  try{
+    _ensureAudio(); if(!_audioCtx) return;
+    const t=_audioCtx.currentTime;
+    [880,1320].forEach(function(f,i){
+      const o=_audioCtx.createOscillator(), g=_audioCtx.createGain();
+      o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(_audioCtx.destination);
+      const s=t+i*0.18;
+      g.gain.setValueAtTime(0.0001,s);
+      g.gain.exponentialRampToValueAtTime(0.4,s+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,s+0.16);
+      o.start(s); o.stop(s+0.18);
+    });
+  }catch(e){}
+  try{ if(navigator.vibrate) navigator.vibrate([120,60,120]); }catch(e){}
+}
+
 // ── comandas ──
 async function loadOrders() {
   const box = document.getElementById('ordersList');
   try {
     const data = await api('GET', '/delivery/available-orders');
+    const ids = (data.orders || []).map(function(o){ return o.id; });
+    if (KNOWN_ORDERS !== null) {
+      const fresh = ids.filter(function(id){ return !KNOWN_ORDERS.has(id); });
+      if (fresh.length && ME && ME.status === 'available') playDing();
+    }
+    KNOWN_ORDERS = new Set(ids);
     box.innerHTML = data.orders.length
       ? data.orders.map(o => `
         <div class="order-card">
@@ -827,6 +855,7 @@ async function checkUnread() {
   } catch {}
 }
 setInterval(checkUnread, 30000);
+setInterval(loadOrders, 25000); // refresca comandas disponibles + avisa de las nuevas
 
 async function loadChat() {
   try {
