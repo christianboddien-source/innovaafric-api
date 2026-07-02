@@ -139,4 +139,24 @@ router.post('/revert', ...guard, async (req, res) => {
   } catch (e) { return error(res, 'Error al revertir: ' + (e.message || e), 500); }
 });
 
+// POST /v1/webadmin/image — sube una imagen al repo (assets/uploads) y devuelve su URL pública
+router.post('/image', ...guard, async (req, res) => {
+  try {
+    const { filename, dataBase64 } = req.body || {};
+    if (!dataBase64) return error(res, 'Imagen requerida', 400);
+    const h = ghHeaders();
+    if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway.', 503);
+    const safe = String(filename || 'img').replace(/[^a-zA-Z0-9._-]/g, '_').slice(-40);
+    const ghPath = 'assets/uploads/' + Date.now() + '-' + safe;
+    const content = String(dataBase64).replace(/^data:[^;]+;base64,/, ''); // quitar prefijo data URI
+    const body = { message: 'web-admin: subir imagen ' + safe, content, branch: 'main' };
+    const r = await fetch(`${GH_API}/repos/${GH_OWNER}/innovaafric-prod/contents/${ghPath}`, {
+      method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return error(res, 'GitHub ' + r.status + ': ' + (j.message || 'no se pudo subir la imagen'), 502);
+    return success(res, { url: 'https://christianboddien-source.github.io/innovaafric-prod/' + ghPath, path: ghPath });
+  } catch (e) { return error(res, 'Error al subir la imagen: ' + (e.message || e), 500); }
+});
+
 module.exports = router;
