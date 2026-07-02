@@ -139,6 +139,55 @@ router.post('/revert', ...guard, async (req, res) => {
   } catch (e) { return error(res, 'Error al revertir: ' + (e.message || e), 500); }
 });
 
+// GET /v1/webadmin/history?id=... — últimas versiones (commits) de una página
+router.get('/history', ...guard, async (req, res) => {
+  try {
+    const p = findPage(req.query.id);
+    if (!p) return error(res, 'Página no encontrada', 404);
+    const h = ghHeaders();
+    if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway.', 503);
+    const ghPath = encodeURIComponent(p.path).replace(/%2F/g, '/');
+    const r = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/commits?path=${ghPath}&sha=${p.branch}&per_page=20`, { headers: h });
+    if (!r.ok) return error(res, 'GitHub ' + r.status + ': no se pudo leer el historial', 502);
+    const commits = await r.json();
+    const list = (Array.isArray(commits) ? commits : []).map(c => ({
+      sha: c.sha,
+      message: (c.commit && c.commit.message || '').split('\n')[0],
+      date: c.commit && c.commit.author && c.commit.author.date,
+      author: c.commit && c.commit.author && c.commit.author.name
+    }));
+    return success(res, { count: list.length, versions: list });
+  } catch (e) { return error(res, 'Error al leer el historial: ' + (e.message || e), 500); }
+});
+
+// POST /v1/webadmin/restore — restaura la página a una versión (commit) concreta
+router.post('/restore', ...guard, async (req, res) => {
+  try {
+    const p = findPage(req.body && req.body.id);
+    const sha = req.body && req.body.sha;
+    if (!p) return error(res, 'Página no encontrada', 404);
+    if (!sha) return error(res, 'Falta la versión a restaurar', 400);
+    const h = ghHeaders();
+    if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway.', 503);
+    const ghPath = encodeURIComponent(p.path).replace(/%2F/g, '/');
+    const fr = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/contents/${ghPath}?ref=${sha}`, { headers: h });
+    if (!fr.ok) return error(res, 'GitHub ' + fr.status + ': no se pudo leer esa versión', 502);
+    const fj = await fr.json();
+    const cur = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/contents/${ghPath}?ref=${p.branch}`, { headers: h });
+    const curj = await cur.json();
+    const body = {
+      message: 'web-admin: restaurar ' + p.path + ' a una versión anterior\n\nvía panel Webs del dashboard',
+      content: fj.content, branch: p.branch, sha: curj.sha
+    };
+    const pr = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/contents/${ghPath}`, {
+      method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const pj = await pr.json().catch(() => ({}));
+    if (!pr.ok) return error(res, 'GitHub ' + pr.status + ': ' + (pj.message || 'no se pudo restaurar'), 502);
+    return success(res, { restored: true, newSha: pj.content && pj.content.sha, content: Buffer.from(fj.content || '', 'base64').toString('utf8') });
+  } catch (e) { return error(res, 'Error al restaurar: ' + (e.message || e), 500); }
+});
+
 // POST /v1/webadmin/image — sube una imagen al repo (assets/uploads) y devuelve su URL pública
 router.post('/image', ...guard, async (req, res) => {
   try {
