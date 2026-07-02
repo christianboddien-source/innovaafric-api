@@ -120,8 +120,8 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Responder preflight en todas las rutas
 // Stripe webhook necesita body raw — debe ir ANTES de express.json()
 app.use('/v1/stripe/webhook', express.raw({ type: 'application/json' }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // ── Rate limiting ───────────────────────────────────────
 const limiter = rateLimit({
