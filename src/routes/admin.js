@@ -297,12 +297,13 @@ router.get('/transactions', requireAuth, requireLevel(2), async (req, res) => {
   const txns = await prisma.transaction.findMany({ where, orderBy: { createdAt: 'desc' } });
   // Enriquecer con nombre/email del usuario (para la columna Usuario del dashboard)
   const ids = [...new Set(txns.flatMap(t => [t.userId, t.recipientId]).filter(Boolean))];
-  const users = ids.length ? await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, email: true } }) : [];
+  const users = ids.length ? await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, email: true, phone: true } }) : [];
   const umap = Object.fromEntries(users.map(u => [u.id, u]));
   const enriched = txns.map(t => ({
     ...t,
     userName:  (umap[t.userId] || {}).name  || null,
-    userEmail: (umap[t.userId] || {}).email || null
+    userEmail: (umap[t.userId] || {}).email || null,
+    userPhone: (umap[t.userId] || {}).phone || null
   }));
   return success(res, paginate(enriched, page, limit));
 });
