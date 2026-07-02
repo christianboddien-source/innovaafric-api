@@ -803,20 +803,29 @@ function shareText(text) {
   else { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); }
 }
 
+function printDoc(title, bodyHTML){ var w=window.open('','_blank'); if(!w){alert('Permite las ventanas emergentes para imprimir.');return;} w.document.write('<html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{color:#0d9bc4;font-size:20px;margin:0}.sub{font-size:10px;letter-spacing:2px;color:#555;margin-bottom:14px}h2{font-size:15px;margin:14px 0 4px}p{font-size:12px;margin:4px 0}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:12px}th{background:#0d9bc4;color:#fff}</style></head><body><h1>InnovaAFRIC</h1><div class="sub">WE SIMPLIFY LIFE</div>'+bodyHTML+'</body></html>'); w.document.close(); setTimeout(function(){try{w.print();}catch(e){}},350); }
+
 async function downloadRepPDF() {
-  try {
-    const res = await fetch(API + `/representatives/${ME.id}/report/operations`, {
-      headers: { Authorization: 'Bearer ' + TOKEN }
-    });
-    if (!res.ok) throw new Error('No se pudo generar el PDF');
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `informe_innovaafric_${new Date().toISOString().slice(0, 10)}.pdf`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-  } catch (e) { alert(e.message); }
+  if (!COM) { try { await loadComisiones(); } catch (e) {} }
+  if (!COM) { alert('Carga primero tus comisiones para generar el informe.'); return; }
+  const name = (ME.user && ME.user.name) || ME.name || 'Representante';
+  const zone = ME.zone || '';
+  const totals = Object.entries(COM.totalsByCurrency || {});
+  const ops = COM.operations || [];
+  const opsRows = ops.length
+    ? ops.map(o => `<tr><td>${fmtDate(o.date)}</td><td>${o.circularName || '—'}</td><td>${fmt(o.myCommission)} ${o.currency}</td></tr>`).join('')
+    : '<tr><td colspan="3">Sin operaciones</td></tr>';
+  const body =
+    `<h2>🏅 Informe de Representante</h2>` +
+    `<p><b>${name}</b>${zone ? ' — ' + zone : ''}<br><span style="color:#555;font-size:11px">Generado: ${new Date().toLocaleString('es-ES')}</span></p>` +
+    `<h2>Resumen</h2>` +
+    `<table><tr><th>Concepto</th><th>Valor</th></tr>` +
+    `<tr><td>Disponible para cobrar</td><td>${fmt(COM.totalEarned)}</td></tr>` +
+    totals.map(([c, t]) => `<tr><td>Generado histórico (${c})</td><td>${fmt(t)} ${c}</td></tr>`).join('') +
+    `<tr><td>Compras de mi red</td><td>${ops.length}</td></tr></table>` +
+    `<h2>Operaciones (comisiones)</h2>` +
+    `<table><tr><th>Fecha</th><th>Circular</th><th>Mi comisión</th></tr>${opsRows}</table>`;
+  printDoc('Informe Representante', body);
 }
 
 let COM = null;
