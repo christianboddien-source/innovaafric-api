@@ -302,6 +302,28 @@
       </div>
 
       <div class="card">
+        <b style="font-size:14px">💵 Cobrar a mi banco / en metálico</b>
+        <p style="font-size:12px;color:var(--muted);margin:6px 0">Retira el dinero de tu wallet a tu cuenta bancaria, en metálico (punto autorizado) o a Mobile Money.</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+          <span style="font-size:12px;color:var(--muted)">Disponible en tu wallet</span>
+          <b id="cobrarBalance" style="font-size:15px;color:var(--green)">—</b>
+        </div>
+        <label>Importe a cobrar (XAF)</label>
+        <input id="withdrawAmount" type="text" inputmode="numeric" placeholder="0">
+        <label>Método</label>
+        <select id="withdrawMethod" onchange="updateWithdrawDest()">
+          <option value="bank_transfer">🏦 Transferencia bancaria</option>
+          <option value="authorized_point">💵 Metálico (punto autorizado)</option>
+          <option value="orange_money">📱 Orange Money</option>
+          <option value="mtn_money">📱 MTN Money</option>
+        </select>
+        <label id="withdrawDestLabel">Cuenta bancaria (IBAN o número)</label>
+        <input id="withdrawDest" placeholder="Ej: GQ12 3456 7890 1234">
+        <button class="btn" onclick="doWithdraw()">💵 Cobrar ahora</button>
+        <div id="withdrawMsg"></div>
+      </div>
+
+      <div class="card">
         <b style="font-size:14px">Historial de cobros</b>
         <div style="overflow-x:auto;margin-top:8px">
           <table><thead><tr><th>Fecha</th><th>Importe</th><th>Impuesto</th><th>Neto</th></tr></thead>
@@ -445,7 +467,7 @@ const fmt = (n) => Number(n || 0).toLocaleString('es-ES', {useGrouping:'always'}
 function groupThousands(d){ return d.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 function fmtAmountInput(el){ if(!el)return; var p=String(el.value).replace(/[^\d,]/g,'').split(','); var i=p[0].replace(/^0+(?=\d)/,''); var dec=p.length>1?','+p[1].slice(0,2):''; el.value=(i?groupThousands(i):'')+dec; }
 function parseAmount(v){ return parseFloat(String(v==null?'':v).replace(/\./g,'').replace(',','.'))||0; }
-document.addEventListener('DOMContentLoaded', function(){ ['transferAmount'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.addEventListener('input', function(){ fmtAmountInput(el); }); fmtAmountInput(el); } }); });
+document.addEventListener('DOMContentLoaded', function(){ ['transferAmount','withdrawAmount'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.addEventListener('input', function(){ fmtAmountInput(el); }); fmtAmountInput(el); } }); });
 const fmtDate = (d) => new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 function msg(elId, text, ok) {
   document.getElementById(elId).innerHTML = text ? `<div class="${ok ? 'okmsg' : 'err'}">${text}</div>` : '';
@@ -883,11 +905,42 @@ function buildComInsights(ops) {
     </div>`;
 }
 
+async function loadCobrarBalance() {
+  const el = document.getElementById('cobrarBalance'); if (!el) return;
+  try { const w = await api('GET', '/money/wallet'); el.textContent = fmt(w.balanceXaf || 0) + ' XAF'; }
+  catch (e) { el.textContent = '— XAF'; }
+}
+function updateWithdrawDest() {
+  const m = document.getElementById('withdrawMethod').value;
+  const lbl = document.getElementById('withdrawDestLabel');
+  const inp = document.getElementById('withdrawDest');
+  if (m === 'bank_transfer') { lbl.textContent = 'Cuenta bancaria (IBAN o número)'; inp.placeholder = 'Ej: GQ12 3456 7890 1234'; }
+  else if (m === 'authorized_point') { lbl.textContent = 'Ciudad / punto de recogida'; inp.placeholder = 'Ej: Malabo — Circular del Centro'; }
+  else { lbl.textContent = 'Número de teléfono (Mobile Money)'; inp.placeholder = 'Ej: +240 222 000 000'; }
+}
+async function doWithdraw() {
+  const amount = parseAmount(document.getElementById('withdrawAmount').value);
+  const method = document.getElementById('withdrawMethod').value;
+  const destination = document.getElementById('withdrawDest').value.trim();
+  const msg = document.getElementById('withdrawMsg');
+  if (!amount || amount <= 0) { msg.innerHTML = '<div class="err">Introduce un importe válido</div>'; return; }
+  if (!destination) { msg.innerHTML = '<div class="err">Indica dónde quieres cobrar (banco, punto o teléfono)</div>'; return; }
+  msg.innerHTML = '<div class="spinner">Procesando cobro…</div>';
+  try {
+    const r = await api('POST', '/money/withdraw', { amount, currency: 'XAF', method, destination });
+    const eta = r.estimated_completion || (method === 'authorized_point' ? '15 minutos' : '2-4 horas');
+    msg.innerHTML = `<div class="okmsg">✅ Cobro solicitado: ${fmt(r.amount_net||amount)} XAF (comisión ${fmt(r.fee||0)}). Llega en ${eta}.</div>`;
+    document.getElementById('withdrawAmount').value = ''; document.getElementById('withdrawDest').value = '';
+    loadCobrarBalance();
+  } catch (e) { msg.innerHTML = `<div class="err">${e.message}</div>`; }
+}
+
 async function loadComisiones() {
   const box = document.getElementById('comSummary');
   try {
     const data = await api('GET', '/representatives/network-commissions');
     COM = data;
+    loadCobrarBalance();
     const totals = Object.entries(data.totalsByCurrency);
     box.innerHTML = `
       ${buildGoalCard(data.operations)}
