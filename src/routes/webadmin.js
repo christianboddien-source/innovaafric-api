@@ -40,7 +40,36 @@ function ghHeaders() {
     'User-Agent': 'innovaafric-webadmin'
   };
 }
-const findPage = (id) => PAGES.find(p => p.id === id);
+// ── Páginas personalizadas (creadas/duplicadas desde el panel) ──
+// Se guardan en innovaafric-prod/webadmin-pages.json → GitHub = fuente de verdad.
+let CUSTOM_PAGES = [];
+const CUSTOM_REPO = 'innovaafric-prod', CUSTOM_BRANCH = 'main', CUSTOM_FILE = 'webadmin-pages.json';
+
+async function ghGetJson(repo, branch, path) {
+  const h = ghHeaders(); if (!h) return null;
+  const r = await fetch(`${GH_API}/repos/${GH_OWNER}/${repo}/contents/${path}?ref=${branch}`, { headers: h });
+  if (r.status === 404) return { sha: null, data: null };
+  if (!r.ok) return null;
+  const j = await r.json();
+  let data = null;
+  try { data = JSON.parse(Buffer.from(j.content || '', 'base64').toString('utf8')); } catch (_) {}
+  return { sha: j.sha, data };
+}
+
+async function loadCustomPages() {
+  try {
+    const g = await ghGetJson(CUSTOM_REPO, CUSTOM_BRANCH, CUSTOM_FILE);
+    if (g && Array.isArray(g.data)) {
+      CUSTOM_PAGES = g.data.filter(p => p && p.id && p.path).map(p => ({
+        id: p.id, label: p.label || p.path, repo: CUSTOM_REPO, branch: CUSTOM_BRANCH, path: p.path, custom: true
+      }));
+    }
+  } catch (_) {}
+  return CUSTOM_PAGES;
+}
+loadCustomPages(); // best-effort al arrancar
+
+const findPage = (id) => PAGES.concat(CUSTOM_PAGES).find(p => p.id === id);
 
 // URL pública/en vivo de cada página (para la vista previa embebida)
 function pageUrl(p) {
@@ -55,11 +84,13 @@ function pageUrl(p) {
   return 'https://innovaafric-api-production.up.railway.app/' + (map[p.path] || '');
 }
 
-// GET /v1/webadmin/pages — lista de páginas editables
-router.get('/pages', ...guard, (req, res) => {
+// GET /v1/webadmin/pages — lista de páginas editables (sistema + personalizadas)
+router.get('/pages', ...guard, async (req, res) => {
+  await loadCustomPages(); // refrescar por si otro admin creó/duplicó páginas
+  const all = PAGES.concat(CUSTOM_PAGES);
   return success(res, {
     tokenConfigured: !!process.env.GITHUB_TOKEN,
-    pages: PAGES.map(p => ({ id: p.id, label: p.label, repo: p.repo, path: p.path, url: pageUrl(p) }))
+    pages: all.map(p => ({ id: p.id, label: p.label, repo: p.repo, path: p.path, url: pageUrl(p), custom: !!p.custom }))
   });
 });
 
@@ -206,6 +237,105 @@ router.post('/image', ...guard, async (req, res) => {
     if (!r.ok) return error(res, 'GitHub ' + r.status + ': ' + (j.message || 'no se pudo subir la imagen'), 502);
     return success(res, { url: 'https://christianboddien-source.github.io/innovaafric-prod/' + ghPath, path: ghPath });
   } catch (e) { return error(res, 'Error al subir la imagen: ' + (e.message || e), 500); }
+});
+
+// POST /v1/webadmin/page/create — crear una página nueva o DUPLICAR una existente
+// body: { path:'promo/index.html', label?:'Promo', fromId?:'lp-money' }
+router.post('/page/create', ...guard, async (req, res) => {
+  try {
+    const h = ghHeaders();
+    if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway.', 503);
+    const { fromId, label } = req.body || {};
+    let path = String((req.body && req.body.path) || '').trim().replace(/^\/+/, '');
+    if (!path) return error(res, 'Indica la ruta de la nueva página (ej: promo/index.html).', 400);
+    if (!path.toLowerCase().endsWith('.html')) path += path.endsWith('/') ? 'index.html' : '/index.html';
+    if (path.includes('..') || !/^[a-zA-Z0-9/_-]+\.html$/.test(path))
+      return error(res, 'Ruta no válida. Usa solo letras, números, / y - y termina en .html', 400);
+    if (PAGES.some(p => p.repo === CUSTOM_REPO && p.path === path))
+      return error(res, 'Esa ruta ya corresponde a una página del sistema.', 409);
+
+    // Contenido: duplicar la página origen o una plantilla mínima de marca
+    let content;
+    if (fromId) {
+      const src = findPage(fromId);
+      if (!src) return error(res, 'Página origen no encontrada', 404);
+      const sr = await fetch(`${GH_API}/repos/${GH_OWNER}/${src.repo}/contents/${encodeURIComponent(src.path).replace(/%2F/g,'/')}?ref=${src.branch}`, { headers: h });
+      if (!sr.ok) return error(res, 'No se pudo leer la página origen', 502);
+      const sj = await sr.json();
+      content = Buffer.from(sj.content || '', 'base64').toString('utf8');
+    } else {
+      const title = String(label || 'Nueva página').replace(/[<>]/g, '').slice(0, 80);
+      content = '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n'
+        + '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        + '<title>' + title + ' · InnovaAFRIC</title>\n</head>\n'
+        + '<body style="font-family:Arial,sans-serif;margin:0;padding:48px;color:#0a1628">\n'
+        + '  <h1 style="color:#0d9bc4;margin:0">' + title + '</h1>\n'
+        + '  <div style="font-size:11px;letter-spacing:2px;color:#555">WE SIMPLIFY LIFE</div>\n'
+        + '  <p style="margin-top:24px">Edita esta página desde el panel <b>Webs</b> del dashboard.</p>\n'
+        + '</body>\n</html>\n';
+    }
+
+    // ¿ya existe el archivo en el repo?
+    const exists = await fetch(`${GH_API}/repos/${GH_OWNER}/${CUSTOM_REPO}/contents/${path}?ref=${CUSTOM_BRANCH}`, { headers: h });
+    if (exists.ok) return error(res, 'Ya existe un archivo en esa ruta. Elige otra.', 409);
+
+    // Crear el archivo (sin sha = archivo nuevo)
+    const put = await fetch(`${GH_API}/repos/${GH_OWNER}/${CUSTOM_REPO}/contents/${path}`, {
+      method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'web-admin: crear página ' + path + '\n\nvía panel Webs del dashboard', content: Buffer.from(content, 'utf8').toString('base64'), branch: CUSTOM_BRANCH })
+    });
+    const pj = await put.json().catch(() => ({}));
+    if (!put.ok) return error(res, 'GitHub ' + put.status + ': ' + (pj.message || 'no se pudo crear'), 502);
+
+    // Registrar en webadmin-pages.json
+    const id = 'cst-' + path.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+    const g = await ghGetJson(CUSTOM_REPO, CUSTOM_BRANCH, CUSTOM_FILE);
+    const list = (g && Array.isArray(g.data)) ? g.data : [];
+    if (!list.some(x => x.path === path)) list.push({ id, label: label || path, path });
+    const jbody = {
+      message: 'web-admin: registrar página ' + path,
+      content: Buffer.from(JSON.stringify(list, null, 2), 'utf8').toString('base64'),
+      branch: CUSTOM_BRANCH
+    };
+    if (g && g.sha) jbody.sha = g.sha;
+    await fetch(`${GH_API}/repos/${GH_OWNER}/${CUSTOM_REPO}/contents/${CUSTOM_FILE}`, {
+      method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify(jbody)
+    });
+    await loadCustomPages();
+    return success(res, { created: true, page: { id, label: label || path, repo: CUSTOM_REPO, path, url: pageUrl({ repo: CUSTOM_REPO, path }), custom: true } });
+  } catch (e) { return error(res, 'Error al crear la página: ' + (e.message || e), 500); }
+});
+
+// POST /v1/webadmin/page/delete — eliminar una página (SOLO las creadas desde el panel)
+router.post('/page/delete', ...guard, async (req, res) => {
+  try {
+    const id = req.body && req.body.id;
+    const p = CUSTOM_PAGES.find(x => x.id === id);
+    if (!p) return error(res, 'Solo se pueden eliminar páginas creadas desde el panel.', 400);
+    const h = ghHeaders();
+    if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway.', 503);
+    const ghPath = encodeURIComponent(p.path).replace(/%2F/g, '/');
+    // borrar el archivo si existe
+    const cur = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/contents/${ghPath}?ref=${p.branch}`, { headers: h });
+    if (cur.ok) {
+      const cj = await cur.json();
+      await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/contents/${ghPath}`, {
+        method: 'DELETE', headers: { ...h, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'web-admin: eliminar página ' + p.path, sha: cj.sha, branch: p.branch })
+      });
+    }
+    // quitar del registro
+    const g = await ghGetJson(CUSTOM_REPO, CUSTOM_BRANCH, CUSTOM_FILE);
+    if (g && Array.isArray(g.data) && g.sha) {
+      const list = g.data.filter(x => x.id !== id && x.path !== p.path);
+      await fetch(`${GH_API}/repos/${GH_OWNER}/${CUSTOM_REPO}/contents/${CUSTOM_FILE}`, {
+        method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'web-admin: quitar registro ' + p.path, content: Buffer.from(JSON.stringify(list, null, 2), 'utf8').toString('base64'), branch: CUSTOM_BRANCH, sha: g.sha })
+      });
+    }
+    await loadCustomPages();
+    return success(res, { deleted: true });
+  } catch (e) { return error(res, 'Error al eliminar: ' + (e.message || e), 500); }
 });
 
 module.exports = router;
