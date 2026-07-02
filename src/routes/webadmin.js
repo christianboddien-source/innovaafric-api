@@ -42,11 +42,24 @@ function ghHeaders() {
 }
 const findPage = (id) => PAGES.find(p => p.id === id);
 
+// URL pública/en vivo de cada página (para la vista previa embebida)
+function pageUrl(p) {
+  if (p.repo === 'innovaafric-prod') {
+    const dir = p.path.replace(/index\.html$/, '');
+    return 'https://christianboddien-source.github.io/innovaafric-prod/' + dir;
+  }
+  const map = {
+    'src/views/comercio.html': 'comercio', 'src/views/circular.html': 'circular',
+    'src/views/representante.html': 'representante', 'src/views/rider.html': 'rider'
+  };
+  return 'https://innovaafric-api-production.up.railway.app/' + (map[p.path] || '');
+}
+
 // GET /v1/webadmin/pages — lista de páginas editables
 router.get('/pages', ...guard, (req, res) => {
   return success(res, {
     tokenConfigured: !!process.env.GITHUB_TOKEN,
-    pages: PAGES.map(p => ({ id: p.id, label: p.label, repo: p.repo, path: p.path }))
+    pages: PAGES.map(p => ({ id: p.id, label: p.label, repo: p.repo, path: p.path, url: pageUrl(p) }))
   });
 });
 
@@ -61,7 +74,7 @@ router.get('/file', ...guard, async (req, res) => {
     if (!r.ok) return error(res, 'GitHub ' + r.status + ': ' + (await r.text()).slice(0, 150), r.status === 404 ? 404 : 502);
     const j = await r.json();
     const content = Buffer.from(j.content || '', 'base64').toString('utf8');
-    return success(res, { id: p.id, label: p.label, repo: p.repo, path: p.path, sha: j.sha, size: content.length, content });
+    return success(res, { id: p.id, label: p.label, repo: p.repo, path: p.path, url: pageUrl(p), sha: j.sha, size: content.length, content });
   } catch (e) { return error(res, 'Error al leer: ' + (e.message || e), 500); }
 });
 
