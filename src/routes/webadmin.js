@@ -74,9 +74,10 @@ router.put('/file', ...guard, async (req, res) => {
     if (typeof content !== 'string' || !content.length) return error(res, 'Contenido vacío o inválido', 400);
     const h = ghHeaders();
     if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway para poder publicar.', 503);
+    const clean = content.replace(/^﻿+/, ''); // quitar BOM(s) sobrantes al inicio
     const body = {
       message: (message || 'web-admin: editar ' + p.path) + '\n\nvía panel Webs del dashboard',
-      content: Buffer.from(content, 'utf8').toString('base64'),
+      content: Buffer.from(clean, 'utf8').toString('base64'),
       branch: p.branch
     };
     if (sha) body.sha = sha; // sha del archivo actual — evita sobrescribir cambios de otros
@@ -87,6 +88,42 @@ router.put('/file', ...guard, async (req, res) => {
     if (!r.ok) return error(res, 'GitHub ' + r.status + ': ' + (j.message || 'no se pudo publicar'), r.status === 409 ? 409 : 502);
     return success(res, { committed: true, newSha: j.content && j.content.sha, commit: j.commit && j.commit.sha });
   } catch (e) { return error(res, 'Error al publicar: ' + (e.message || e), 500); }
+});
+
+// POST /v1/webadmin/revert — vuelve la página a su versión ANTERIOR (un clic = deshacer)
+router.post('/revert', ...guard, async (req, res) => {
+  try {
+    const p = findPage(req.body && req.body.id);
+    if (!p) return error(res, 'Página no encontrada', 404);
+    const h = ghHeaders();
+    if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway.', 503);
+    const ghPath = encodeURIComponent(p.path).replace(/%2F/g, '/');
+    // 1) últimos 2 commits que tocaron el archivo
+    const cr = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/commits?path=${ghPath}&sha=${p.branch}&per_page=2`, { headers: h });
+    if (!cr.ok) return error(res, 'GitHub ' + cr.status + ': no se pudo leer el historial', 502);
+    const commits = await cr.json();
+    if (!Array.isArray(commits) || commits.length < 2) return error(res, 'No hay una versión anterior para revertir.', 400);
+    // 2) contenido del commit anterior (ya viene en base64)
+    const fr = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/contents/${ghPath}?ref=${commits[1].sha}`, { headers: h });
+    if (!fr.ok) return error(res, 'GitHub ' + fr.status + ': no se pudo leer la versión anterior', 502);
+    const fj = await fr.json();
+    // 3) sha ACTUAL (para sobrescribir)
+    const cur = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/contents/${ghPath}?ref=${p.branch}`, { headers: h });
+    const curj = await cur.json();
+    // 4) commit de reversión
+    const body = {
+      message: 'web-admin: revertir ' + p.path + ' a la versión anterior\n\nvía panel Webs del dashboard',
+      content: fj.content, branch: p.branch, sha: curj.sha
+    };
+    const pr = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/contents/${ghPath}`, {
+      method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const pj = await pr.json().catch(() => ({}));
+    if (!pr.ok) return error(res, 'GitHub ' + pr.status + ': ' + (pj.message || 'no se pudo revertir'), 502);
+    // devolver el contenido restaurado para refrescar el editor
+    const restored = Buffer.from(fj.content || '', 'base64').toString('utf8');
+    return success(res, { reverted: true, newSha: pj.content && pj.content.sha, content: restored });
+  } catch (e) { return error(res, 'Error al revertir: ' + (e.message || e), 500); }
 });
 
 module.exports = router;
