@@ -1691,6 +1691,48 @@ router.get('/limits', async (req, res) => {
   });
 });
 
+// GET /v1/admin/withdrawals — solicitudes de cobro/retiro de todos los roles (Railway)
+router.get('/withdrawals', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const { status } = req.query;
+    const where = { type: 'withdraw' };
+    if (status) where.status = status;
+    const txns = await prisma.transaction.findMany({
+      where, orderBy: { createdAt: 'desc' }, take: 200
+    });
+    const userIds = [...new Set(txns.map(t => t.userId).filter(Boolean))];
+    const users = userIds.length ? await prisma.user.findMany({
+      where: { id: { in: userIds } }, select: { id: true, name: true, email: true, role: true }
+    }) : [];
+    const umap = Object.fromEntries(users.map(u => [u.id, u]));
+    const list = txns.map(t => {
+      let ref = {}; try { ref = JSON.parse(t.reference || '{}'); } catch (_) {}
+      const u = umap[t.userId] || {};
+      return {
+        id: t.id, userId: t.userId, name: u.name || '—', email: u.email || '', role: u.role || '',
+        amount: t.amountSent, currency: t.currencySent, fee: t.fee,
+        amount_net: ref.amount_net != null ? ref.amount_net : (t.amountSent - (t.fee || 0)),
+        method: ref.method || '—', destination: ref.destination || '—',
+        status: t.status, createdAt: t.createdAt
+      };
+    });
+    const pending = list.filter(x => x.status === 'processing' || x.status === 'pending').length;
+    return success(res, { count: list.length, pending, withdrawals: list });
+  } catch (e) { return error(res, e.message); }
+});
+
+// POST /v1/admin/withdrawals/:id/complete — marcar un retiro como pagado/completado
+router.post('/withdrawals/:id/complete', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const t = await prisma.transaction.findUnique({ where: { id: req.params.id } });
+    if (!t || t.type !== 'withdraw') return error(res, 'Retiro no encontrado', 404);
+    const updated = await prisma.transaction.update({
+      where: { id: req.params.id }, data: { status: 'completed' }
+    });
+    return success(res, { id: updated.id, status: updated.status });
+  } catch (e) { return error(res, e.message); }
+});
+
 module.exports = router;
 module.exports.WALLET_LIMITS = WALLET_LIMITS;
 
