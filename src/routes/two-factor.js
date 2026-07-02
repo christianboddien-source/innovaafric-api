@@ -6,6 +6,16 @@ const prisma    = require('../config/prisma');
 const { requireAuth: authenticate, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
 
+// GET /v1/2fa/status — indica si el usuario tiene el 2FA activado
+router.get('/status', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    return ok(res, { enabled: !!(user && user.twoFactorEnabled) });
+  } catch (e) {
+    return error(res, e.message);
+  }
+});
+
 // POST /v1/2fa/setup — genera secret + QR para escanear con Authenticator
 router.post('/setup', authenticate, async (req, res) => {
   try {

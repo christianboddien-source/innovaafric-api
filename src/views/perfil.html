@@ -286,8 +286,19 @@ footer p{color:var(--muted);font-size:0.8rem;}
       <div class="card">
         <div class="card-title">🔐 Seguridad de la cuenta</div>
         <div class="security-item">
-          <div class="sec-info"><h4>Autenticación en dos pasos</h4><p>Añade una capa extra de seguridad a tu cuenta</p></div>
-          <div class="toggle" id="toggle-2fa" onclick="toggleSec('2fa')"></div>
+          <div class="sec-info"><h4>Autenticación en dos pasos</h4><p id="tfa-state">Añade una capa extra de seguridad a tu cuenta</p></div>
+          <button class="btn-outline" id="tfa-btn" style="font-size:0.8rem;padding:6px 14px" onclick="tfaToggle()">Configurar</button>
+        </div>
+        <div id="tfa-setup" style="display:none;padding:14px;border:1px solid rgba(148,163,184,0.25);border-radius:12px;margin-top:6px;margin-bottom:10px">
+          <p style="font-size:0.85rem;color:#94a3b8;margin:0 0 10px"><b>1.</b> Escanea este código con <b>Google Authenticator</b>, Authy o Microsoft Authenticator.</p>
+          <div style="text-align:center"><img id="tfa-qr" alt="QR 2FA" style="width:180px;height:180px;background:#fff;border-radius:8px;object-fit:contain"></div>
+          <p style="font-size:0.72rem;color:#64748b;text-align:center;margin:8px 0">o introduce la clave manualmente:<br><code id="tfa-secret" style="font-size:0.8rem;color:#22d3ee;word-break:break-all"></code></p>
+          <p style="font-size:0.85rem;color:#94a3b8;margin:12px 0 6px"><b>2.</b> Escribe el código de 6 dígitos que muestra la app:</p>
+          <div style="display:flex;gap:8px">
+            <input id="tfa-code" inputmode="numeric" maxlength="6" placeholder="000000" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(148,163,184,0.3);background:#0b0f17;color:#fff;font-size:1.1rem;letter-spacing:3px;text-align:center">
+            <button class="save-btn" style="margin:0" onclick="tfaConfirm()">Activar</button>
+          </div>
+          <div id="tfa-msg" style="font-size:0.8rem;margin-top:8px;min-height:16px"></div>
         </div>
         <div class="security-item">
           <div class="sec-info"><h4>Notificaciones de inicio de sesión</h4><p>Recibe email cuando alguien inicia sesión</p></div>
@@ -471,6 +482,60 @@ async function changePassword() {
 
 function toggleSec(id){ const el=document.getElementById('toggle-'+id); if(el) el.classList.toggle('on'); }
 
+// ── Autenticación en dos pasos (TOTP) ──
+let TFA_ENABLED=false;
+async function loadTFA(){
+  try{
+    const r=await fetch(API+'/v1/2fa/status',{headers:{'Authorization':'Bearer '+token}});
+    const j=await r.json();
+    TFA_ENABLED=!!((j.data&&j.data.enabled)||j.enabled);
+  }catch(e){}
+  renderTFA();
+}
+function renderTFA(){
+  const st=document.getElementById('tfa-state'), btn=document.getElementById('tfa-btn'), box=document.getElementById('tfa-setup');
+  if(!st||!btn)return;
+  if(TFA_ENABLED){ st.innerHTML='✅ <b style="color:#22c55e">Activado</b> — tu cuenta está protegida con un segundo factor.'; btn.textContent='Desactivar'; btn.style.borderColor='#ef4444'; btn.style.color='#f87171'; }
+  else { st.textContent='Añade una capa extra de seguridad a tu cuenta'; btn.textContent='Configurar'; btn.style.borderColor=''; btn.style.color=''; }
+  if(box)box.style.display='none';
+}
+async function tfaToggle(){
+  if(TFA_ENABLED){
+    const code=prompt('Introduce un código de tu app de autenticación para DESACTIVAR el 2FA:');
+    if(!code)return;
+    try{
+      const r=await fetch(API+'/v1/2fa/disable',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({token:code.trim()})});
+      const j=await r.json();
+      if(!r.ok){ alert('❌ '+((j.error&&(j.error.message||j.error))||'No se pudo desactivar')); return; }
+      alert('✅ 2FA desactivado'); TFA_ENABLED=false; renderTFA();
+    }catch(e){ alert('❌ Error de conexión'); }
+    return;
+  }
+  try{
+    const r=await fetch(API+'/v1/2fa/setup',{method:'POST',headers:{'Authorization':'Bearer '+token}});
+    const j=await r.json();
+    if(!r.ok){ alert('❌ '+((j.error&&(j.error.message||j.error))||'No se pudo iniciar la configuración')); return; }
+    const d=j.data||j;
+    document.getElementById('tfa-qr').src=d.qrCode;
+    document.getElementById('tfa-secret').textContent=d.secret;
+    document.getElementById('tfa-code').value='';
+    document.getElementById('tfa-msg').textContent='';
+    document.getElementById('tfa-setup').style.display='block';
+  }catch(e){ alert('❌ Error de conexión'); }
+}
+async function tfaConfirm(){
+  const code=(document.getElementById('tfa-code').value||'').trim();
+  const msg=document.getElementById('tfa-msg');
+  if(code.length<6){ msg.style.color='#f87171'; msg.textContent='Escribe el código de 6 dígitos.'; return; }
+  try{
+    const r=await fetch(API+'/v1/2fa/verify',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({token:code})});
+    const j=await r.json();
+    if(!r.ok){ msg.style.color='#f87171'; msg.textContent='❌ '+((j.error&&(j.error.message||j.error))||'Código inválido o expirado'); return; }
+    msg.style.color='#22c55e'; msg.textContent='✅ 2FA activado correctamente';
+    TFA_ENABLED=true; setTimeout(renderTFA,1200);
+  }catch(e){ msg.style.color='#f87171'; msg.textContent='❌ Error de conexión'; }
+}
+
 function copyRef() {
   const code = document.getElementById('ref-code').textContent;
   const url = window.location.origin+'/?ref='+code;
@@ -478,6 +543,7 @@ function copyRef() {
 }
 
 loadProfile();
+loadTFA();
 </script>
 </body>
 </html>
