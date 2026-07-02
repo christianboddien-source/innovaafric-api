@@ -338,6 +338,47 @@ router.post('/page/delete', ...guard, async (req, res) => {
   } catch (e) { return error(res, 'Error al eliminar: ' + (e.message || e), 500); }
 });
 
+// GET /v1/webadmin/announce — aviso global actual (para prefijar el formulario del dashboard)
+router.get('/announce', ...guard, async (req, res) => {
+  try {
+    const h = ghHeaders();
+    if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway.', 503);
+    const g = await ghGetJson(CUSTOM_REPO, CUSTOM_BRANCH, 'webadmin-announce.json');
+    return success(res, { announce: (g && g.data) || { active: false, text: '', link: '', color: '#0e7490' } });
+  } catch (e) { return error(res, 'Error: ' + (e.message || e), 500); }
+});
+
+// POST /v1/webadmin/announce — publicar / actualizar / quitar el aviso global de las webs
+router.post('/announce', ...guard, async (req, res) => {
+  try {
+    const h = ghHeaders();
+    if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway.', 503);
+    const b = req.body || {};
+    let link = String(b.link || '').trim();
+    if (link && !/^(https?:\/\/|\/|#)/i.test(link)) link = 'https://' + link; // normaliza; el snippet ignora javascript:
+    const announce = {
+      active: !!b.active,
+      text: String(b.text || '').slice(0, 300),
+      link: link.slice(0, 400),
+      color: /^#[0-9a-fA-F]{3,8}$/.test(b.color || '') ? b.color : '#0e7490',
+      updatedAt: Date.now()
+    };
+    const g = await ghGetJson(CUSTOM_REPO, CUSTOM_BRANCH, 'webadmin-announce.json');
+    const body = {
+      message: 'web-admin: ' + (announce.active ? 'publicar aviso global' : 'quitar aviso global'),
+      content: Buffer.from(JSON.stringify(announce, null, 2), 'utf8').toString('base64'),
+      branch: CUSTOM_BRANCH
+    };
+    if (g && g.sha) body.sha = g.sha;
+    const r = await fetch(`${GH_API}/repos/${GH_OWNER}/${CUSTOM_REPO}/contents/webadmin-announce.json`, {
+      method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return error(res, 'GitHub ' + r.status + ': ' + (j.message || 'no se pudo publicar'), 502);
+    return success(res, { saved: true, announce });
+  } catch (e) { return error(res, 'Error al publicar el aviso: ' + (e.message || e), 500); }
+});
+
 // GET /v1/webadmin/backup — copia de seguridad del contenido actual de TODAS las páginas
 router.get('/backup', ...guard, async (req, res) => {
   try {
