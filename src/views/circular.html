@@ -108,17 +108,6 @@
   .lf{background:rgba(255,255,255,.06);border:1px solid var(--border,#334);border-radius:20px;padding:4px 10px;cursor:pointer;user-select:none;transition:.15s}
   .lf.on{background:var(--accent-dark,#0e7490);border-color:var(--accent,#22d3ee);color:#fff}
 
-  /* ── Zona de impresión (PDF) ── */
-  #printArea{display:none}
-  @media print{
-    body *{visibility:hidden}
-    #printArea,#printArea *{visibility:visible}
-    #printArea{display:block!important;position:absolute;top:0;left:0;width:100%;background:#fff;color:#000;padding:20px;font-family:Arial,Helvetica,sans-serif}
-    #printArea table{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}
-    #printArea th,#printArea td{border:1px solid #999;padding:6px 8px;text-align:left;color:#000}
-    #printArea th{background:#eee}
-    nav{display:none!important}
-  }
 </style>
 </head>
 <body>
@@ -581,7 +570,6 @@
 </div>
 
 <!-- ════════ ZONA DE IMPRESIÓN ════════ -->
-<div id="printArea"></div>
 <script src="/app-i18n.js"></script>
 
 <script>
@@ -998,27 +986,29 @@ let HIST = null, HIST_VIEW = null;
 function printHistorial() {
   const H = HIST_VIEW || HIST;
   if (!H) return;
-  document.getElementById('printArea').innerHTML = printHeaderHTML('Historial — Circular Autorizada') + `
-    <table>
+  const body =
+    `<h2>Historial — Circular Autorizada</h2>` +
+    `<p style="color:#555;font-size:11px">Generado el ${new Date().toLocaleString('es-ES', {useGrouping:'always'})}</p>` +
+    `<table>
       <tr><th>Circular Autorizada</th><td>${ME.user?.name || '—'}</td></tr>
       <tr><th>Zona</th><td>${ME.neighborhood}, ${ME.country}</td></tr>
       <tr><th>Saldo de unidades</th><td>${fmt(H.account?.unitBalance ?? 0)}</td></tr>
     </table>
-    <h3 style="font-size:14px;margin:14px 0 4px">Recargas a clientes (${H.topUps.length})</h3>
+    <h2>Recargas a clientes (${H.topUps.length})</h2>
     <table>
       <tr><th>Fecha</th><th>Cliente</th><th>Teléfono</th><th>Importe</th><th>Estado</th></tr>
       ${H.topUps.map(t => `<tr><td>${new Date(t.createdAt).toLocaleString('es-ES', {useGrouping:'always'})}</td>
         <td>${t.clientName || t.clientId}</td><td>${t.clientPhone || '—'}</td>
         <td>${fmt(t.amount)} ${t.currency}</td><td>${t.status}</td></tr>`).join('')}
     </table>
-    <h3 style="font-size:14px;margin:14px 0 4px">Compras de unidades (${H.purchases.length})</h3>
+    <h2>Compras de unidades (${H.purchases.length})</h2>
     <table>
       <tr><th>Fecha</th><th>Unidades</th><th>Pagado</th><th>Ahorro 5%</th><th>Estado</th></tr>
       ${H.purchases.map(p => `<tr><td>${new Date(p.createdAt).toLocaleDateString('es-ES')}</td>
         <td>${fmt(p.unitsRequested)}</td><td>${fmt(p.amountToPay)} ${p.currency}</td>
         <td>${fmt(p.amountSaved)} ${p.currency}</td><td>${p.status}</td></tr>`).join('')}
     </table>`;
-  window.print();
+  printDoc('Historial — Circular Autorizada', body);
 }
 
 function shareHistorial() {
@@ -1120,25 +1110,14 @@ function shareText(text) {
   else { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); }
 }
 
-function printHeaderHTML(title) {
-  return `
-    <div style="display:flex;align-items:center;gap:12px;border-bottom:3px solid #0d9bc4;padding-bottom:12px;margin-bottom:14px">
-      <div>
-        <div style="font-size:22px;font-weight:800;color:#0d9bc4">InnovaAFRIC</div>
-        <div style="font-size:10px;letter-spacing:2px;font-weight:700">WE SIMPLIFY LIFE</div>
-      </div>
-      <div style="margin-left:auto;text-align:right">
-        <div style="font-size:16px;font-weight:700">${title}</div>
-        <div style="font-size:11px;color:#555">Generado el ${new Date().toLocaleString('es-ES', {useGrouping:'always'})}</div>
-      </div>
-    </div>`;
-}
+function printDoc(title, bodyHTML){ var w=window.open('','_blank'); if(!w){alert('Permite las ventanas emergentes para imprimir.');return;} w.document.write('<html><head><meta charset="utf-8"><title>'+title+'</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{color:#0d9bc4;font-size:20px;margin:0}.sub{font-size:10px;letter-spacing:2px;color:#555;margin-bottom:14px}h2{font-size:15px;margin:14px 0 4px}p{font-size:12px;margin:4px 0}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:12px}th{background:#0d9bc4;color:#fff}</style></head><body><h1>InnovaAFRIC</h1><div class="sub">WE SIMPLIFY LIFE</div>'+bodyHTML+'</body></html>'); w.document.close(); setTimeout(function(){try{w.print();}catch(e){}},350); }
 
 function printReceipt() {
   if (!lastReceipt) return;
   const r = lastReceipt, d = new Date(r.date);
-  document.getElementById('printArea').innerHTML = printHeaderHTML('Recibo de Recarga') + `
-    <table>
+  const body =
+    `<h2>Recibo de Recarga</h2>` +
+    `<table>
       <tr><th>Fecha</th><td>${d.toLocaleDateString('es-ES')} ${d.toLocaleTimeString('es-ES')}</td></tr>
       <tr><th>Cliente</th><td>${r.clientName || '—'} (${r.clientPhone || '—'})</td></tr>
       <tr><th>Importe</th><td><b>${fmt(r.amount)} ${r.currency}</b></td></tr>
@@ -1146,7 +1125,7 @@ function printReceipt() {
       <tr><th>Circular Autorizada</th><td>${ME.user?.name || '—'} — ${ME.neighborhood}, ${ME.country}</td></tr>
     </table>
     <p style="font-size:11px;color:#555">Este recibo certifica la recarga de la wallet XenderMoney del cliente. Conserve este documento.</p>`;
-  window.print();
+  printDoc('Recibo de Recarga', body);
 }
 
 // ── comisiones + traslado a wallet ──
@@ -1289,8 +1268,9 @@ async function loadCaja() {
 function printCierre() {
   if (!cajaData || !cajaData.tops.length) return;
   const { day, tops, totals } = cajaData;
-  document.getElementById('printArea').innerHTML = printHeaderHTML('Cierre de Caja — Circular Autorizada') + `
-    <table>
+  const body =
+    `<h2>Cierre de Caja — Circular Autorizada</h2>` +
+    `<table>
       <tr><th>Circular Autorizada</th><td>${ME.user?.name || '—'}</td></tr>
       <tr><th>Zona</th><td>${ME.neighborhood}, ${ME.country}</td></tr>
       <tr><th>Día del cierre</th><td>${day.split('-').reverse().join('/')}</td></tr>
@@ -1310,7 +1290,7 @@ function printCierre() {
       <div style="flex:1;border-top:1px solid #000;padding-top:6px;font-size:12px">Firma de la Circular Autorizada</div>
       <div style="flex:1;border-top:1px solid #000;padding-top:6px;font-size:12px">Firma del Representante / InnovaAFRIC</div>
     </div>`;
-  window.print();
+  printDoc('Cierre de Caja — Circular Autorizada', body);
 }
 
 function shareCierre() {
