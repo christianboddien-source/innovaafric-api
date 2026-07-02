@@ -338,4 +338,24 @@ router.post('/page/delete', ...guard, async (req, res) => {
   } catch (e) { return error(res, 'Error al eliminar: ' + (e.message || e), 500); }
 });
 
+// GET /v1/webadmin/backup — copia de seguridad del contenido actual de TODAS las páginas
+router.get('/backup', ...guard, async (req, res) => {
+  try {
+    const h = ghHeaders();
+    if (!h) return error(res, 'Falta configurar GITHUB_TOKEN en Railway.', 503);
+    await loadCustomPages();
+    const all = PAGES.concat(CUSTOM_PAGES);
+    const out = [];
+    for (const p of all) {
+      try {
+        const r = await fetch(`${GH_API}/repos/${GH_OWNER}/${p.repo}/contents/${encodeURIComponent(p.path).replace(/%2F/g,'/')}?ref=${p.branch}`, { headers: h });
+        if (!r.ok) { out.push({ id: p.id, label: p.label, repo: p.repo, path: p.path, error: 'GitHub ' + r.status }); continue; }
+        const j = await r.json();
+        out.push({ id: p.id, label: p.label, repo: p.repo, branch: p.branch, path: p.path, content: Buffer.from(j.content || '', 'base64').toString('utf8') });
+      } catch (e) { out.push({ id: p.id, path: p.path, error: e.message }); }
+    }
+    return success(res, { generatedAt: new Date().toISOString(), count: out.length, pages: out });
+  } catch (e) { return error(res, 'Error al generar la copia: ' + (e.message || e), 500); }
+});
+
 module.exports = router;
