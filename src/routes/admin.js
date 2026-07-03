@@ -1743,6 +1743,36 @@ router.post('/withdrawals/:id/complete', requireAuth, requireLevel(2), async (re
   } catch (e) { return error(res, e.message); }
 });
 
+// POST /v1/admin/withdrawals/:id/reject — rechazar un retiro y reembolsar el saldo al usuario
+router.post('/withdrawals/:id/reject', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const { reason } = req.body || {};
+    const t = await prisma.transaction.findUnique({ where: { id: req.params.id } });
+    if (!t || t.type !== 'withdraw') return error(res, 'Retiro no encontrado', 404);
+    if (t.status !== 'processing' && t.status !== 'pending') {
+      return error(res, 'Solo se pueden rechazar retiros pendientes', 422);
+    }
+    const field = CF[t.currencySent] || 'balanceXaf';
+    let ref = {}; try { ref = JSON.parse(t.reference || '{}'); } catch (_) {}
+    ref.reject_reason = (reason || '').toString().slice(0, 300);
+    ref.rejected_at = new Date().toISOString();
+    // Al crear el retiro se debitó el wallet: al rechazar hay que reembolsar el importe.
+    const ops = [];
+    if (t.userId) {
+      ops.push(prisma.wallet.update({
+        where: { userId: t.userId },
+        data: { [field]: { increment: t.amountSent } }
+      }));
+    }
+    ops.push(prisma.transaction.update({
+      where: { id: t.id },
+      data: { status: 'failed', reference: JSON.stringify(ref) }
+    }));
+    await prisma.$transaction(ops);
+    return success(res, { id: t.id, status: 'failed', refunded: t.amountSent, currency: t.currencySent, reason: ref.reject_reason });
+  } catch (e) { return error(res, e.message); }
+});
+
 module.exports = router;
 module.exports.WALLET_LIMITS = WALLET_LIMITS;
 
