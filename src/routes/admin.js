@@ -625,6 +625,77 @@ router.get('/orders', requireAuth, requireLevel(2), async (req, res) => {
   return success(res, { orders: all, total: all.length, shop: shopOrders.length, grocery: groceryOrders.length });
 });
 
+// Localiza un pedido en cualquiera de los dos modelos (shop Order o grocery GroceryOrder)
+async function findOrderAny(id) {
+  const o = await prisma.order.findUnique({ where: { id } });
+  if (o) return { kind: 'shop', order: o };
+  const g = await prisma.groceryOrder.findUnique({ where: { id } });
+  if (g) return { kind: 'grocery', order: g };
+  return null;
+}
+
+// PATCH /v1/admin/orders/:id/status — cambiar estado (confirmar / preparar / reparto / entregado / cancelar)
+router.patch('/orders/:id/status', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const { status } = req.body || {};
+    const valid = ['pending', 'confirmed', 'preparing', 'shipped', 'in_transit', 'delivered', 'cancelled', 'refunded'];
+    if (!valid.includes(status)) return error(res, `Estado no válido. Opciones: ${valid.join(', ')}`, 400);
+    const found = await findOrderAny(req.params.id);
+    if (!found) return error(res, 'Pedido no encontrado', 404);
+    if (found.kind === 'shop') await prisma.order.update({ where: { id: found.order.id }, data: { status } });
+    else await prisma.groceryOrder.update({ where: { id: found.order.id }, data: { status } });
+    return success(res, { id: found.order.id, status });
+  } catch (e) { return error(res, e.message); }
+});
+
+// POST /v1/admin/orders/:id/assign-rider — asignar un rider (solo pedidos grocery, que llevan riderId)
+router.post('/orders/:id/assign-rider', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const { riderId } = req.body || {};
+    if (!riderId) return error(res, 'Falta riderId', 400);
+    const g = await prisma.groceryOrder.findUnique({ where: { id: req.params.id } });
+    if (!g) {
+      const shop = await prisma.order.findUnique({ where: { id: req.params.id } });
+      if (shop) return error(res, 'Los pedidos de tienda (shop) se envían por logística, no llevan rider asignado', 422);
+      return error(res, 'Pedido no encontrado', 404);
+    }
+    const rider = await prisma.rider.findUnique({ where: { id: riderId } });
+    if (!rider) return error(res, 'Rider no encontrado', 404);
+    await prisma.$transaction([
+      prisma.groceryOrder.update({ where: { id: g.id }, data: { riderId, status: g.status === 'preparing' ? 'in_transit' : g.status } }),
+      prisma.rider.update({ where: { id: riderId }, data: { status: 'busy' } })
+    ]);
+    return success(res, { id: g.id, riderId, riderName: rider.name });
+  } catch (e) { return error(res, e.message); }
+});
+
+// POST /v1/admin/orders/:id/refund — reembolsar el pago al wallet del usuario y marcar reembolsado
+router.post('/orders/:id/refund', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const { reason } = req.body || {};
+    const found = await findOrderAny(req.params.id);
+    if (!found) return error(res, 'Pedido no encontrado', 404);
+    const o = found.order;
+    if (o.status === 'refunded' || o.status === 'cancelled') return error(res, 'El pedido ya está cancelado/reembolsado', 422);
+    const note = 'REEMBOLSADO: ' + (reason || '').toString().slice(0, 200);
+    const newNotes = (o.notes ? o.notes + ' | ' : '') + note;
+    let refunded, currency;
+    const ops = [];
+    if (found.kind === 'shop') {
+      const field = CF[o.paymentCurrency] || 'balanceEur';
+      refunded = o.paymentAmount; currency = o.paymentCurrency;
+      if (o.userId) ops.push(prisma.wallet.update({ where: { userId: o.userId }, data: { [field]: { increment: o.paymentAmount } } }));
+      ops.push(prisma.order.update({ where: { id: o.id }, data: { status: 'refunded', notes: newNotes } }));
+    } else {
+      refunded = o.totalXaf; currency = 'XAF';
+      if (o.userId) ops.push(prisma.wallet.update({ where: { userId: o.userId }, data: { balanceXaf: { increment: o.totalXaf } } }));
+      ops.push(prisma.groceryOrder.update({ where: { id: o.id }, data: { status: 'refunded', notes: newNotes } }));
+    }
+    await prisma.$transaction(ops);
+    return success(res, { id: o.id, status: 'refunded', refunded, currency });
+  } catch (e) { return error(res, e.message); }
+});
+
 // GET /v1/admin/products
 router.get('/products', requireAuth, requireLevel(2), async (_req, res) => {
   const [products, groceryProducts] = await Promise.all([
