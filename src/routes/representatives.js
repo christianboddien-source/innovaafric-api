@@ -426,6 +426,27 @@ router.get('/', authenticate, requireRole('admin','super_admin','finance_officer
   } catch (e) { return error(res, e.message); }
 });
 
+// GET /v1/representatives/recharges — historial de recargas a clientes (admin)
+router.get('/recharges', authenticate, requireRole('admin','super_admin','finance_officer','country_manager'), async (req, res) => {
+  try {
+    const { rep_id, limit = 100 } = req.query;
+    const where = rep_id ? { repId: rep_id } : {};
+    const topUps = await prisma.clientTopUp.findMany({
+      where, orderBy: { createdAt: 'desc' }, take: Math.min(Number(limit) || 100, 500), include: { rep: true }
+    });
+    const repUserIds = [...new Set(topUps.map(t => t.rep && t.rep.userId).filter(Boolean))];
+    const users = repUserIds.length ? await prisma.user.findMany({ where: { id: { in: repUserIds } }, select: { id: true, name: true } }) : [];
+    const umap = Object.fromEntries(users.map(u => [u.id, u]));
+    const recharges = topUps.map(t => ({
+      id: t.id, rep_id: t.repId,
+      rep_name: (t.rep && umap[t.rep.userId] && umap[t.rep.userId].name) || '—',
+      client_name: t.clientName || t.clientId, client_phone: t.clientPhone || '',
+      amount: t.amount, currency: t.currency, status: t.status, created_at: t.createdAt
+    }));
+    return ok(res, { count: recharges.length, recharges });
+  } catch (e) { return error(res, e.message); }
+});
+
 // GET /v1/representatives/purchases/pending — compras pendientes de confirmar
 router.get('/purchases/pending', authenticate, requireRole('admin','super_admin','finance_officer'), async (req, res) => {
   try {
