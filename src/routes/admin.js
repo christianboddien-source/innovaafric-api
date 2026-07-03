@@ -1723,11 +1723,46 @@ router.get('/withdrawals', requireAuth, requireLevel(2), async (req, res) => {
         amount: t.amountSent, currency: t.currencySent, fee: t.fee,
         amount_net: ref.amount_net != null ? ref.amount_net : (t.amountSent - (t.fee || 0)),
         method: ref.method || '—', destination: ref.destination || '—',
-        status: t.status, createdAt: t.createdAt
+        status: t.status, createdAt: t.createdAt,
+        aml_approvals: Array.isArray(ref.aml_approvals) ? ref.aml_approvals : [],
+        reject_reason: ref.reject_reason || null
       };
     });
     const pending = list.filter(x => x.status === 'processing' || x.status === 'pending').length;
     return success(res, { count: list.length, pending, withdrawals: list });
+  } catch (e) { return error(res, e.message); }
+});
+
+// ── Control AML: retiros de alto importe requieren doble aprobación (2 personas distintas) ──
+const AML_WITHDRAWAL_THRESHOLDS = { EUR: 800, USD: 850, XAF: 500000, XOF: 500000, GHS: 8000, NGN: 800000 };
+function isHighValueWithdrawal(t) {
+  const th = AML_WITHDRAWAL_THRESHOLDS[t.currencySent] || 500000;
+  return Number(t.amountSent || 0) >= th;
+}
+function distinctApprovers(ref) {
+  const approvals = Array.isArray(ref.aml_approvals) ? ref.aml_approvals : [];
+  return new Set(approvals.map(a => (a.by || '').toLowerCase()).filter(Boolean));
+}
+
+// POST /v1/admin/withdrawals/:id/approve — registrar una aprobación AML (dual control)
+router.post('/withdrawals/:id/approve', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const name = ((req.body && req.body.approver) || '').toString().trim();
+    if (!name) return error(res, 'Falta el nombre del aprobador', 400);
+    const t = await prisma.transaction.findUnique({ where: { id: req.params.id } });
+    if (!t || t.type !== 'withdraw') return error(res, 'Retiro no encontrado', 404);
+    if (t.status !== 'processing' && t.status !== 'pending') return error(res, 'Solo se pueden aprobar retiros pendientes', 422);
+    let ref = {}; try { ref = JSON.parse(t.reference || '{}'); } catch (_) {}
+    const approvals = Array.isArray(ref.aml_approvals) ? ref.aml_approvals : [];
+    if (approvals.some(a => (a.by || '').toLowerCase() === name.toLowerCase())) {
+      return error(res, 'Este aprobador ya firmó. La segunda aprobación debe ser de una persona distinta.', 409);
+    }
+    approvals.push({ by: name, at: new Date().toISOString(), admin: (req.user && (req.user.email || req.user.sub)) || null });
+    ref.aml_approvals = approvals;
+    await prisma.transaction.update({ where: { id: t.id }, data: { reference: JSON.stringify(ref) } });
+    const required = isHighValueWithdrawal(t) ? 2 : 0;
+    const count = distinctApprovers(ref).size;
+    return success(res, { id: t.id, approvals: count, required, complete: count >= required, approvers: approvals.map(a => a.by) });
   } catch (e) { return error(res, e.message); }
 });
 
@@ -1736,6 +1771,12 @@ router.post('/withdrawals/:id/complete', requireAuth, requireLevel(2), async (re
   try {
     const t = await prisma.transaction.findUnique({ where: { id: req.params.id } });
     if (!t || t.type !== 'withdraw') return error(res, 'Retiro no encontrado', 404);
+    // Enforcement AML server-side: no se puede pagar un retiro de alto importe sin doble aprobación
+    if (isHighValueWithdrawal(t)) {
+      let ref = {}; try { ref = JSON.parse(t.reference || '{}'); } catch (_) {}
+      const n = distinctApprovers(ref).size;
+      if (n < 2) return error(res, `Retiro de alto importe: requiere doble aprobación AML (${n}/2).`, 403);
+    }
     const updated = await prisma.transaction.update({
       where: { id: req.params.id }, data: { status: 'completed' }
     });
