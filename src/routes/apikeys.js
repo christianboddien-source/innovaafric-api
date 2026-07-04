@@ -3,7 +3,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { ok, error } = require('../helpers/response');
+const { success, error } = require('../helpers/response');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 
@@ -15,7 +15,7 @@ const requireAdmin = requireRole('admin');
 router.get('/', requireAuth, requireAdmin, async (_req, res) => {
   try {
     const keys = await prisma.apiClient.findMany({ orderBy: { createdAt: 'desc' } });
-    ok(res, { keys, total: keys.length, active: keys.filter(k => k.active).length });
+    success(res, { keys, total: keys.length, active: keys.filter(k => k.active).length });
   } catch (e) { error(res, e.message); }
 });
 
@@ -35,7 +35,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
         active:      true
       }
     });
-    ok(res, { ...key, clientSecret }, 201);
+    success(res, { ...key, clientSecret }, 201);
   } catch (e) { error(res, e.message); }
 });
 
@@ -48,7 +48,7 @@ router.patch('/:id/toggle', requireAuth, requireAdmin, async (req, res) => {
       where: { id: req.params.id },
       data:  { active: !key.active }
     });
-    ok(res, updated);
+    success(res, updated);
   } catch (e) { error(res, e.message); }
 });
 
@@ -56,7 +56,7 @@ router.patch('/:id/toggle', requireAuth, requireAdmin, async (req, res) => {
 router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     await prisma.apiClient.delete({ where: { id: req.params.id } });
-    ok(res, { message: 'API Key revocada' });
+    success(res, { message: 'API Key revocada' });
   } catch (e) { error(res, e.message); }
 });
 
