@@ -6,7 +6,33 @@ const router  = express.Router();
 
 const prisma  = require('../config/prisma');
 const { success, error, paginate } = require('../helpers/response');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
+const ADMIN_REVIEW = ['admin','super_admin','country_manager','regional_director'];
+
+// GET /v1/reviews — todas las reseñas para moderación (admin)
+router.get('/', requireAuth, requireRole(...ADMIN_REVIEW), async (req, res) => {
+  try {
+    const { type, limit = 200 } = req.query;
+    const where = type ? { type } : {};
+    const reviews = await prisma.review.findMany({
+      where, orderBy: { createdAt: 'desc' }, take: Math.min(Number(limit) || 200, 500),
+      include: { user: { select: { name: true, email: true } } }
+    });
+    return success(res, reviews.map(r => ({
+      id: r.id, type: r.type, target: r.targetName, targetId: r.targetId,
+      user: (r.user && r.user.name) || r.userId, userEmail: (r.user && r.user.email) || '',
+      rating: r.rating, comment: r.comment || '', createdAt: r.createdAt
+    })));
+  } catch (e) { return error(res, e.message, 500); }
+});
+
+// DELETE /v1/reviews/:id — moderar (eliminar) una reseña (admin)
+router.delete('/:id', requireAuth, requireRole(...ADMIN_REVIEW), async (req, res) => {
+  try {
+    await prisma.review.delete({ where: { id: req.params.id } });
+    return success(res, { message: 'Reseña eliminada' });
+  } catch (e) { return error(res, e.message, e.code === 'P2025' ? 404 : 500); }
+});
 
 // POST /v1/reviews/products/:id
 router.post('/products/:id', requireAuth, async (req, res) => {
