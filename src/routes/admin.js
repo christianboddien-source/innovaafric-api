@@ -950,6 +950,27 @@ router.patch('/users/:id/unblock', requireAuth, requireLevel(2), async (req, res
   } catch (e) { return error(res, e.message); }
 });
 
+// POST /v1/admin/users/:id/reset-pin — Borrar el PIN de seguridad de un usuario
+// IMPORTANTE (seguridad): el admin NUNCA fija ni ve el PIN de otra persona.
+// Esto solo pone pinHash en null: el usuario queda temporalmente SIN PIN
+// (no se le exigirá en operaciones de dinero hasta que ponga uno nuevo) y
+// puede configurar un PIN propio desde su app con POST /v1/auth/set-pin,
+// que no pide "PIN actual" cuando no hay ninguno configurado.
+router.post('/users/:id/reset-pin', requireAuth, requireLevel(2), async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id }, select: { id: true, name: true, email: true, pinHash: true } });
+    if (!user) return error(res, 'Usuario no encontrado', 404);
+    if (!user.pinHash) return success(res, { message: 'Este usuario ya no tenía PIN configurado.', hasPin: false });
+
+    await prisma.user.update({ where: { id: user.id }, data: { pinHash: null } });
+
+    return success(res, {
+      message: `✅ PIN de ${user.name || user.email} eliminado. Debe configurar uno nuevo desde su app (no se le pedirá el PIN antiguo).`,
+      hasPin: false
+    });
+  } catch (e) { return error(res, e.message); }
+});
+
 // ══════════════════════════════════════════════════════
 //  WEBHOOK SYNC — Supabase → Railway
 //  Recibe usuarios nuevos de Supabase y los sincroniza
