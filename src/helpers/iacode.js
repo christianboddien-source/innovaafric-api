@@ -32,8 +32,8 @@ function iaIdClauses(q) {
   if (!/^[0-9A-F]{6}$/.test(hex)) return null;
   const h = hex.toLowerCase();
   return [
-    { id: { startsWith: h } },        // UUID: el código va al principio
-    { id: { contains: '_' + h } }     // prefijado: "usr_eb1686…"
+    { id: { startsWith: h, mode: 'insensitive' } },   // FIX: antes fallaba si el id tenía otro case
+    { id: { contains: '_' + h, mode: 'insensitive' } } // FIX: idem
   ];
 }
 
