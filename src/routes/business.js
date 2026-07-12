@@ -8,6 +8,7 @@ const prisma  = require('../config/prisma');
 const { success, error, paginate, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireKYC } = require('../middleware/auth');
 const { notify } = require('../helpers/notify');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const CURRENCY_FIELD = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
 
@@ -112,7 +113,7 @@ router.post('/bulk/payments', requireAuth, requireKYC, async (req, res) => {
       failed++;
       continue;
     }
-    await prisma.$transaction([
+    const payTx = await prisma.$transaction([
       prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: rec.amount } } }),
       prisma.wallet.upsert({
         where: { userId: recipient.id },
@@ -120,6 +121,9 @@ router.post('/bulk/payments', requireAuth, requireKYC, async (req, res) => {
         create: { userId: recipient.id, [balanceField]: rec.amount }
       })
     ]);
+    // FIX v1: sincronizar ambos wallets con Supabase
+    syncWalletToSupabase(req.user.sub, payTx[0]).catch(function(){});
+    syncWalletToSupabase(recipient.id, payTx[1]).catch(function(){});
     notify(recipient.id, {
       title: 'Pago recibido',
       body: `Has recibido ${rec.amount} ${currency} de ${account.companyName}.`,
@@ -261,7 +265,7 @@ router.patch('/invoices/:id/pay', requireAuth, requireKYC, async (req, res) => {
     return error(res, `Saldo ${invoice.currency} insuficiente`, 422);
   }
 
-  await prisma.$transaction([
+  const payInvoiceTx = await prisma.$transaction([
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: invoice.totalEur } } }),
     prisma.wallet.upsert({
       where: { userId: invoice.issuerId },
@@ -270,6 +274,10 @@ router.patch('/invoices/:id/pay', requireAuth, requireKYC, async (req, res) => {
     }),
     prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'paid', paidAt: new Date(), paidBy: req.user.sub } })
   ]);
+
+  // FIX v1: sincronizar ambos wallets (pagador y emisor de la factura)
+  syncWalletToSupabase(req.user.sub, payInvoiceTx[0]).catch(function(){});
+  syncWalletToSupabase(invoice.issuerId, payInvoiceTx[1]).catch(function(){});
 
   notify(invoice.issuerId, {
     title: 'Factura pagada',
