@@ -5,6 +5,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
 const { WALLET_LIMITS, CURRENCY_FIELD } = require('../config/walletLimits');
 const { iaCode, iaIdClauses } = require('../helpers/iacode');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const COMMISSION = 0.05; // 5% descuento en compra de unidades
 const TRANSFER_TAX_DEFAULT = 0.02; // 2% de retención si el país no tiene impuestos configurados
@@ -222,6 +223,10 @@ router.post('/topup-client', requireAuth, async (req, res) => {
       })
     ]);
 
+    // FIX v1: sin esto, el cliente no veía la recarga en XenderMoney (lee de Supabase).
+    // No bloqueamos la respuesta por esto — la recarga en Railway ya es válida y confirmada.
+    syncWalletToSupabase(clientId, txResults[0]).catch(function(){});
+
     const updated = await prisma.circularAccount.findUnique({ where: { circularId: circ.id } });
     const alertLow = updated.unitBalance < updated.alertThreshold;
     const topUpRec = txResults[3]; // registro CircularTopUp creado en la transacción
@@ -373,6 +378,9 @@ router.post('/transfer-to-wallet', requireAuth, async (req, res) => {
         }
       })
     ]);
+
+    // FIX v1: la propia Circular necesita ver su wallet actualizado en XenderMoney
+    syncWalletToSupabase(circ.userId, txResults[1]).catch(function(){});
 
     return ok(res, {
       message: `✅ ${net.toLocaleString()} ${currency} acreditados en tu wallet XenderMoney`,
