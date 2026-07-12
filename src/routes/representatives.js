@@ -5,6 +5,7 @@ const PDFDocument = require('pdfkit');
 const { requireAuth: authenticate, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
 const { iaCode, iaIdClauses } = require('../helpers/iacode');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const DISCOUNT = 0.10; // 10% descuento motivacional
 const TRANSFER_TAX_DEFAULT = 0.02; // 2% de retención si el país no tiene impuestos configurados
@@ -254,6 +255,9 @@ router.post('/transfer-earnings', authenticate, async (req, res) => {
       })
     ]);
 
+    // FIX v1: sin esto, el representante no veía sus comisiones en XenderMoney
+    syncWalletToSupabase(rep.userId, txResults[1]).catch(function(){});
+
     return ok(res, {
       message: `✅ ${net.toLocaleString()} ${currency} acreditados en tu wallet XenderMoney`,
       amountTransferred: amount,
@@ -327,7 +331,7 @@ router.post('/topup-client', authenticate, async (req, res) => {
                       : currency === 'USD' ? 'balanceUsd'
                       : 'balanceEur';
 
-    await prisma.$transaction([
+    const topupTx = await prisma.$transaction([
       // Acreditar wallet del cliente
       prisma.wallet.upsert({
         where: { userId: clientId },
@@ -365,6 +369,9 @@ router.post('/topup-client', authenticate, async (req, res) => {
         }
       })
     ]);
+
+    // FIX v1: sin esto, el cliente no veía la recarga en XenderMoney
+    syncWalletToSupabase(clientId, topupTx[0]).catch(function(){});
 
     // Alerta si el saldo baja del umbral
     const updatedAccount = await prisma.repAccount.findUnique({ where: { repId: rep.id } });
