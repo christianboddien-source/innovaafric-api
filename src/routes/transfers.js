@@ -5,6 +5,7 @@ const { PrismaClient } = require('@prisma/client');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const requireAdmin = requireRole('admin');
 const { ok, error } = require('../helpers/response');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -68,10 +69,13 @@ router.post('/', requireAuth, async (req, res) => {
     if (available < amount) return error(res, `Saldo insuficiente. Disponible: ${available} ${curr}`, 400);
 
     // Descontar saldo
-    await prisma.wallet.update({
+    const walletAfter = await prisma.wallet.update({
       where: { userId: req.user.id },
       data: { [balanceField]: { decrement: amount } }
     });
+
+    // FIX v1: sin esto, el débito no se veía reflejado en XenderMoney
+    syncWalletToSupabase(req.user.id, walletAfter).catch(function(){});
 
     const transfer = await prisma.bankTransfer.create({
       data: {
@@ -125,10 +129,12 @@ router.patch('/:id/reject', requireAuth, requireAdmin, async (req, res) => {
     if (transfer.status !== 'rejected') {
       const curr = transfer.currency;
       const balanceField = `balance${curr.charAt(0).toUpperCase()}${curr.slice(1).toLowerCase()}`;
-      await prisma.wallet.update({
+      const walletAfterRefund = await prisma.wallet.update({
         where: { userId: transfer.userId },
         data: { [balanceField]: { increment: transfer.amount } }
       });
+      // FIX v1: sin esto, el cliente no veía su saldo devuelto en XenderMoney
+      syncWalletToSupabase(transfer.userId, walletAfterRefund).catch(function(){});
     }
 
     const t = await prisma.bankTransfer.update({
