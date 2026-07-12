@@ -4,6 +4,7 @@ const router  = express.Router();
 const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const ADMIN = ['admin','super_admin','finance_officer','country_manager','regional_director'];
 
@@ -51,10 +52,13 @@ router.post('/goals/:id/deposit', requireAuth, async (req, res) => {
     const newCurrent = Math.min(goal.current + amountF, goal.target);
     const status     = newCurrent >= goal.target ? 'completado' : 'activo';
 
-    await prisma.$transaction([
+    const depositTx = await prisma.$transaction([
       prisma.wallet.update({ where: { userId }, data: { [balanceField]: { decrement: amountF } } }),
       prisma.savingsGoal.update({ where: { id: goal.id }, data: { current: newCurrent, status } })
     ]);
+
+    // FIX v1: sin esto, el depósito no se veía reflejado en XenderMoney
+    syncWalletToSupabase(userId, depositTx[0]).catch(function(){});
 
     return success(res, { goalId: goal.id, deposited: amountF, current: newCurrent, target: goal.target, progress: Math.round((newCurrent / goal.target) * 100), status });
   } catch (e) { return error(res, e.message, 500); }
@@ -70,10 +74,13 @@ router.delete('/goals/:id', requireAuth, async (req, res) => {
     const curr = goal.currency.toUpperCase();
     const balanceField = `balance${curr.charAt(0)}${curr.slice(1).toLowerCase()}`;
 
-    await prisma.$transaction([
+    const cancelTx = await prisma.$transaction([
       prisma.wallet.update({ where: { userId }, data: { [balanceField]: { increment: goal.current } } }),
       prisma.savingsGoal.update({ where: { id: goal.id }, data: { status: 'cancelado' } })
     ]);
+
+    // FIX v1: sin esto, la devolución no se veía reflejada en XenderMoney
+    syncWalletToSupabase(userId, cancelTx[0]).catch(function(){});
     return success(res, { message: 'Objetivo cancelado.', refunded: goal.current, currency: goal.currency });
   } catch (e) { return error(res, e.message, 500); }
 });
