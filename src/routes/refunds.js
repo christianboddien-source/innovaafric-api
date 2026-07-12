@@ -4,6 +4,7 @@ const router  = express.Router();
 const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const ADMIN = ['admin','super_admin','support_agent','support_supervisor','country_manager','regional_director'];
 
@@ -48,11 +49,13 @@ router.patch('/:id/approve', requireAuth, requireRole(...ADMIN), async (req, res
     if (refund.userId) {
       const curr = refund.currency.toUpperCase();
       const balanceField = `balance${curr.charAt(0)}${curr.slice(1).toLowerCase()}`;
-      await prisma.wallet.upsert({
+      const walletAfter = await prisma.wallet.upsert({
         where:  { userId: refund.userId },
         update: { [balanceField]: { increment: refund.amount } },
         create: { userId: refund.userId, [balanceField]: refund.amount }
       });
+      // FIX v1: sin esto, el reembolso no se veía reflejado en XenderMoney
+      syncWalletToSupabase(refund.userId, walletAfter).catch(function(){});
     }
 
     const updated = await prisma.refundRequest.update({
