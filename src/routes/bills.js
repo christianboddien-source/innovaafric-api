@@ -7,6 +7,7 @@ const router  = express.Router();
 const prisma  = require('../config/prisma');
 const { success, error, paginate, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireKYC } = require('../middleware/auth');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const CURRENCY_FIELD = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
 
@@ -50,7 +51,7 @@ router.post('/pay', requireAuth, requireKYC, async (req, res) => {
     return error(res, `Saldo ${provider.currency} insuficiente`, 422);
   }
 
-  const [, payment] = await prisma.$transaction([
+  const [walletAfter, payment] = await prisma.$transaction([
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: amount } } }),
     prisma.billPayment.create({
       data: {
@@ -64,6 +65,9 @@ router.post('/pay', requireAuth, requireKYC, async (req, res) => {
       }
     })
   ]);
+
+  // FIX v1: sin esto, el pago de factura no se veía reflejado en XenderMoney
+  syncWalletToSupabase(req.user.sub, walletAfter).catch(function(){});
 
   await triggerWebhook('bill.paid', { id: payment.id, provider: provider.name, amount, category: provider.category });
 
