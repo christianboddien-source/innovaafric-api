@@ -7,6 +7,7 @@ const router  = express.Router();
 const prisma  = require('../config/prisma');
 const { success, error, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireKYC } = require('../middleware/auth');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const CURRENCY_FIELD = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
 
@@ -38,7 +39,9 @@ router.post('/', requireAuth, requireKYC, async (req, res) => {
     if (!wallet || wallet[balanceField] < initial_load) {
       return error(res, `Saldo ${currency} insuficiente para la carga inicial`, 422);
     }
-    await prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: initial_load } } });
+    const walletAfterLoad = await prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: initial_load } } });
+    // FIX v1: sin esto, la carga inicial de la tarjeta no se veía reflejada en XenderMoney
+    syncWalletToSupabase(req.user.sub, walletAfterLoad).catch(function(){});
   }
 
   const card = await prisma.virtualCard.create({
@@ -108,13 +111,16 @@ router.post('/:id/topup', requireAuth, requireKYC, async (req, res) => {
   const wallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
   if (!wallet || wallet[balanceField] < amount) return error(res, `Saldo ${card.currency} insuficiente`, 422);
 
-  await prisma.$transaction([
+  const topupTx = await prisma.$transaction([
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: amount } } }),
     prisma.virtualCard.update({ where: { id: card.id }, data: { balance: { increment: amount } } }),
     prisma.virtualCardTransaction.create({
       data: { id: `ctop_${uuidv4().slice(0, 8)}`, cardId: card.id, type: 'topup', amount }
     })
   ]);
+
+  // FIX v1: sin esto, la recarga de tarjeta no se veía reflejada en XenderMoney
+  syncWalletToSupabase(req.user.sub, topupTx[0]).catch(function(){});
 
   await triggerWebhook('card.topup', { card_id: card.id, amount, currency: card.currency });
 
@@ -147,15 +153,22 @@ router.delete('/:id', requireAuth, async (req, res) => {
   if (card.status === 'cancelled') return error(res, 'La tarjeta ya está cancelada', 400);
 
   const ops = [prisma.virtualCard.update({ where: { id: card.id }, data: { status: 'cancelled', balance: 0 } })];
+  let refundIdx = -1;
   if (card.balance > 0) {
     const balanceField = CURRENCY_FIELD[card.currency];
+    refundIdx = ops.length;
     ops.push(prisma.wallet.upsert({
       where: { userId: req.user.sub },
       update: { [balanceField]: { increment: card.balance } },
       create: { userId: req.user.sub, [balanceField]: card.balance }
     }));
   }
-  await prisma.$transaction(ops);
+  const cancelTx = await prisma.$transaction(ops);
+
+  // FIX v1: sin esto, la devolución al cancelar la tarjeta no se veía en XenderMoney
+  if (refundIdx >= 0) {
+    syncWalletToSupabase(req.user.sub, cancelTx[refundIdx]).catch(function(){});
+  }
 
   await triggerWebhook('card.cancelled', { card_id: card.id, refund: card.balance, currency: card.currency });
 
