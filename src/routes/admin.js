@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const prisma  = require('../config/prisma');
 const { success, error, paginate } = require('../helpers/response');
 const { requireAuth, requireRole, requireLevel } = require('../middleware/auth');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const CF = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
 
@@ -240,6 +241,9 @@ router.post('/wallet/topup', requireAuth, requireLevel(2), async (req, res) => {
     create: { userId: user_id, [CF[currency]]: Number(amount) }
   });
 
+  // FIX v1: sin esto, la recarga admin no se veía reflejada en XenderMoney
+  syncWalletToSupabase(user_id, wallet).catch(function(){});
+
   const txn = await prisma.transaction.create({
     data: {
       id: `adm_${uuidv4().slice(0, 8)}`,
@@ -272,6 +276,9 @@ router.post('/wallet/adjust', requireAuth, requireLevel(2), async (req, res) => 
 
   const newBalance = Math.max(0, wallet[field] + Number(amount));
   const updated = await prisma.wallet.update({ where: { userId: user_id }, data: { [field]: newBalance } });
+
+  // FIX v1: sin esto, el ajuste manual no se veía reflejado en XenderMoney
+  syncWalletToSupabase(user_id, updated).catch(function(){});
 
   return success(res, {
     user: { id: user.id, name: user.name },
@@ -443,7 +450,10 @@ router.post('/bills/pay', requireAuth, requireLevel(2), async (req, res) => {
     return error(res, `Saldo ${provider.currency} insuficiente. Disponible: ${currentBalance.toLocaleString()} ${provider.currency}`, 422);
   }
 
-  await prisma.wallet.update({ where: { userId: targetUser.id }, data: { [balanceField]: { decrement: amount } } });
+  const walletAfter = await prisma.wallet.update({ where: { userId: targetUser.id }, data: { [balanceField]: { decrement: amount } } });
+
+  // FIX v1: sin esto, el pago de factura hecho por admin no se veía en XenderMoney
+  syncWalletToSupabase(targetUser.id, walletAfter).catch(function(){});
 
   const { v4: uuidv4 } = require('uuid');
   const payment = await prisma.billPayment.create({
@@ -681,17 +691,23 @@ router.post('/orders/:id/refund', requireAuth, requireLevel(2), async (req, res)
     const newNotes = (o.notes ? o.notes + ' | ' : '') + note;
     let refunded, currency;
     const ops = [];
+    let walletOpIdx = -1;
     if (found.kind === 'shop') {
       const field = CF[o.paymentCurrency] || 'balanceEur';
       refunded = o.paymentAmount; currency = o.paymentCurrency;
-      if (o.userId) ops.push(prisma.wallet.update({ where: { userId: o.userId }, data: { [field]: { increment: o.paymentAmount } } }));
+      if (o.userId) { walletOpIdx = ops.length; ops.push(prisma.wallet.update({ where: { userId: o.userId }, data: { [field]: { increment: o.paymentAmount } } })); }
       ops.push(prisma.order.update({ where: { id: o.id }, data: { status: 'refunded', notes: newNotes } }));
     } else {
       refunded = o.totalXaf; currency = 'XAF';
-      if (o.userId) ops.push(prisma.wallet.update({ where: { userId: o.userId }, data: { balanceXaf: { increment: o.totalXaf } } }));
+      if (o.userId) { walletOpIdx = ops.length; ops.push(prisma.wallet.update({ where: { userId: o.userId }, data: { balanceXaf: { increment: o.totalXaf } } })); }
       ops.push(prisma.groceryOrder.update({ where: { id: o.id }, data: { status: 'refunded', notes: newNotes } }));
     }
-    await prisma.$transaction(ops);
+    const refundTx = await prisma.$transaction(ops);
+
+    // FIX v1: sin esto, el reembolso admin no se veía reflejado en XenderMoney
+    if (walletOpIdx >= 0 && o.userId) {
+      syncWalletToSupabase(o.userId, refundTx[walletOpIdx]).catch(function(){});
+    }
     return success(res, { id: o.id, status: 'refunded', refunded, currency });
   } catch (e) { return error(res, e.message); }
 });
@@ -1745,6 +1761,17 @@ router.post('/reset-all-balances', requireAuth, requireLevel(5), async (req, res
       })
     ]);
 
+    // FIX v1: updateMany no devuelve los registros afectados, así que hay que
+    // volver a leer los userId y sincronizar cada wallet (ya a 0) en segundo plano.
+    // No bloqueamos la respuesta — puede ser una lista grande de usuarios.
+    prisma.wallet.findMany({ select: { userId: true } })
+      .then(function(all) {
+        all.forEach(function(w) {
+          syncWalletToSupabase(w.userId, { balanceEur: 0, balanceUsd: 0, balanceXaf: 0, balanceXof: 0 }).catch(function(){});
+        });
+      })
+      .catch(function(){});
+
     return success(res, {
       message: 'Reset total completado',
       wallets_reset: walletsReset.count,
@@ -1870,7 +1897,9 @@ router.post('/withdrawals/:id/reject', requireAuth, requireLevel(2), async (req,
     ref.rejected_at = new Date().toISOString();
     // Al crear el retiro se debitó el wallet: al rechazar hay que reembolsar el importe.
     const ops = [];
+    let walletOpIdx = -1;
     if (t.userId) {
+      walletOpIdx = ops.length;
       ops.push(prisma.wallet.update({
         where: { userId: t.userId },
         data: { [field]: { increment: t.amountSent } }
@@ -1880,11 +1909,15 @@ router.post('/withdrawals/:id/reject', requireAuth, requireLevel(2), async (req,
       where: { id: t.id },
       data: { status: 'failed', reference: JSON.stringify(ref) }
     }));
-    await prisma.$transaction(ops);
+    const rejectTx = await prisma.$transaction(ops);
+
+    // FIX v1: sin esto, la devolución por retiro rechazado no se veía en XenderMoney
+    if (walletOpIdx >= 0 && t.userId) {
+      syncWalletToSupabase(t.userId, rejectTx[walletOpIdx]).catch(function(){});
+    }
     return success(res, { id: t.id, status: 'failed', refunded: t.amountSent, currency: t.currencySent, reason: ref.reject_reason });
   } catch (e) { return error(res, e.message); }
 });
 
 module.exports = router;
 module.exports.WALLET_LIMITS = WALLET_LIMITS;
-
