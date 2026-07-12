@@ -4,6 +4,7 @@ const prisma  = require('../config/prisma');
 const { requireAuth: authenticate, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
 const { distributeCommission } = require('../services/commission');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 // El JWT lleva el id del usuario en `sub`
 const uid = (req) => req.user.sub || req.user.id;
@@ -38,7 +39,7 @@ router.post('/confirm/:orderId', authenticate, async (req, res) => {
 
       if (rider?.userId) {
         // Transferir riderFeeXaf al wallet del rider
-        await prisma.$transaction([
+        const payTx = await prisma.$transaction([
           prisma.wallet.update({
             where: { userId: rider.userId },
             data: { balanceXaf: { increment: order.riderFeeXaf } }
@@ -68,6 +69,9 @@ router.post('/confirm/:orderId', authenticate, async (req, res) => {
             }
           })
         ]);
+
+        // FIX v1: sin esto, el rider no veía el pago en XenderMoney
+        syncWalletToSupabase(rider.userId, payTx[0]).catch(function(){});
 
         // Registrar comisión de delivery (IVA del fee del rider)
         await distributeCommission({
@@ -132,7 +136,7 @@ router.post('/release/:orderId', authenticate, requireRole('admin', 'super_admin
 
     const now = new Date();
 
-    await prisma.$transaction([
+    const releaseTx = await prisma.$transaction([
       prisma.wallet.update({
         where: { userId: rider.userId },
         data: { balanceXaf: { increment: order.riderFeeXaf } }
@@ -157,6 +161,9 @@ router.post('/release/:orderId', authenticate, requireRole('admin', 'super_admin
         data: { riderFeeStatus: 'manual_released', riderPaidAt: now }
       })
     ]);
+
+    // FIX v1: sin esto, el rider no veía el pago manual en XenderMoney
+    syncWalletToSupabase(rider.userId, releaseTx[0]).catch(function(){});
 
     return ok(res, {
       message: `Pago manual de ${order.riderFeeXaf} XAF liberado al rider ${rider.name}`,
