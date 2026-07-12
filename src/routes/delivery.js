@@ -8,6 +8,7 @@ const prisma  = require('../config/prisma');
 const { success, error, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { iaCode } = require('../helpers/iacode');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 // GET /v1/delivery/track/:tracking_id
 router.get('/track/:tracking_id', async (req, res) => {
@@ -145,7 +146,7 @@ router.post('/orders/:id/delivered', requireAuth, async (req, res) => {
 
   if (autoPay) {
     // Liberar el pago al rider automáticamente (mismo flujo que rider-payment confirm)
-    await prisma.$transaction([
+    const payTx = await prisma.$transaction([
       prisma.groceryOrder.update({
         where: { id: order.id },
         data: {
@@ -178,6 +179,8 @@ router.post('/orders/:id/delivered', requireAuth, async (req, res) => {
         data: { status: 'available', deliveriesTotal: { increment: 1 } }
       })
     ]);
+    // FIX v1: sin esto, el rider no veía el pago en XenderMoney
+    syncWalletToSupabase(rider.userId, payTx[1]).catch(function(){});
     await triggerWebhook('order.delivered', { orderId: order.id, riderId: rider.id, paid: true });
     return success(res, {
       message: `✅ Entrega registrada. ${order.riderFeeXaf.toLocaleString()} XAF acreditados en tu wallet XenderMoney.`,
