@@ -11,6 +11,7 @@ const { notify } = require('../helpers/notify');
 const { iaCode, iaIdClauses } = require('../helpers/iacode');
 
 const { WALLET_LIMITS, CURRENCY_FIELD } = require('../config/walletLimits');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 // GET /v1/money/balance — requiere KYC aprobado
 router.get('/balance', requireAuth, requireKYC, async (req, res) => {
@@ -128,7 +129,7 @@ router.post('/send', requireAuth, requireKYC, async (req, res) => {
   const amount_received = Math.round(net_amount * rate * 100) / 100;
   const recvField = CURRENCY_FIELD[dest_currency];
 
-  await prisma.$transaction([
+  const sendTx = await prisma.$transaction([
     prisma.wallet.update({
       where: { userId: req.user.sub },
       data: { [balanceField]: { decrement: amount } }
@@ -139,6 +140,10 @@ router.post('/send', requireAuth, requireKYC, async (req, res) => {
       create: { userId: recipient.id, [recvField]: amount_received }
     })
   ]);
+
+  // FIX v1: sincronizar ambos wallets (remitente y destinatario) con Supabase
+  syncWalletToSupabase(req.user.sub, sendTx[0]).catch(function(){});
+  syncWalletToSupabase(recipient.id, sendTx[1]).catch(function(){});
 
   const txn = await prisma.transaction.create({
     data: {
@@ -187,7 +192,7 @@ router.post('/withdraw', requireAuth, requireKYC, async (req, res) => {
   const fee = calcFee(amount, 'withdraw');
   const amount_net = Math.round((amount - fee) * 100) / 100;
 
-  const [, txn] = await prisma.$transaction([
+  const [walletAfter, txn] = await prisma.$transaction([
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: amount } } }),
     prisma.transaction.create({
       data: {
@@ -198,6 +203,9 @@ router.post('/withdraw', requireAuth, requireKYC, async (req, res) => {
       }
     })
   ]);
+
+  // FIX v1: sin esto, el usuario no veía el retiro reflejado en XenderMoney
+  syncWalletToSupabase(req.user.sub, walletAfter).catch(function(){});
 
   await triggerWebhook('withdrawal.completed', { id: txn.id, amount, currency, method });
 
@@ -225,7 +233,7 @@ router.post('/transfer', requireAuth, requireKYC, async (req, res) => {
   const key = CURRENCY_FIELD[currency] || 'balanceXaf';
   if (!senderWallet || senderWallet[key] < amount) return error(res, 'Saldo insuficiente', 422);
 
-  await prisma.$transaction([
+  const transferTx = await prisma.$transaction([
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { [key]: { decrement: amount } } }),
     prisma.wallet.upsert({
       where: { userId: recipient.id },
@@ -233,6 +241,10 @@ router.post('/transfer', requireAuth, requireKYC, async (req, res) => {
       create: { userId: recipient.id, [key]: amount }
     })
   ]);
+
+  // FIX v1: sincronizar ambos wallets con Supabase
+  syncWalletToSupabase(req.user.sub, transferTx[0]).catch(function(){});
+  syncWalletToSupabase(recipient.id, transferTx[1]).catch(function(){});
 
   const txn = await prisma.transaction.create({
     data: {
@@ -271,7 +283,7 @@ router.post('/qr/pay', requireAuth, requireKYC, async (req, res) => {
   const wallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
   if (!wallet || wallet.balanceXaf < amount) return error(res, 'Saldo insuficiente', 422);
 
-  await prisma.$transaction([
+  const qrTx = await prisma.$transaction([
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { balanceXaf: { decrement: amount } } }),
     prisma.wallet.upsert({
       where: { userId: merchant.circularId },
@@ -279,6 +291,10 @@ router.post('/qr/pay', requireAuth, requireKYC, async (req, res) => {
       create: { userId: merchant.circularId, balanceXaf: Math.round(amount * 0.985) }
     })
   ]);
+
+  // FIX v1: sincronizar el wallet del cliente y del comercio
+  syncWalletToSupabase(req.user.sub, qrTx[0]).catch(function(){});
+  syncWalletToSupabase(merchant.circularId, qrTx[1]).catch(function(){});
 
   const txn = await prisma.transaction.create({
     data: {
@@ -371,6 +387,8 @@ router.post('/topup', requireAuth, requireKYC, async (req, res) => {
   ]);
 
   await triggerWebhook('topup.completed', { id: txn.id, amount, currency, method });
+  // FIX v1: sin esto, la recarga no se veía en XenderMoney
+  syncWalletToSupabase(req.user.sub, wallet).catch(function(){});
 
   return success(res, {
     id: txn.id, status: txn.status, amount, currency, method,
