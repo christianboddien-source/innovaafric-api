@@ -8,6 +8,7 @@ const prisma  = require('../config/prisma');
 const { success, error, paginate, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireKYC } = require('../middleware/auth');
 const { earnPoints } = require('../helpers/loyalty');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 // GET /v1/shop/products
 router.get('/products', async (req, res) => {
@@ -76,7 +77,7 @@ router.post('/orders', requireAuth, requireKYC, async (req, res) => {
   if (!wallet || wallet[payField] < payAmount) return error(res, 'Saldo insuficiente para el pago', 422);
 
   const orderId = `ord_${uuidv4().slice(0, 8)}`;
-  const [order] = await prisma.$transaction([
+  const [order, walletAfter] = await prisma.$transaction([
     prisma.order.create({
       data: {
         id: orderId,
@@ -95,6 +96,9 @@ router.post('/orders', requireAuth, requireKYC, async (req, res) => {
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { [payField]: { decrement: payAmount } } }),
     prisma.cartItem.deleteMany({ where: { userId: req.user.sub } })
   ]);
+
+  // FIX v1: sin esto, el pago del pedido no se veía reflejado en XenderMoney
+  syncWalletToSupabase(req.user.sub, walletAfter).catch(function(){});
 
   await triggerWebhook('order.created', { id: order.id, total_eur, items_count: order.items.length });
   const points_earned = await earnPoints(req.user.sub, total_eur, 0, 'shop_order', order.id);
