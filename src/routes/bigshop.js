@@ -8,6 +8,7 @@ const prisma  = require('../config/prisma');
 const { success, error, triggerWebhook } = require('../helpers/response');
 const { requireAuth } = require('../middleware/auth');
 const push = require('../services/push');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 // GET /v1/bigshop/products
 router.get('/products', async (req, res) => {
@@ -81,7 +82,7 @@ router.post('/orders', requireAuth, async (req, res) => {
     merchantUserId = merchant?.userId || null;
   }
 
-  const [gorder] = await prisma.$transaction([
+  const [gorder, walletAfter] = await prisma.$transaction([
     prisma.groceryOrder.create({
       data: {
         id: `groc_${uuidv4().slice(0, 8)}`,
@@ -99,6 +100,9 @@ router.post('/orders', requireAuth, async (req, res) => {
     }),
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { balanceXaf: { decrement: total_xaf } } })
   ]);
+
+  // FIX v1: sin esto, el pago del pedido no se veía reflejado en XenderMoney
+  syncWalletToSupabase(req.user.sub, walletAfter).catch(function(){});
 
   await triggerWebhook('order.created', { id: gorder.id, type: 'grocery', total_xaf });
 
