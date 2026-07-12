@@ -4,6 +4,7 @@ const router  = express.Router();
 const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const ADMIN = ['admin','super_admin','finance_officer','risk_officer','country_manager','regional_director'];
 
@@ -56,11 +57,14 @@ router.post('/funds/:id/invest', requireAuth, async (req, res) => {
     const wallet = await prisma.wallet.findUnique({ where: { userId } });
     if (!wallet || (wallet[balanceField] ?? 0) < parseFloat(amount)) return error(res, `Saldo ${curr} insuficiente`, 400);
 
-    await prisma.$transaction([
+    const investTx = await prisma.$transaction([
       prisma.wallet.update({ where: { userId }, data: { [balanceField]: { decrement: parseFloat(amount) } } }),
       prisma.fundInvestment.create({ data: { fundId: fund.id, userId, amount: parseFloat(amount), currency: curr } }),
       prisma.investmentFund.update({ where: { id: fund.id }, data: { raised: { increment: parseFloat(amount) } } })
     ]);
+
+    // FIX v1: sin esto, la inversión no se veía reflejada en XenderMoney
+    syncWalletToSupabase(userId, investTx[0]).catch(function(){});
 
     return success(res, { fundId: fund.id, fundName: fund.name, amount: parseFloat(amount), currency: curr, returnRate: fund.returnRate, message: '¡Inversión registrada!' }, 201);
   } catch (e) { return error(res, e.message, 500); }
