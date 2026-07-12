@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const prisma  = require('../config/prisma');
 const { success, error } = require('../helpers/response');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const CF = { EUR:'balanceEur', USD:'balanceUsd', XAF:'balanceXaf', XOF:'balanceXof' };
 
@@ -93,11 +94,13 @@ router.patch('/:id/disburse', requireAuth, requireRole('admin', 'super_admin', '
   if (loan.status !== 'approved') return error(res, 'Solo se pueden desembolsar préstamos aprobados', 400);
 
   const field = CF[loan.currency] || 'balanceXaf';
-  await prisma.wallet.upsert({
+  const walletAfter = await prisma.wallet.upsert({
     where:  { userId: loan.userId },
     update: { [field]: { increment: loan.amount } },
     create: { userId: loan.userId, [field]: loan.amount }
   });
+  // FIX v1: sin esto, el cliente no veía el préstamo desembolsado en XenderMoney
+  syncWalletToSupabase(loan.userId, walletAfter).catch(function(){});
   await prisma.transaction.create({
     data: {
       id: `lnd_${uuidv4().slice(0,8)}`,
