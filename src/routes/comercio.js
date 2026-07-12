@@ -7,6 +7,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { success: ok, error } = require('../helpers/response');
 const push = require('../services/push');
 const { iaCode } = require('../helpers/iacode');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const ADMIN = ['admin', 'super_admin', 'business_developer', 'country_manager'];
 
@@ -304,7 +305,7 @@ router.post('/orders/:id/cancel', requireAuth, async (req, res) => {
     }
     const { reason } = req.body;
 
-    await prisma.$transaction([
+    const cancelTx = await prisma.$transaction([
       prisma.groceryOrder.update({
         where: { id: order.id },
         data: { status: 'cancelled', notes: `${order.notes || ''} | Cancelada por el comercio: ${reason || 'sin stock'}`.trim() }
@@ -328,6 +329,9 @@ router.post('/orders/:id/cancel', requireAuth, async (req, res) => {
         }
       })
     ]);
+
+    // FIX v1: sin esto, el cliente no veía el reembolso en XenderMoney
+    syncWalletToSupabase(order.userId, cancelTx[1]).catch(function(){});
 
     return ok(res, { message: `Comanda cancelada y ${order.totalXaf.toLocaleString()} XAF reembolsados al cliente` });
   } catch (e) { return error(res, e.message); }
