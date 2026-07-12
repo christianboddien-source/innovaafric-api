@@ -7,6 +7,7 @@ const router  = express.Router();
 const prisma  = require('../config/prisma');
 const { success, error, paginate, triggerWebhook } = require('../helpers/response');
 const { requireAuth, requireKYC } = require('../middleware/auth');
+const { syncWalletToSupabase } = require('../helpers/supabaseSync'); // FIX v1: sincronización con Supabase
 
 const CURRENCY_FIELD = { EUR: 'balanceEur', USD: 'balanceUsd', XAF: 'balanceXaf', XOF: 'balanceXof' };
 
@@ -149,7 +150,10 @@ router.post('/:id/contribute', requireAuth, requireKYC, async (req, res) => {
     return error(res, `Saldo ${tontine.currency} insuficiente para la aportación`, 422);
   }
 
-  await prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: tontine.contributionAmount } } });
+  const walletAfterContribution = await prisma.wallet.update({ where: { userId: req.user.sub }, data: { [balanceField]: { decrement: tontine.contributionAmount } } });
+
+  // FIX v1: sin esto, la aportación no se veía reflejada en XenderMoney
+  syncWalletToSupabase(req.user.sub, walletAfterContribution).catch(function(){});
 
   const contribution = await prisma.tontineContribution.create({
     data: {
@@ -170,7 +174,7 @@ router.post('/:id/contribute', requireAuth, requireKYC, async (req, res) => {
       const nextRound = tontine.currentRound + 1;
       const newStatus = nextRound > tontine.members.length ? 'completed' : 'active';
 
-      await prisma.$transaction([
+      const payoutTx = await prisma.$transaction([
         prisma.wallet.upsert({
           where: { userId: beneficiary.userId },
           update: { [balanceField]: { increment: pot } },
@@ -179,6 +183,9 @@ router.post('/:id/contribute', requireAuth, requireKYC, async (req, res) => {
         prisma.tontineMember.update({ where: { id: beneficiary.id }, data: { hasReceived: true } }),
         prisma.tontine.update({ where: { id: tontine.id }, data: { currentRound: nextRound, status: newStatus } })
       ]);
+
+      // FIX v1: sin esto, el beneficiario no veía el pago de la ronda en XenderMoney
+      syncWalletToSupabase(beneficiary.userId, payoutTx[0]).catch(function(){});
 
       payout = { beneficiary_id: beneficiary.userId, amount: pot, currency: tontine.currency };
       await triggerWebhook('tontine.payout', { tontine_id: tontine.id, ...payout });
