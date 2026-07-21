@@ -82,6 +82,34 @@ async function main() {
     await prisma.groceryProduct.upsert({ where: { id: g.id }, update: {}, create: g });
   }
 
+  // Catálogo de bancos (estaba vacío: la app no ofrecía ninguno para elegir)
+  const banks = [
+    { id: 'bank_bgfi_ga',  name: 'BGFIBank Gabon',              country: 'GA', currency: 'XAF', swiftCode: 'BGFIGALI' },
+    { id: 'bank_bgfi_gq',  name: 'BGFIBank Guinea Ecuatorial',  country: 'GQ', currency: 'XAF', swiftCode: 'BGFIGQGX' },
+    { id: 'bank_ccei_gq',  name: 'CCEI Bank GE',                country: 'GQ', currency: 'XAF', swiftCode: 'CCEIGQGX' },
+    { id: 'bank_bange_gq', name: 'BANGE (Banco Nacional GE)',   country: 'GQ', currency: 'XAF', swiftCode: 'BANGGQGX' },
+    { id: 'bank_soc_gq',   name: 'Société Générale GE',         country: 'GQ', currency: 'XAF', swiftCode: 'SGGEGQGX' },
+    { id: 'bank_afri_cm',  name: 'Afriland First Bank',         country: 'CM', currency: 'XAF', swiftCode: 'CFHBCMCX' },
+    { id: 'bank_uba_cm',   name: 'UBA Cameroun',                country: 'CM', currency: 'XAF', swiftCode: 'UNAFCMCX' },
+    { id: 'bank_soc_cm',   name: 'Société Générale Cameroun',   country: 'CM', currency: 'XAF', swiftCode: 'SGCMCMCX' },
+    { id: 'bank_eco_sn',   name: 'Ecobank Sénégal',             country: 'SN', currency: 'XOF', swiftCode: 'ECOCSNDA' },
+    { id: 'bank_cbao_sn',  name: 'CBAO Groupe Attijariwafa',    country: 'SN', currency: 'XOF', swiftCode: 'CBAOSNDX' },
+    { id: 'bank_soc_ci',   name: 'Société Générale Côte d\'Ivoire', country: 'CI', currency: 'XOF', swiftCode: 'SGCICIAB' },
+    { id: 'bank_eco_ci',   name: 'Ecobank Côte d\'Ivoire',      country: 'CI', currency: 'XOF', swiftCode: 'ECOCCIAB' },
+    { id: 'bank_gtb_gh',   name: 'GTBank Ghana',                country: 'GH', currency: 'GHS', swiftCode: 'GTBIGHAC' },
+    { id: 'bank_eco_gh',   name: 'Ecobank Ghana',               country: 'GH', currency: 'GHS', swiftCode: 'ECOCGHAC' },
+    { id: 'bank_gtb_ng',   name: 'Guaranty Trust Bank',         country: 'NG', currency: 'NGN', swiftCode: 'GTBINGLA' },
+    { id: 'bank_zen_ng',   name: 'Zenith Bank',                 country: 'NG', currency: 'NGN', swiftCode: 'ZEIBNGLA' },
+    { id: 'bank_caixa_es', name: 'CaixaBank',                   country: 'ES', currency: 'EUR', swiftCode: 'CAIXESBB' },
+    { id: 'bank_bbva_es',  name: 'BBVA',                        country: 'ES', currency: 'EUR', swiftCode: 'BBVAESMM' },
+    { id: 'bank_santa_es', name: 'Banco Santander',             country: 'ES', currency: 'EUR', swiftCode: 'BSCHESMM' },
+    { id: 'bank_bnp_fr',   name: 'BNP Paribas',                 country: 'FR', currency: 'EUR', swiftCode: 'BNPAFRPP' },
+    { id: 'bank_ca_fr',    name: 'Crédit Agricole',             country: 'FR', currency: 'EUR', swiftCode: 'AGRIFRPP' }
+  ];
+  for (const b of banks) {
+    await prisma.bank.upsert({ where: { id: b.id }, update: {}, create: b });
+  }
+
   // Riders
   const riders = [
     { id: 'rider_001', name: 'Jean Pierre Ondo', phone: '+2406543210', zone: 'Malabo Norte', vehicle: 'moto',      status: 'available', rating: 4.8, deliveriesTotal: 342 },

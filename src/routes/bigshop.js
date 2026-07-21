@@ -82,10 +82,11 @@ router.post('/orders', requireAuth, async (req, res) => {
     merchantUserId = merchant?.userId || null;
   }
 
+  const gorderId = `groc_${uuidv4().slice(0, 8)}`;
   const [gorder, walletAfter] = await prisma.$transaction([
     prisma.groceryOrder.create({
       data: {
-        id: `groc_${uuidv4().slice(0, 8)}`,
+        id: gorderId,
         userId: req.user.sub,
         totalXaf: total_xaf,
         notes: notes || null,
@@ -98,7 +99,17 @@ router.post('/orders', requireAuth, async (req, res) => {
       },
       include: { items: true }
     }),
-    prisma.wallet.update({ where: { userId: req.user.sub }, data: { balanceXaf: { decrement: total_xaf } } })
+    prisma.wallet.update({ where: { userId: req.user.sub }, data: { balanceXaf: { decrement: total_xaf } } }),
+    // Sin esto la compra descontaba saldo pero no aparecía en el historial de movimientos
+    prisma.transaction.create({
+      data: {
+        id: `txn_${uuidv4().slice(0, 8)}`,
+        type: 'purchase', userId: req.user.sub,
+        amountSent: total_xaf, currencySent: 'XAF',
+        note: `Compra BigShop · ${orderItems.length} ${orderItems.length === 1 ? 'artículo' : 'artículos'}`,
+        reference: gorderId, status: 'completed'
+      }
+    })
   ]);
 
   // FIX v1: sin esto, el pago del pedido no se veía reflejado en XenderMoney

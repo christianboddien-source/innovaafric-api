@@ -77,6 +77,7 @@ router.post('/orders', requireAuth, requireKYC, async (req, res) => {
   if (!wallet || wallet[payField] < payAmount) return error(res, 'Saldo insuficiente para el pago', 422);
 
   const orderId = `ord_${uuidv4().slice(0, 8)}`;
+  const trackingId = `TRK_${uuidv4().slice(0, 10).toUpperCase()}`;
   const [order, walletAfter] = await prisma.$transaction([
     prisma.order.create({
       data: {
@@ -88,13 +89,23 @@ router.post('/orders', requireAuth, requireKYC, async (req, res) => {
         notes: notes || null,
         status: 'confirmed',
         estimatedDelivery: '4-5 días hábiles',
-        trackingId: `TRK_${uuidv4().slice(0, 10).toUpperCase()}`,
+        trackingId,
         items: { create: cart.map(i => ({ productId: i.productId, quantity: i.quantity, priceEur: i.priceEur, priceXaf: i.priceXaf })) }
       },
       include: { items: true }
     }),
     prisma.wallet.update({ where: { userId: req.user.sub }, data: { [payField]: { decrement: payAmount } } }),
-    prisma.cartItem.deleteMany({ where: { userId: req.user.sub } })
+    prisma.cartItem.deleteMany({ where: { userId: req.user.sub } }),
+    // Sin esto la compra descontaba saldo pero no aparecía en el historial de movimientos
+    prisma.transaction.create({
+      data: {
+        id: `txn_${uuidv4().slice(0, 8)}`,
+        type: 'purchase', userId: req.user.sub,
+        amountSent: payAmount, currencySent: payment_currency,
+        note: `Compra XenderShop · ${cart.length} ${cart.length === 1 ? 'artículo' : 'artículos'}`,
+        reference: orderId, status: 'completed'
+      }
+    })
   ]);
 
   // FIX v1: sin esto, el pago del pedido no se veía reflejado en XenderMoney

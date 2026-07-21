@@ -687,6 +687,12 @@ model UserBankAccount {
   accountNumber String
   accountName   String
   iban          String?
+  city          String?
+  currency      String?
+  holderPhone   String?
+  holderAddress String?
+  reference     String?
+  emoji         String?
   verified      Boolean  @default(false)
   createdAt     DateTime @default(now())
 
