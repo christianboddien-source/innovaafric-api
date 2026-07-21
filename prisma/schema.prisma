@@ -139,6 +139,7 @@ model Product {
   stock        Int     @default(0)
   origin       String?
   imageUrl     String?
+  discountPct  Int     @default(0)
   ceCertified  Boolean @default(true)
   deliveryDays Int     @default(5)
   ratingAvg    Float?
@@ -156,6 +157,7 @@ model GroceryProduct {
   category  String
   store     String
   available Boolean @default(true)
+  imageUrl  String?
 
   groceryOrderItems GroceryOrderItem[]
 }

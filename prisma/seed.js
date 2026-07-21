@@ -61,11 +61,11 @@ async function main() {
 
   // Productos
   const products = [
-    { id: 'prod_001', name: 'Smartphone Xiaomi A3',   priceEur: 189.99, priceXaf: 124699, category: 'electronics', stock: 45,  origin: 'China',   deliveryDays: 4 },
-    { id: 'prod_002', name: 'Ventilador Solar 20W',   priceEur: 49.99,  priceXaf: 32791,  category: 'energy',       stock: 120, origin: 'Vietnam', deliveryDays: 5 },
-    { id: 'prod_003', name: 'Mochila impermeable 30L',priceEur: 34.50,  priceXaf: 22635,  category: 'accessories',  stock: 78,  origin: 'China',   deliveryDays: 4 },
-    { id: 'prod_004', name: 'Auriculares Bluetooth',  priceEur: 25.99,  priceXaf: 17054,  category: 'electronics',  stock: 200, origin: 'China',   deliveryDays: 4 },
-    { id: 'prod_005', name: 'Kit herramientas solar', priceEur: 89.00,  priceXaf: 58380,  category: 'energy',       stock: 30,  origin: 'India',   deliveryDays: 5 }
+    { id: 'prod_001', name: 'Smartphone Xiaomi A3',   priceEur: 189.99, priceXaf: 124699, category: 'electronics', stock: 45,  origin: 'China',   deliveryDays: 4, imageUrl: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&h=300&fit=crop' },
+    { id: 'prod_002', name: 'Ventilador Solar 20W',   priceEur: 49.99,  priceXaf: 32791,  category: 'energy',       stock: 120, origin: 'Vietnam', deliveryDays: 5, discountPct: 20, imageUrl: 'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=400&h=300&fit=crop' },
+    { id: 'prod_003', name: 'Mochila impermeable 30L',priceEur: 34.50,  priceXaf: 22635,  category: 'accessories',  stock: 78,  origin: 'China',   deliveryDays: 4, imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=300&fit=crop' },
+    { id: 'prod_004', name: 'Auriculares Bluetooth',  priceEur: 25.99,  priceXaf: 17054,  category: 'electronics',  stock: 200, origin: 'China',   deliveryDays: 4, discountPct: 15, imageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=300&fit=crop' },
+    { id: 'prod_005', name: 'Kit herramientas solar', priceEur: 89.00,  priceXaf: 58380,  category: 'energy',       stock: 30,  origin: 'India',   deliveryDays: 5, imageUrl: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop' }
   ];
   for (const p of products) {
     await prisma.product.upsert({ where: { id: p.id }, update: {}, create: p });
@@ -73,10 +73,10 @@ async function main() {
 
   // Productos grocery
   const groceries = [
-    { id: 'groc_001', name: 'Arroz basmati 5kg',   priceXaf: 4500, category: 'cereales',       store: 'Supermercado Central' },
-    { id: 'groc_002', name: 'Aceite de palma 1L',   priceXaf: 1800, category: 'aceites',         store: 'Supermercado Central' },
-    { id: 'groc_003', name: 'Tomates frescos 1kg',  priceXaf: 800,  category: 'frutas_verduras', store: 'Mercado Local' },
-    { id: 'groc_004', name: 'Leche en polvo 400g',  priceXaf: 3200, category: 'lacteos',         store: 'Supermercado Central' }
+    { id: 'groc_001', name: 'Arroz basmati 5kg',   priceXaf: 4500, category: 'cereales',       store: 'Supermercado Central', imageUrl: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&h=300&fit=crop' },
+    { id: 'groc_002', name: 'Aceite de palma 1L',   priceXaf: 1800, category: 'aceites',         store: 'Supermercado Central', imageUrl: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&h=300&fit=crop' },
+    { id: 'groc_003', name: 'Tomates frescos 1kg',  priceXaf: 800,  category: 'frutas_verduras', store: 'Mercado Local',        imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&h=300&fit=crop' },
+    { id: 'groc_004', name: 'Leche en polvo 400g',  priceXaf: 3200, category: 'lacteos',         store: 'Supermercado Central', imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&h=300&fit=crop' }
   ];
   for (const g of groceries) {
     await prisma.groceryProduct.upsert({ where: { id: g.id }, update: {}, create: g });
