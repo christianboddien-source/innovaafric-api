@@ -140,6 +140,13 @@ app.use((req, _res, next) => {
 // ── Archivos estáticos públicos (manifest, sw, icons) ────
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ── Favicon ──────────────────────────────────────────────
+// El navegador pide /favicon.ico automáticamente. Sin esta ruta devolvía 404
+// y Firefox lo reportaba en consola como "URI no válida. Ha fallado la carga
+// del recurso de medios" — un error aparatoso que no rompía nada, pero
+// asustaba. Servimos el icono que ya existe en public/icons.
+app.get('/favicon.ico', (_req, res) => res.sendFile(path.join(__dirname, 'public/icons/favicon-32.png')));
+
 // ── Páginas web públicas ─────────────────────────────────
 app.get('/',          (_req, res) => res.sendFile(path.join(__dirname, 'src/views/innovaafric.html')));
 app.get('/money',     (_req, res) => res.sendFile(path.join(__dirname, 'src/views/xendermoney.html')));
