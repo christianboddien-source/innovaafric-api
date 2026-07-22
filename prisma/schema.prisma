@@ -36,6 +36,7 @@ enum UserRole {
 
 model User {
   id                String   @id
+  supabaseId        String?  @unique
   email             String   @unique
   name              String
   phone             String

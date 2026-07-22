@@ -146,6 +146,7 @@ router.post('/token', async (req, res) => {
         prisma.user.create({
           data: {
             id: newId,
+            supabaseId: sbUser.id,   // UUID completo, para sincronizar el wallet a Supabase
             name: meta.full_name || meta.name || sbUser.email.split('@')[0],
             email: sbUser.email,
             phone: meta.phone || '',
@@ -171,6 +172,13 @@ router.post('/token', async (req, res) => {
     }
 
     if (!user) return error(res, 'No se pudo encontrar ni crear usuario', 500);
+
+    // Backfill: guardar el UUID de Supabase si el usuario aún no lo tiene
+    // (cuentas creadas antes de este campo). Sin esto, el sync Railway→Supabase
+    // no encuentra la fila del wallet.
+    if (!user.supabaseId) {
+      try { await prisma.user.update({ where: { id: user.id }, data: { supabaseId: sbUser.id } }); } catch (e) {}
+    }
 
     // Sincronización continua: si el wallet de Railway está a cero y Supabase
     // tiene saldo, copiarlo (cubre cuentas antiguas y futuras en cada login)

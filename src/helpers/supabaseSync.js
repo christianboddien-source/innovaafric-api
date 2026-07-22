@@ -28,9 +28,24 @@
 //   datos reales por una condición de carrera.
 // ═══════════════════════════════════════════════════════════════════
 const axios = require('axios');
+const prisma = require('../config/prisma');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://spnfvmvrlexyiljwyola.supabase.co').replace(/\/+$/, '');
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// La tabla wallets de Supabase está indexada por el UUID de Supabase Auth, pero
+// el id de Railway es "usr_<primeros8>". Resolvemos el UUID real: si ya es un
+// UUID, se usa tal cual; si no, se busca el supabaseId guardado en el usuario.
+async function resolveSupabaseUserId(userId) {
+  if (UUID_RE.test(userId)) return userId;
+  try {
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { supabaseId: true } });
+    if (u && u.supabaseId) return u.supabaseId;
+  } catch (e) { /* si falla la búsqueda, caemos al userId original */ }
+  return userId;
+}
 
 // Mapea los nombres de campo de Prisma (Railway) a las columnas reales de la tabla `wallets` en Supabase
 const FIELD_MAP = {
@@ -62,9 +77,11 @@ async function syncWalletToSupabase(userId, wallet) {
   }
   if (Object.keys(payload).length === 0) return { synced: false, reason: 'no_fields_to_sync' };
 
+  const supabaseUserId = await resolveSupabaseUserId(userId);
+
   try {
     const res = await axios.patch(
-      SUPABASE_URL + '/rest/v1/wallets?user_id=eq.' + encodeURIComponent(userId),
+      SUPABASE_URL + '/rest/v1/wallets?user_id=eq.' + encodeURIComponent(supabaseUserId),
       payload,
       {
         headers: {
@@ -77,7 +94,7 @@ async function syncWalletToSupabase(userId, wallet) {
       }
     );
     if (!Array.isArray(res.data) || res.data.length === 0) {
-      console.warn('[supabaseSync] PATCH sin efecto — el wallet de userId=' + userId + ' no existe todavía en Supabase. Revisar manualmente (posible cuenta creada solo en Railway).');
+      console.warn('[supabaseSync] PATCH sin efecto — el wallet de userId=' + userId + ' (supabase=' + supabaseUserId + ') no existe todavía en Supabase. Revisar manualmente (posible cuenta creada solo en Railway).');
       return { synced: false, reason: 'wallet_not_found_in_supabase' };
     }
     return { synced: true };

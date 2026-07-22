@@ -42,6 +42,11 @@ async function main() {
       continue;
     }
 
+    // Backfill del UUID de Supabase para que el sync Railway→Supabase funcione
+    if (!rUser.supabaseId) {
+      try { await prisma.user.update({ where: { id: rUser.id }, data: { supabaseId: w.user_id } }); } catch (e) {}
+    }
+
     const rw = rUser.wallet;
     const railwayEmpty = !rw || ((rw.balanceEur || 0) === 0 && (rw.balanceUsd || 0) === 0 &&
                                  (rw.balanceXaf || 0) === 0 && (rw.balanceXof || 0) === 0);
