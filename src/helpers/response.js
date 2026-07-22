@@ -28,7 +28,7 @@ async function getRate(from, to) {
 }
 
 function calcFee(amount, type = 'send') {
-  const feeRates = { send: 0.02, withdraw: 0.015, p2p: 0 };
+  const feeRates = { send: 0.02, withdraw: 0.015, exchange: 0.005, p2p: 0 };
   return Math.round((amount * (feeRates[type] || 0.02)) * 100) / 100;
 }
 

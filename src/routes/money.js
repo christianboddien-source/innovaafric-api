@@ -173,6 +173,61 @@ router.post('/send', requireAuth, requireKYC, async (req, res) => {
   });
 });
 
+// POST /v1/money/convert — Cambio de divisa dentro del propio wallet.
+// Debita la divisa origen y acredita la destino (neto de comisión) en el mismo
+// usuario, al tipo de cambio real, dejando una transacción de tipo 'exchange'.
+router.post('/convert', requireAuth, requireKYC, async (req, res) => {
+  const { amount, from, to } = req.body;
+  if (!amount || !from || !to) return error(res, 'Campos requeridos: amount, from, to', 400);
+  if (amount <= 0) return error(res, 'El importe debe ser mayor que 0', 400);
+  if (from === to) return error(res, 'Las divisas de origen y destino deben ser distintas', 400);
+
+  const validCurrencies = ['EUR', 'USD', 'XAF', 'XOF'];
+  if (!validCurrencies.includes(from) || !validCurrencies.includes(to)) {
+    return error(res, `Divisa no soportada. Opciones: ${validCurrencies.join(', ')}`, 400);
+  }
+
+  const fromField = CURRENCY_FIELD[from];
+  const toField   = CURRENCY_FIELD[to];
+  const wallet = await prisma.wallet.findUnique({ where: { userId: req.user.sub } });
+  if (!wallet || (wallet[fromField] || 0) < amount) return error(res, 'Saldo insuficiente', 422);
+
+  const rate = await getRate(from, to);
+  if (!rate) return error(res, `Par de divisas no soportado: ${from}/${to}`, 400);
+
+  const fee = calcFee(amount, 'exchange');          // comisión de cambio (0,5%)
+  const net = amount - fee;
+  const amount_received = Math.round(net * rate * 100) / 100;
+
+  const walletAfter = await prisma.wallet.update({
+    where: { userId: req.user.sub },
+    data: { [fromField]: { decrement: amount }, [toField]: { increment: amount_received } }
+  });
+  syncWalletToSupabase(req.user.sub, walletAfter).catch(function(){});
+
+  const txn = await prisma.transaction.create({
+    data: {
+      id: `cnv_${uuidv4().slice(0, 8)}`,
+      type: 'exchange', userId: req.user.sub,
+      amountSent: amount, currencySent: from,
+      amountReceived: amount_received, currencyReceived: to,
+      fee, exchangeRate: rate, status: 'completed'
+    }
+  });
+
+  return success(res, {
+    id: txn.id, status: txn.status,
+    amount_sent: amount, currency_sent: from,
+    amount_received, currency_received: to,
+    fee, exchange_rate: rate,
+    balances: {
+      EUR: walletAfter.balanceEur || 0, USD: walletAfter.balanceUsd || 0,
+      XAF: walletAfter.balanceXaf || 0, XOF: walletAfter.balanceXof || 0
+    },
+    created_at: txn.createdAt
+  });
+});
+
 // POST /v1/money/withdraw — Reintegro / Cash-out
 router.post('/withdraw', requireAuth, requireKYC, async (req, res) => {
   const { amount, currency = 'XAF', method, destination } = req.body;
