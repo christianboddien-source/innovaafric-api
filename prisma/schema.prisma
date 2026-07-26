@@ -1270,3 +1270,43 @@ model AccountingEntry {
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
 }
+model VendorApplication {
+  id                    String    @id @default(cuid())
+  // ── Datos que envía el solicitante desde la web ──
+  businessName          String
+  email                 String
+  phone                 String?
+  country               String?
+  city                  String?
+  sector                String?
+  profile               String    @default("comprador") // comprador | proveedor
+  plan                  String?    // starter | business | business_prime | enterprise
+  monthlyVolume         String?
+  paymentMethod         String?
+  deliveryOption        String?
+  message               String?
+  // ── Estado del onboarding ──
+  status                String    @default("pending")
+  // pending | validated | contract_sent | contract_accepted | provisioned | rejected
+  // ── Contrato (aceptación por enlace de un clic) ──
+  contractToken         String?   @unique
+  contractSentAt        DateTime?
+  contractAcceptedAt    DateTime?
+  acceptedIp            String?
+  acceptedUserAgent     String?
+  // ── Revisión por el equipo ──
+  reviewedBy            String?
+  reviewedAt            DateTime?
+  rejectedReason        String?
+  // ── Provisión (cuenta /comercio creada) ──
+  provisionedUserId     String?
+  provisionedMerchantId String?
+  provisionedAt         DateTime?
+  // ── Meta ──
+  source                String    @default("xenderbigshop")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([status])
+  @@index([email])
+}
